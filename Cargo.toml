@@ -1,0 +1,6 @@
+[package]
+name = "os-config"
+version = "0.0.1"
+authors = ["majorz <zahari@resin.io>"]
+
+[dependencies]
