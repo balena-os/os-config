@@ -1,3 +1,11 @@
+extern crate clap;
+
+mod args;
+
+use args::get_cli_args;
+
 fn main() {
-    println!("os-config");
+    let args = get_cli_args();
+
+    println!("{:?}", args.path);
 }

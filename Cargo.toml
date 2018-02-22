@@ -1,6 +1,11 @@
 [package]
 name = "os-config"
 version = "0.0.1"
-authors = ["majorz <zahari@resin.io>"]
+authors = ["Zahari Petkov <zahari@resin.io>", "Andrei Gherzan <andrei@resin.io>"]
+description = "resinOS configuration tool"
 
 [dependencies]
+
+[dependencies.clap]
+version = "2.30"
+default-features = false
