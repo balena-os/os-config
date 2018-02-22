@@ -9,3 +9,7 @@ description = "resinOS configuration tool"
 [dependencies.clap]
 version = "2.30"
 default-features = false
+
+[dependencies.error-chain]
+version = "0.11"
+default-features = false
