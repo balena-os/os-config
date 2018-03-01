@@ -1,4 +1,5 @@
 extern crate clap;
+extern crate reqwest;
 
 #[macro_use]
 extern crate error_chain;
@@ -7,6 +8,7 @@ mod args;
 mod errors;
 
 use std::io::Write;
+use std::collections::HashMap;
 
 use errors::*;
 use args::get_cli_args;
@@ -28,6 +30,12 @@ fn main() {
 
 fn run() -> Result<()> {
     let args = get_cli_args();
+
+    let url = format!("{}{}", args.base_url, "configure");
+
+    let json: HashMap<String, HashMap<String, String>> = reqwest::get(&url)?.json()?;
+
+    println!("{:?}", json);
 
     let path_link = args.path.read_link().chain_err(|| ErrorKind::ReadLink)?;
 

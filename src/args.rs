@@ -1,11 +1,17 @@
 use clap::{App, Arg, ArgMatches};
 
 use std::path::PathBuf;
+use std::env;
 
 const DEFAULT_PATH: &str = "/etc/hosts";
 
+const DEFAULT_BASE_URL: &str = "https://api.resin.io/v1/";
+
+const BASE_URL_ENV_VAR: &str = "OS_CONFIG_BASE_URL";
+
 pub struct Args {
     pub path: PathBuf,
+    pub base_url: String,
 }
 
 pub fn get_cli_args() -> Args {
@@ -24,8 +30,9 @@ pub fn get_cli_args() -> Args {
         .get_matches();
 
     let path = get_path(&matches);
+    let base_url = get_base_url();
 
-    Args { path }
+    Args { path, base_url }
 }
 
 fn get_path(matches: &ArgMatches) -> PathBuf {
@@ -34,4 +41,11 @@ fn get_path(matches: &ArgMatches) -> PathBuf {
     } else {
         DEFAULT_PATH
     })
+}
+
+fn get_base_url() -> String {
+    match env::var(BASE_URL_ENV_VAR) {
+        Ok(val) => val.to_string(),
+        Err(_) => DEFAULT_BASE_URL.to_string(),
+    }
 }
