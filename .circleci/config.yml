@@ -3,7 +3,7 @@ version: 2
 jobs:
   test:
     docker:
-      - image: majorz/rust-test-deploy:rust-nightly-2018-01-08
+      - image: majorz/rust-test-deploy:rust-nightly-2018-02-19
     steps:
       - checkout
 
