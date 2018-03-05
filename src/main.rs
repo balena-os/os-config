@@ -4,8 +4,19 @@ extern crate reqwest;
 #[macro_use]
 extern crate error_chain;
 
+#[macro_use]
+extern crate serde_derive;
+
+extern crate serde_json;
+
+#[cfg(test)]
+#[macro_use]
+extern crate maplit;
+
 mod args;
 mod errors;
+mod os_config;
+mod os_config_api;
 
 use std::io::Write;
 use std::collections::HashMap;

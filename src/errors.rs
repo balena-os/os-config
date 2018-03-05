@@ -2,6 +2,7 @@ error_chain! {
     foreign_links {
         Io(::std::io::Error);
         Reqwest(::reqwest::Error);
+        SerdeJSON(::serde_json::Error);
     }
 
     errors {
