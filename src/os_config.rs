@@ -1,5 +1,12 @@
 use std::collections::HashMap;
 
+use serde_json;
+use serde_json::Value;
+
+use errors::*;
+
+pub const SCHEMA_VERSION: &str = "1.0.0";
+
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 struct OsConfig {
     services: Vec<Service>,
@@ -19,56 +26,76 @@ struct ConfigFile {
     perm: String,
 }
 
+pub fn validate_schema_version(json_data: &str) -> Result<()> {
+    let parsed: Value = serde_json::from_str(json_data)?;
+
+    match parsed.get("schema_version") {
+        Some(version_value) => {
+            match version_value.as_str() {
+                Some(schema_version) => {
+                    if schema_version == SCHEMA_VERSION {
+                        Ok(())
+                    } else {
+                        bail!(ErrorKind::UnexpectedShemaVersionJSON(SCHEMA_VERSION, schema_version.into()))
+                    }
+                },
+                _ => bail!(ErrorKind::SchemaVersionNotStringJSON)
+            }
+        }
+        _ => bail!(ErrorKind::MissingSchemaVersionJSON),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json;
 
     use super::*;
 
+    const JSON_DATA: &str = r#"{
+        "services": [
+            {
+                "id": "openvpn",
+                "files": {
+                    "config": {
+                        "path": "/etc/openvpn/openvpn.conf",
+                        "perm": ""
+                    },
+                    "ca": {
+                        "path": "/etc/openvpn/ca.crt",
+                        "perm": ""
+                    },
+                    "up": {
+                        "path": "/etc/openvpn/upscript.sh",
+                        "perm": "0755"
+                    },
+                    "down": {
+                        "path": "/etc/openvpn/downscript.sh",
+                        "perm": "0755"
+                    }
+                },
+                "systemd_services": [
+                    "openvpn.service"
+                ]
+            },
+            {
+                "id": "dropbear",
+                "files": {
+                    "authorized_keys": {
+                        "path": "/home/root/.ssh/authorized_keys",
+                        "perm": ""
+                    }
+                },
+                "systemd_services": []
+
+            }
+        ],
+        "schema_version": "1.0.0"
+    }"#;
+
     #[test]
     fn parse_os_config_v1() {
-        let data = r#"{
-            "services": [
-                {
-                    "id": "openvpn",
-                    "files": {
-                        "config": {
-                            "path": "/etc/openvpn/openvpn.conf",
-                            "perm": ""
-                        },
-                        "ca": {
-                            "path": "/etc/openvpn/ca.crt",
-                            "perm": ""
-                        },
-                        "up": {
-                            "path": "/etc/openvpn/upscript.sh",
-                            "perm": "0755"
-                        },
-                        "down": {
-                            "path": "/etc/openvpn/downscript.sh",
-                            "perm": "0755"
-                        }
-                    },
-                    "systemd_services": [
-                        "openvpn.service"
-                    ]
-                },
-                {
-                    "id": "dropbear",
-                    "files": {
-                        "authorized_keys": {
-                            "path": "/home/root/.ssh/authorized_keys",
-                            "perm": ""
-                        }
-                    },
-                    "systemd_services": []
-
-                }
-            ],
-            "schema_version": "1.0.0"
-        }"#;
-
-        let parsed: OsConfig = serde_json::from_str(data).unwrap();
+        let parsed: OsConfig = serde_json::from_str(JSON_DATA).unwrap();
 
         let expected = OsConfig {
             services: vec![
@@ -109,5 +136,10 @@ mod tests {
         };
 
         assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn validate_os_config_v1_schema_version() {
+        assert_eq!(validate_schema_version(JSON_DATA).unwrap(), ());
     }
 }

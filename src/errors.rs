@@ -9,6 +9,19 @@ error_chain! {
         ReadLink {
             description("Read link failed")
         }
+
+        MissingSchemaVersionJSON {
+            description("Missing `schema_version`")
+        }
+
+        SchemaVersionNotStringJSON {
+            description("`schema_version` should be a string")
+        }
+
+        UnexpectedShemaVersionJSON(expected: &'static str, got: String) {
+            description("Expected schema version")
+            display("Expected schema version {}, got {}", expected, got)
+        }
     }
 }
 
