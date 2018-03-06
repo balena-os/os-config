@@ -44,7 +44,7 @@ mod tests {
                     "authorized_keys".into() => "authorized keys here".into()
                 }
             },
-            schema_version: "1.0.0".into(),
+            schema_version: SCHEMA_VERSION.into(),
         };
 
         assert_eq!(parsed, expected);

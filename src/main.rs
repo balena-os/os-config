@@ -19,10 +19,10 @@ mod os_config;
 mod os_config_api;
 
 use std::io::Write;
-use std::collections::HashMap;
 
 use errors::*;
 use args::get_cli_args;
+use os_config::read_os_config;
 
 fn main() {
     if let Err(ref e) = run() {
@@ -42,15 +42,13 @@ fn main() {
 fn run() -> Result<()> {
     let args = get_cli_args();
 
+    let _os_config = read_os_config(&args.config_path)?;
+
     let url = format!("{}{}", args.base_url, "configure");
 
-    let json: HashMap<String, HashMap<String, String>> = reqwest::get(&url)?.json()?;
+    let json_data = reqwest::get(&url)?.text()?;
 
-    println!("{:?}", json);
-
-    let path_link = args.path.read_link().chain_err(|| ErrorKind::ReadLink)?;
-
-    println!("{}", path_link.to_string_lossy());
+    println!("{}", json_data);
 
     Ok(())
 }

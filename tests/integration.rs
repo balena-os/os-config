@@ -2,6 +2,12 @@ extern crate assert_cli;
 extern crate futures;
 extern crate hyper;
 extern crate serde_json;
+extern crate tempdir;
+
+use std::sync::mpsc;
+use std::thread;
+use std::fs::File;
+use std::io::Write;
 
 use futures::Future;
 use futures::sync::oneshot;
@@ -11,34 +17,65 @@ use hyper::{Get, StatusCode};
 use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Http, Request, Response, Service};
 
-use std::sync::mpsc;
-use std::thread;
-use std::net::SocketAddr;
-use std::collections::HashMap;
-
 const BASE_URL_ENV_VAR: &str = "OS_CONFIG_BASE_URL";
-
-type Config = HashMap<String, HashMap<String, String>>;
+const CONFIG_PATH_ENV_VAR: &str = "OS_CONFIG_CONFIG_PATH";
 
 #[test]
 fn calling_without_args() {
-    let mut config = HashMap::new();
+    let tmp_dir = tempdir::TempDir::new("os-config").unwrap();
+    let os_config_path = tmp_dir.path().join("os-config.json");
+    let mut os_config_file = File::create(&os_config_path).unwrap();
 
-    config.insert("service1".to_string(), HashMap::new());
+    let os_config = format!(
+        r#"{{
+            "services": [
+                {{
+                    "id": "dropbear",
+                    "files": {{
+                        "authorized_keys": {{
+                            "path": "{}/authorized_keys",
+                            "perm": ""
+                        }}
+                    }},
+                    "systemd_services": []
 
-    let serve = serve_config(config);
+                }}
+            ],
+            "schema_version": "1.0.0"
+        }}"#,
+        tmp_dir.path().to_str().unwrap()
+    );
 
-    let base_url = format!("http://{}/", serve.addr);
+    os_config_file.write_all(os_config.as_bytes()).unwrap();
+    os_config_file.sync_all().unwrap();
+
+    let os_config_api = r#"{
+        "services": {
+            "dropbear": {
+                "authorized_keys": "authorized keys here"
+            }
+        },
+        "schema_version": "1.0.0"
+    }"#.to_string();
+
+    let serve = serve_config(os_config_api);
+
+    let env = assert_cli::Environment::inherit()
+        .insert(BASE_URL_ENV_VAR, &serve.base_url)
+        .insert(CONFIG_PATH_ENV_VAR, &os_config_path);
 
     assert_cli::Assert::main_binary()
-        .with_env(assert_cli::Environment::inherit().insert(BASE_URL_ENV_VAR, base_url))
-        .fails()
+        .with_env(env)
+        .succeeds()
         .stdout()
-        .contains("service1")
+        .contains("authorized keys here")
         .unwrap();
+
+    drop(os_config_file);
+    tmp_dir.close().unwrap();
 }
 
-fn serve_config(config: Config) -> Serve {
+fn serve_config(config: String) -> Serve {
     let (addr_tx, addr_rx) = mpsc::channel();
     let (shutdown_tx, shutdown_rx) = oneshot::channel();
 
@@ -57,15 +94,17 @@ fn serve_config(config: Config) -> Serve {
 
     let addr = addr_rx.recv().unwrap();
 
+    let base_url = format!("http://{}/", addr);
+
     Serve {
-        addr,
+        base_url,
         shutdown_tx: Some(shutdown_tx),
         thread: Some(thread),
     }
 }
 
 struct Serve {
-    addr: SocketAddr,
+    base_url: String,
     shutdown_tx: Option<oneshot::Sender<()>>,
     thread: Option<thread::JoinHandle<()>>,
 }
@@ -78,11 +117,11 @@ impl Drop for Serve {
 }
 
 struct ConfigurationService {
-    config: Config,
+    config: String,
 }
 
 impl ConfigurationService {
-    fn new(config: Config) -> Self {
+    fn new(config: String) -> Self {
         ConfigurationService { config }
     }
 }
@@ -96,8 +135,7 @@ impl Service for ConfigurationService {
     fn call(&self, req: Request) -> Self::Future {
         futures::future::ok(match (req.method(), req.path()) {
             (&Get, "/configure") => {
-                let serialized = serde_json::to_string(&self.config).unwrap();
-                let bytes = serialized.as_bytes().to_vec();
+                let bytes = self.config.as_bytes().to_vec();
                 Response::new()
                     .with_header(ContentLength(bytes.len() as u64))
                     .with_header(ContentType::json())

@@ -6,8 +6,8 @@ error_chain! {
     }
 
     errors {
-        ReadLink {
-            description("Read link failed")
+        ReadOSConfig {
+            description("Reading `os-config.json` failed")
         }
 
         MissingSchemaVersionJSON {
@@ -27,7 +27,7 @@ error_chain! {
 
 pub fn exit_code(e: &Error) -> i32 {
     match *e.kind() {
-        ErrorKind::ReadLink => 3,
+        ErrorKind::ReadOSConfig => 3,
         _ => 1,
     }
 }

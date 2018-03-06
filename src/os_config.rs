@@ -1,4 +1,7 @@
 use std::collections::HashMap;
+use std::path::Path;
+use std::fs::File;
+use std::io::Read;
 
 use serde_json;
 use serde_json::Value;
@@ -8,40 +11,57 @@ use errors::*;
 pub const SCHEMA_VERSION: &str = "1.0.0";
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
-struct OsConfig {
-    services: Vec<Service>,
-    schema_version: String,
+pub struct OsConfig {
+    pub services: Vec<Service>,
+    pub schema_version: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
-struct Service {
-    id: String,
-    files: HashMap<String, ConfigFile>,
-    systemd_services: Vec<String>,
+pub struct Service {
+    pub id: String,
+    pub files: HashMap<String, ConfigFile>,
+    pub systemd_services: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
-struct ConfigFile {
-    path: String,
-    perm: String,
+pub struct ConfigFile {
+    pub path: String,
+    pub perm: String,
+}
+
+pub fn read_os_config(config_path: &Path) -> Result<OsConfig> {
+    read_os_config_impl(config_path).chain_err(|| ErrorKind::ReadOSConfig)
+}
+
+fn read_os_config_impl(config_path: &Path) -> Result<OsConfig> {
+    let mut f = File::open(config_path)?;
+
+    let mut json_data = String::new();
+
+    f.read_to_string(&mut json_data)?;
+
+    validate_schema_version(&json_data)?;
+
+    Ok(serde_json::from_str(&json_data)?)
 }
 
 pub fn validate_schema_version(json_data: &str) -> Result<()> {
     let parsed: Value = serde_json::from_str(json_data)?;
 
     match parsed.get("schema_version") {
-        Some(version_value) => {
-            match version_value.as_str() {
-                Some(schema_version) => {
-                    if schema_version == SCHEMA_VERSION {
-                        Ok(())
-                    } else {
-                        bail!(ErrorKind::UnexpectedShemaVersionJSON(SCHEMA_VERSION, schema_version.into()))
-                    }
-                },
-                _ => bail!(ErrorKind::SchemaVersionNotStringJSON)
+        Some(version_value) => match version_value.as_str() {
+            Some(schema_version) => {
+                if schema_version == SCHEMA_VERSION {
+                    Ok(())
+                } else {
+                    bail!(ErrorKind::UnexpectedShemaVersionJSON(
+                        SCHEMA_VERSION,
+                        schema_version.into()
+                    ))
+                }
             }
-        }
+            _ => bail!(ErrorKind::SchemaVersionNotStringJSON),
+        },
         _ => bail!(ErrorKind::MissingSchemaVersionJSON),
     }
 }
@@ -132,7 +152,7 @@ mod tests {
                     systemd_services: vec![],
                 },
             ],
-            schema_version: "1.0.0".into(),
+            schema_version: SCHEMA_VERSION.into(),
         };
 
         assert_eq!(parsed, expected);
