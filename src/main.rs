@@ -23,6 +23,7 @@ use std::io::Write;
 use errors::*;
 use args::get_cli_args;
 use os_config::read_os_config;
+use os_config_api::get_os_config_api;
 
 fn main() {
     if let Err(ref e) = run() {
@@ -44,11 +45,9 @@ fn run() -> Result<()> {
 
     let _os_config = read_os_config(&args.config_path)?;
 
-    let url = format!("{}{}", args.base_url, "configure");
+    let os_config_api = get_os_config_api(&args.base_url)?;
 
-    let json_data = reqwest::get(&url)?.text()?;
-
-    println!("{}", json_data);
+    println!("{:?}", os_config_api);
 
     Ok(())
 }

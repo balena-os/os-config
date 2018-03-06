@@ -1,9 +1,27 @@
 use std::collections::HashMap;
 
+use reqwest;
+
+use serde_json;
+
+use errors::*;
+
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
-struct OsConfigApi {
-    services: HashMap<String, HashMap<String, String>>,
-    schema_version: String,
+pub struct OsConfigApi {
+    pub services: HashMap<String, HashMap<String, String>>,
+    pub schema_version: String,
+}
+
+pub fn get_os_config_api(base_url: &str) -> Result<OsConfigApi> {
+    get_os_config_api_impl(base_url).chain_err(|| ErrorKind::GetOSConfigApi)
+}
+
+fn get_os_config_api_impl(base_url: &str) -> Result<OsConfigApi> {
+    let url = format!("{}{}", base_url, "configure");
+
+    let json_data = reqwest::get(&url)?.text()?;
+
+    Ok(serde_json::from_str(&json_data)?)
 }
 
 #[cfg(test)]

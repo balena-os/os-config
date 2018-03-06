@@ -10,6 +10,10 @@ error_chain! {
             description("Reading `os-config.json` failed")
         }
 
+        GetOSConfigApi {
+            description("Getting `os-config-api.json` failed")
+        }
+
         MissingSchemaVersionJSON {
             description("Missing `schema_version`")
         }
@@ -28,6 +32,7 @@ error_chain! {
 pub fn exit_code(e: &Error) -> i32 {
     match *e.kind() {
         ErrorKind::ReadOSConfig => 3,
+        ErrorKind::GetOSConfigApi => 4,
         _ => 1,
     }
 }
