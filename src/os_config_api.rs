@@ -5,6 +5,7 @@ use reqwest;
 use serde_json;
 
 use errors::*;
+use os_config::validate_schema_version;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct OsConfigApi {
@@ -20,6 +21,8 @@ fn get_os_config_api_impl(base_url: &str) -> Result<OsConfigApi> {
     let url = format!("{}{}", base_url, "configure");
 
     let json_data = reqwest::get(&url)?.text()?;
+
+    validate_schema_version(&json_data)?;
 
     Ok(serde_json::from_str(&json_data)?)
 }
