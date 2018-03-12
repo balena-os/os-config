@@ -3,11 +3,15 @@ extern crate futures;
 extern crate hyper;
 extern crate serde_json;
 extern crate tempdir;
+extern crate unindent;
 
 use std::sync::mpsc;
 use std::thread;
-use std::fs::File;
+use std::fs::{remove_file, OpenOptions};
+use std::os::unix::fs::OpenOptionsExt;
 use std::io::Write;
+use std::time;
+use std::process::Command;
 
 use futures::Future;
 use futures::sync::oneshot;
@@ -17,48 +21,61 @@ use hyper::{Get, StatusCode};
 use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Http, Request, Response, Service};
 
+use tempdir::TempDir;
+
 const BASE_URL_ENV_VAR: &str = "OS_CONFIG_BASE_URL";
 const CONFIG_PATH_ENV_VAR: &str = "OS_CONFIG_CONFIG_PATH";
 
 #[test]
 fn calling_without_args() {
-    let tmp_dir = tempdir::TempDir::new("os-config").unwrap();
-    let os_config_path = tmp_dir.path().join("os-config.json");
-    let mut os_config_file = File::create(&os_config_path).unwrap();
+    let tmp_dir = TempDir::new("os-config").unwrap();
 
-    let os_config = format!(
-        r#"{{
-            "services": [
-                {{
-                    "id": "dropbear",
-                    "files": {{
-                        "authorized_keys": {{
-                            "path": "{}/authorized_keys",
-                            "perm": ""
-                        }}
-                    }},
-                    "systemd_services": []
+    let script_path = create_service_script(&tmp_dir);
 
-                }}
-            ],
-            "schema_version": "1.0.0"
-        }}"#,
+    let unit_path = create_unit(1, &script_path);
+
+    enable_service(1);
+
+    let os_config = unindent::unindent(&format!(
+        r#"
+            {{
+                "services": [
+                    {{
+                        "id": "dropbear",
+                        "files": {{
+                            "authorized_keys": {{
+                                "path": "{}/authorized_keys",
+                                "perm": ""
+                            }}
+                        }},
+                        "systemd_services": []
+
+                    }}
+                ],
+                "schema_version": "1.0.0"
+            }}
+            "#,
         tmp_dir.path().to_str().unwrap()
+    ));
+
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+
+    let os_config_api = unindent::unindent(
+        r#"
+        {
+            "services": {
+                "dropbear": {
+                    "authorized_keys": "authorized keys here"
+                }
+            },
+            "schema_version": "1.0.0"
+        }"#,
     );
 
-    os_config_file.write_all(os_config.as_bytes()).unwrap();
-    os_config_file.sync_all().unwrap();
-
-    let os_config_api = r#"{
-        "services": {
-            "dropbear": {
-                "authorized_keys": "authorized keys here"
-            }
-        },
-        "schema_version": "1.0.0"
-    }"#.to_string();
-
     let serve = serve_config(os_config_api);
+
+    let duration = time::Duration::from_secs(20);
+    thread::sleep(duration);
 
     let env = assert_cli::Environment::inherit()
         .insert(BASE_URL_ENV_VAR, &serve.base_url)
@@ -71,7 +88,9 @@ fn calling_without_args() {
         .contains("authorized keys here")
         .unwrap();
 
-    drop(os_config_file);
+    disable_service(1);
+
+    remove_file(unit_path).unwrap();
     tmp_dir.close().unwrap();
 }
 
@@ -144,4 +163,82 @@ impl Service for ConfigurationService {
             _ => Response::new().with_status(StatusCode::NotFound),
         })
     }
+}
+
+fn create_service_script(tmp_dir: &TempDir) -> String {
+    let contents = unindent::unindent(
+        r#"
+        #!/usr/bin/env bash
+
+        sleep infinity
+        "#,
+    );
+    create_tmp_file(tmp_dir, "fake-service.sh", &contents, Some(0o755))
+}
+
+fn create_unit(index: usize, exec_path: &str) -> String {
+    let unit = unindent::unindent(&format!(
+        r#"
+            [Unit]
+            Description=Fake Service #{}
+
+            [Service]
+            Type=simple
+            ExecStart={}
+
+            [Install]
+            WantedBy=multi-user.target
+            "#,
+        index, exec_path
+    ));
+
+    let path = format!("/etc/systemd/system/{}", unit_name(index));
+
+    create_file(&path, &unit, None);
+
+    path
+}
+
+fn enable_service(index: usize) {
+    exec(&format!("systemctl --system enable {}", unit_name(index)));
+}
+
+fn disable_service(index: usize) {
+    exec(&format!("systemctl --system disable {}", unit_name(index)));
+}
+
+fn unit_name(index: usize) -> String {
+    format!("fake-service-{}.service", index)
+}
+
+fn create_tmp_file(tmp_dir: &TempDir, name: &str, contents: &str, mode: Option<u32>) -> String {
+    let path = tmp_dir.path().join(name).to_str().unwrap().to_string();
+    create_file(&path, contents, mode);
+    path
+}
+
+fn create_file(path: &str, contents: &str, mode: Option<u32>) {
+    let mut open_options = OpenOptions::new();
+
+    open_options.create(true).write(true);
+
+    if let Some(mode) = mode {
+        open_options.mode(mode);
+    }
+
+    let mut file = open_options.open(path).unwrap();
+
+    file.write_all(contents.as_bytes()).unwrap();
+    file.sync_all().unwrap();
+}
+
+fn exec(cmd: &str) {
+    let cmd_vec = cmd.split_whitespace().collect::<Vec<_>>();
+
+    let status = Command::new(cmd_vec[0])
+        .args(&cmd_vec[1..])
+        .status()
+        .unwrap();
+
+    assert!(status.success());
 }
