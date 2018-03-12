@@ -4,18 +4,24 @@ jobs:
   test:
     machine: true
 
+    environment:
+      DOCKER_IMAGE: majorz/rust-test-deploy-systemd:rust-nightly-2018-03-07
+
     steps:
       - checkout
 
-      - run: |
-          docker pull majorz/rust-test-deploy-systemd:rust-nightly-2018-03-07
-          docker run --rm --privileged -v /:/host majorz/rust-test-deploy-systemd:rust-nightly-2018-03-07 setup
-          docker run -d --name sysd --security-opt seccomp=unconfined --tmpfs /run --tmpfs /run/lock -v $PWD:/work -v /sys/fs/cgroup:/sys/fs/cgroup:ro -t majorz/rust-test-deploy-systemd:rust-nightly-2018-03-07
-          docker ps -a
-          sudo mkdir -p /tmp/cgroup/systemd && sudo mount -t cgroup systemd /tmp/cgroup/systemd -o ro,noexec,nosuid,nodev,none,name=systemd
-          docker exec -i sysd cargo fmt -- --write-mode=diff
-          docker exec -i sysd cargo clippy -- -D warnings
-          docker exec -i sysd cargo test
+      - run: docker pull $DOCKER_IMAGE
+      - run: docker run --rm --privileged -v /:/host $DOCKER_IMAGE setup
+      - run: docker run -d --name sysd --security-opt seccomp=unconfined --tmpfs /run --tmpfs /run/lock -v $PWD:/work -v /sys/fs/cgroup:/sys/fs/cgroup:ro -t $DOCKER_IMAGE
+
+      - run: docker ps -a
+
+      # Prepare cgroup on the host at /tmp/cgroup to avoid error: "failed to connect to bus: no such file or directory"
+      - run: sudo mkdir -p /tmp/cgroup/systemd && sudo mount -t cgroup systemd /tmp/cgroup/systemd -o ro,noexec,nosuid,nodev,none,name=systemd
+
+      - run: docker exec -i sysd cargo fmt -- --write-mode=diff
+      - run: docker exec -i sysd cargo clippy -- -D warnings
+      - run: docker exec -i sysd cargo test
 
 workflows:
   version: 2
