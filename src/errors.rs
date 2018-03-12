@@ -31,6 +31,11 @@ error_chain! {
             description("`systemctl` failed")
             display("`systemctl {}` failed", args)
         }
+
+        RestartService(name: String) {
+            description("Restarting service failed")
+            display("Restarting {} failed", name)
+        }
     }
 }
 
@@ -38,6 +43,7 @@ pub fn exit_code(e: &Error) -> i32 {
     match *e.kind() {
         ErrorKind::ReadOSConfig => 3,
         ErrorKind::GetOSConfigApi => 4,
+        ErrorKind::RestartService(_) => 5,
         _ => 1,
     }
 }

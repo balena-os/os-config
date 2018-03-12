@@ -2,7 +2,12 @@ use std::process::Command;
 
 use errors::*;
 
-#[allow(dead_code)] 
+pub fn restart_service(name: &str) -> Result<()> {
+    println!("Restarting {}...", name);
+
+    systemctl(&format!("restart {}", name)).chain_err(|| ErrorKind::RestartService(name.into()))
+}
+
 fn systemctl(args: &str) -> Result<()> {
     let args_vec = args.split_whitespace().collect::<Vec<_>>();
 

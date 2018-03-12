@@ -120,11 +120,20 @@ fn calling_without_args() {
         .insert(BASE_URL_ENV_VAR, &serve.base_url)
         .insert(CONFIG_PATH_ENV_VAR, &os_config_path);
 
+    let output = unindent::unindent(
+        r#"
+        Restarting mock-service-1.service...
+        Restarting mock-service-2.service...
+        Restarting mock-service-3.service...
+        Restarting mock-service-4.service...
+        "#,
+    );
+
     assert_cli::Assert::main_binary()
         .with_env(env)
         .succeeds()
         .stdout()
-        .contains("MOCK-3-0123456789")
+        .is(output)
         .unwrap();
 
     remove_mock_service(1);

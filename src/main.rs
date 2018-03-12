@@ -44,11 +44,15 @@ fn main() {
 fn run() -> Result<()> {
     let args = get_cli_args();
 
-    let _os_config = read_os_config(&args.config_path)?;
+    let os_config = read_os_config(&args.config_path)?;
 
-    let os_config_api = get_os_config_api(&args.base_url)?;
+    let _os_config_api = get_os_config_api(&args.base_url)?;
 
-    println!("{:?}", os_config_api);
+    for service in &os_config.services {
+        for systemd_service in &service.systemd_services {
+            systemd::restart_service(systemd_service)?;
+        }
+    }
 
     Ok(())
 }
