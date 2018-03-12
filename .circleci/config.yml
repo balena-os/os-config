@@ -21,7 +21,7 @@ jobs:
 
       - run: docker exec -i sysd cargo fmt -- --write-mode=diff
       - run: docker exec -i sysd cargo clippy -- -D warnings
-      - run: docker exec -i sysd cargo test
+      - run: docker exec -i sysd cargo test -- --nocapture
 
 workflows:
   version: 2

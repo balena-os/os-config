@@ -10,7 +10,6 @@ use std::thread;
 use std::fs::{remove_file, OpenOptions};
 use std::os::unix::fs::OpenOptionsExt;
 use std::io::Write;
-use std::time;
 use std::process::Command;
 
 use futures::Future;
@@ -26,29 +25,64 @@ use tempdir::TempDir;
 const BASE_URL_ENV_VAR: &str = "OS_CONFIG_BASE_URL";
 const CONFIG_PATH_ENV_VAR: &str = "OS_CONFIG_CONFIG_PATH";
 
+/*******************************************************************************
+*  Integration tests
+*/
+
 #[test]
 fn calling_without_args() {
     let tmp_dir = TempDir::new("os-config").unwrap();
 
     let script_path = create_service_script(&tmp_dir);
 
-    let unit_path = create_unit(1, &script_path);
-
-    enable_service(1);
+    create_mock_service(1, &script_path);
+    create_mock_service(2, &script_path);
+    create_mock_service(3, &script_path);
+    create_mock_service(4, &script_path);
 
     let os_config = unindent::unindent(&format!(
         r#"
             {{
                 "services": [
                     {{
-                        "id": "dropbear",
+                        "id": "no-systemd",
                         "files": {{
-                            "authorized_keys": {{
-                                "path": "{}/authorized_keys",
-                                "perm": ""
+                            "main": {{
+                                "path": "{0}/no-systemd.conf",
+                                "perm": "755"
                             }}
                         }},
                         "systemd_services": []
+
+                    }},
+                    {{
+                        "id": "mock-1-2",
+                        "files": {{
+                            "mock-1": {{
+                                "path": "{0}/mock-1.conf",
+                                "perm": ""
+                            }},
+                            "mock-2": {{
+                                "path": "{0}/mock-2.conf",
+                                "perm": ""
+                            }}
+                        }},
+                        "systemd_services": ["mock-service-1.service", "mock-service-2.service"]
+
+                    }},
+                    {{
+                        "id": "mock-3-4",
+                        "files": {{
+                            "mock-3": {{
+                                "path": "{0}/mock-3.conf",
+                                "perm": ""
+                            }},
+                            "mock-4": {{
+                                "path": "{0}/mock-4.conf",
+                                "perm": ""
+                            }}
+                        }},
+                        "systemd_services": ["mock-service-3.service", "mock-service-4.service"]
 
                     }}
                 ],
@@ -64,8 +98,16 @@ fn calling_without_args() {
         r#"
         {
             "services": {
-                "dropbear": {
-                    "authorized_keys": "authorized keys here"
+                "no-systemd": {
+                    "main": "NO-SYSTEMD\n0123456789\n0123456789\n0123456789\n0123456789\n"
+                },
+                "mock-1-2": {
+                    "mock-1": "MOCK-1-0123456789",
+                    "mock-2": "MOCK-2-0123456789"
+                },
+                "mock-3-4": {
+                    "mock-3": "MOCK-3-0123456789",
+                    "mock-4": "MOCK-4-0123456789"
                 }
             },
             "schema_version": "1.0.0"
@@ -73,9 +115,6 @@ fn calling_without_args() {
     );
 
     let serve = serve_config(os_config_api);
-
-    let duration = time::Duration::from_secs(20);
-    thread::sleep(duration);
 
     let env = assert_cli::Environment::inherit()
         .insert(BASE_URL_ENV_VAR, &serve.base_url)
@@ -85,14 +124,20 @@ fn calling_without_args() {
         .with_env(env)
         .succeeds()
         .stdout()
-        .contains("authorized keys here")
+        .contains("MOCK-3-0123456789")
         .unwrap();
 
-    disable_service(1);
+    remove_mock_service(1);
+    remove_mock_service(2);
+    remove_mock_service(3);
+    remove_mock_service(4);
 
-    remove_file(unit_path).unwrap();
     tmp_dir.close().unwrap();
 }
+
+/*******************************************************************************
+*  Mock JSON HTTP server
+*/
 
 fn serve_config(config: String) -> Serve {
     let (addr_tx, addr_rx) = mpsc::channel();
@@ -165,6 +210,10 @@ impl Service for ConfigurationService {
     }
 }
 
+/*******************************************************************************
+*  Mock services
+*/
+
 fn create_service_script(tmp_dir: &TempDir) -> String {
     let contents = unindent::unindent(
         r#"
@@ -173,14 +222,24 @@ fn create_service_script(tmp_dir: &TempDir) -> String {
         sleep infinity
         "#,
     );
-    create_tmp_file(tmp_dir, "fake-service.sh", &contents, Some(0o755))
+    create_tmp_file(tmp_dir, "mock-service.sh", &contents, Some(0o755))
 }
 
-fn create_unit(index: usize, exec_path: &str) -> String {
+fn create_mock_service(index: usize, exec_path: &str) {
+    create_unit(index, exec_path);
+    enable_service(index);
+}
+
+fn remove_mock_service(index: usize) {
+    disable_service(index);
+    remove_file(unit_path(index)).unwrap();
+}
+
+fn create_unit(index: usize, exec_path: &str) {
     let unit = unindent::unindent(&format!(
         r#"
             [Unit]
-            Description=Fake Service #{}
+            Description=Mock Service #{}
 
             [Service]
             Type=simple
@@ -192,24 +251,38 @@ fn create_unit(index: usize, exec_path: &str) -> String {
         index, exec_path
     ));
 
-    let path = format!("/etc/systemd/system/{}", unit_name(index));
+    let path = unit_path(index);
 
     create_file(&path, &unit, None);
-
-    path
 }
 
 fn enable_service(index: usize) {
-    exec(&format!("systemctl --system enable {}", unit_name(index)));
+    systemctl(&format!("--system enable {}", unit_name(index)));
 }
 
 fn disable_service(index: usize) {
-    exec(&format!("systemctl --system disable {}", unit_name(index)));
+    systemctl(&format!("--system disable {}", unit_name(index)));
+}
+
+fn unit_path(index: usize) -> String {
+    format!("/etc/systemd/system/{}", unit_name(index))
 }
 
 fn unit_name(index: usize) -> String {
-    format!("fake-service-{}.service", index)
+    format!("mock-service-{}.service", index)
 }
+
+fn systemctl(args: &str) {
+    let args_vec = args.split_whitespace().collect::<Vec<_>>();
+
+    let status = Command::new("systemctl").args(&args_vec).status().unwrap();
+
+    assert!(status.success())
+}
+
+/*******************************************************************************
+*  File handling
+*/
 
 fn create_tmp_file(tmp_dir: &TempDir, name: &str, contents: &str, mode: Option<u32>) -> String {
     let path = tmp_dir.path().join(name).to_str().unwrap().to_string();
@@ -230,15 +303,4 @@ fn create_file(path: &str, contents: &str, mode: Option<u32>) {
 
     file.write_all(contents.as_bytes()).unwrap();
     file.sync_all().unwrap();
-}
-
-fn exec(cmd: &str) {
-    let cmd_vec = cmd.split_whitespace().collect::<Vec<_>>();
-
-    let status = Command::new(cmd_vec[0])
-        .args(&cmd_vec[1..])
-        .status()
-        .unwrap();
-
-    assert!(status.success());
 }

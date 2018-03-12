@@ -17,6 +17,7 @@ mod args;
 mod errors;
 mod os_config;
 mod os_config_api;
+mod systemd;
 
 use std::io::Write;
 

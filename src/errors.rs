@@ -26,6 +26,11 @@ error_chain! {
             description("Expected schema version")
             display("Expected schema version {}, got {}", expected, got)
         }
+
+        SystemCtl(args: String) {
+            description("`systemctl` failed")
+            display("`systemctl {}` failed", args)
+        }
     }
 }
 
