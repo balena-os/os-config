@@ -7,10 +7,10 @@ extern crate unindent;
 
 use std::sync::mpsc;
 use std::thread;
-use std::fs::{remove_file, OpenOptions};
-use std::os::unix::fs::OpenOptionsExt;
-use std::io::Write;
 use std::process::Command;
+use std::fs::{remove_file, File, OpenOptions};
+use std::io::{Read, Write};
+use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 
 use futures::Future;
 use futures::sync::oneshot;
@@ -32,64 +32,60 @@ const CONFIG_PATH_ENV_VAR: &str = "OS_CONFIG_CONFIG_PATH";
 #[test]
 fn calling_without_args() {
     let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
     let script_path = create_service_script(&tmp_dir);
 
     create_mock_service(1, &script_path);
     create_mock_service(2, &script_path);
     create_mock_service(3, &script_path);
-    create_mock_service(4, &script_path);
 
     let os_config = unindent::unindent(&format!(
         r#"
-            {{
-                "services": [
-                    {{
-                        "id": "not-a-service-1",
-                        "files": {{
-                            "main": {{
-                                "path": "{0}/not-a-service-1.conf",
-                                "perm": "755"
-                            }}
-                        }},
-                        "systemd_services": []
-
+        {{
+            "services": [
+                {{
+                    "id": "not-a-service-1",
+                    "files": {{
+                        "main": {{
+                            "path": "{0}/not-a-service-1.conf",
+                            "perm": "755"
+                        }}
                     }},
-                    {{
-                        "id": "mock-1-2",
-                        "files": {{
-                            "mock-1": {{
-                                "path": "{0}/mock-1.conf",
-                                "perm": "600"
-                            }},
-                            "mock-2": {{
-                                "path": "{0}/mock-2.conf",
-                                "perm": "755"
-                            }}
-                        }},
-                        "systemd_services": ["mock-service-1.service", "mock-service-2.service"]
+                    "systemd_services": []
 
+                }},
+                {{
+                    "id": "mock-1-2",
+                    "files": {{
+                        "mock-1": {{
+                            "path": "{0}/mock-1.conf",
+                            "perm": "600"
+                        }},
+                        "mock-2": {{
+                            "path": "{0}/mock-2.conf",
+                            "perm": "755"
+                        }}
                     }},
-                    {{
-                        "id": "mock-3-4",
-                        "files": {{
-                            "mock-3": {{
-                                "path": "{0}/mock-3.conf",
-                                "perm": ""
-                            }},
-                            "mock-4": {{
-                                "path": "{0}/mock-4.conf",
-                                "perm": ""
-                            }}
-                        }},
-                        "systemd_services": ["mock-service-3.service", "mock-service-4.service"]
+                    "systemd_services": ["mock-service-1.service", "mock-service-2.service"]
 
-                    }}
-                ],
-                "schema_version": "1.0.0"
-            }}
-            "#,
-        tmp_dir.path().to_str().unwrap()
+                }},
+                {{
+                    "id": "mock-3",
+                    "files": {{
+                        "mock-3": {{
+                            "path": "{0}/mock-3.conf",
+                            "perm": ""
+                        }}
+                    }},
+                    "systemd_services": ["mock-service-3.service"]
+
+                }}
+            ],
+            "schema_version": "1.0.0"
+        }}
+        "#,
+        tmp_dir_path
     ));
 
     let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
@@ -102,12 +98,11 @@ fn calling_without_args() {
                     "main": "NO-SYSTEMD\n0123456789\n0123456789\n0123456789\n0123456789\n"
                 },
                 "mock-1-2": {
-                    "mock-1": "MOCK-1-0123456789",
+                    "mock-1": "MOCK-1-АБВГДЕЖЗИЙ",
                     "mock-2": "MOCK-2-0123456789"
                 },
-                "mock-3-4": {
-                    "mock-3": "MOCK-3-0123456789",
-                    "mock-4": "MOCK-4-0123456789"
+                "mock-3": {
+                    "mock-3": "MOCK-3-0123456789"
                 }
             },
             "schema_version": "1.0.0"
@@ -125,7 +120,6 @@ fn calling_without_args() {
         Restarting mock-service-1.service...
         Restarting mock-service-2.service...
         Restarting mock-service-3.service...
-        Restarting mock-service-4.service...
         "#,
     );
 
@@ -136,10 +130,33 @@ fn calling_without_args() {
         .is(output)
         .unwrap();
 
+    validate_file(
+        &format!("{}/not-a-service-1.conf", tmp_dir_path),
+        "NO-SYSTEMD\n0123456789\n0123456789\n0123456789\n0123456789\n",
+        Some(0o755),
+    );
+
+    validate_file(
+        &format!("{}/mock-1.conf", tmp_dir_path),
+        "MOCK-1-АБВГДЕЖЗИЙ",
+        Some(0o600),
+    );
+
+    validate_file(
+        &format!("{}/mock-2.conf", tmp_dir_path),
+        "MOCK-2-0123456789",
+        Some(0o755),
+    );
+
+    validate_file(
+        &format!("{}/mock-3.conf", tmp_dir_path),
+        "MOCK-3-0123456789",
+        None,
+    );
+
     remove_mock_service(1);
     remove_mock_service(2);
     remove_mock_service(3);
-    remove_mock_service(4);
 
     tmp_dir.close().unwrap();
 }
@@ -312,4 +329,19 @@ fn create_file(path: &str, contents: &str, mode: Option<u32>) {
 
     file.write_all(contents.as_bytes()).unwrap();
     file.sync_all().unwrap();
+}
+
+fn validate_file(path: &str, contents: &str, mode: Option<u32>) {
+    let mut file = File::open(path).unwrap();
+
+    if let Some(mode) = mode {
+        let metadata = file.metadata().unwrap();
+        let read_mode = metadata.permissions().mode();
+        assert_eq!(mode & read_mode, mode);
+    }
+
+    let mut read_contents = String::new();
+    file.read_to_string(&mut read_contents).unwrap();
+
+    assert_eq!(&read_contents, contents);
 }
