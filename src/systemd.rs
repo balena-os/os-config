@@ -14,7 +14,7 @@ fn systemctl(args: &str) -> Result<()> {
     let status = Command::new("systemctl").args(&args_vec).status()?;
 
     if !status.success() {
-        bail!(ErrorKind::SystemCtl(args.into()));
+        bail!(ErrorKind::Systemctl(args.into()));
     }
 
     Ok(())

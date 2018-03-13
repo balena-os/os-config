@@ -45,10 +45,10 @@ fn calling_without_args() {
             {{
                 "services": [
                     {{
-                        "id": "no-systemd",
+                        "id": "not-a-service-1",
                         "files": {{
                             "main": {{
-                                "path": "{0}/no-systemd.conf",
+                                "path": "{0}/not-a-service-1.conf",
                                 "perm": "755"
                             }}
                         }},
@@ -60,11 +60,11 @@ fn calling_without_args() {
                         "files": {{
                             "mock-1": {{
                                 "path": "{0}/mock-1.conf",
-                                "perm": ""
+                                "perm": "600"
                             }},
                             "mock-2": {{
                                 "path": "{0}/mock-2.conf",
-                                "perm": ""
+                                "perm": "755"
                             }}
                         }},
                         "systemd_services": ["mock-service-1.service", "mock-service-2.service"]
@@ -98,7 +98,7 @@ fn calling_without_args() {
         r#"
         {
             "services": {
-                "no-systemd": {
+                "not-a-service-1": {
                     "main": "NO-SYSTEMD\n0123456789\n0123456789\n0123456789\n0123456789\n"
                 },
                 "mock-1-2": {

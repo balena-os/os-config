@@ -13,6 +13,24 @@ pub struct OsConfigApi {
     pub schema_version: String,
 }
 
+impl OsConfigApi {
+    pub fn get_config_contents<'a>(
+        &'a self,
+        service_id: &str,
+        config_name: &str,
+    ) -> Result<&'a str> {
+        let contents_map = self.services
+            .get(service_id)
+            .chain_err(|| ErrorKind::ServiceNotFoundJSON(service_id.into()))?;
+
+        let contents = contents_map
+            .get(config_name)
+            .chain_err(|| ErrorKind::ConfigNotFoundJSON(service_id.into(), config_name.into()))?;
+
+        Ok(contents as &str)
+    }
+}
+
 pub fn get_os_config_api(base_url: &str) -> Result<OsConfigApi> {
     get_os_config_api_impl(base_url).chain_err(|| ErrorKind::GetOSConfigApi)
 }

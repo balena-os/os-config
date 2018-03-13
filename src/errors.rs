@@ -27,7 +27,17 @@ error_chain! {
             display("Expected schema version {}, got {}", expected, got)
         }
 
-        SystemCtl(args: String) {
+        ServiceNotFoundJSON(service_id: String) {
+            description("Service not found in `os-config-api.json`")
+            display("Service `{}` not found in `os-config-api.json`", service_id)
+        }
+
+        ConfigNotFoundJSON(service_id: String, name: String) {
+            description("Config not found in `os-config-api.json`")
+            display("Service `{}` config `{}` not found in `os-config-api.json`", service_id, name)
+        }
+
+        Systemctl(args: String) {
             description("`systemctl` failed")
             display("`systemctl {}` failed", args)
         }
@@ -35,6 +45,16 @@ error_chain! {
         RestartService(name: String) {
             description("Restarting service failed")
             display("Restarting {} failed", name)
+        }
+
+        WriteFile(path: String) {
+            description("Writing file failed")
+            display("Writing `{}` failed", path)
+        }
+
+        ParsePermissionMode(mode: String) {
+            description("Parsing permission mode failed")
+            display("Parsing permission mode `{}` failed", mode)
         }
     }
 }
@@ -44,6 +64,9 @@ pub fn exit_code(e: &Error) -> i32 {
         ErrorKind::ReadOSConfig => 3,
         ErrorKind::GetOSConfigApi => 4,
         ErrorKind::RestartService(_) => 5,
+        ErrorKind::WriteFile(_) => 6,
+        ErrorKind::ServiceNotFoundJSON(_) => 7,
+        ErrorKind::ConfigNotFoundJSON(_, _) => 8,
         _ => 1,
     }
 }

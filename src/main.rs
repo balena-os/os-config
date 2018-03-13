@@ -1,3 +1,5 @@
+#![recursion_limit = "1024"]
+
 extern crate clap;
 extern crate reqwest;
 
@@ -18,6 +20,7 @@ mod errors;
 mod os_config;
 mod os_config_api;
 mod systemd;
+mod fs;
 
 use std::io::Write;
 
@@ -46,9 +49,14 @@ fn run() -> Result<()> {
 
     let os_config = read_os_config(&args.config_path)?;
 
-    let _os_config_api = get_os_config_api(&args.base_url)?;
+    let os_config_api = get_os_config_api(&args.base_url)?;
 
     for service in &os_config.services {
+        for (name, config_file) in &service.files {
+            let contents = os_config_api.get_config_contents(&service.id, name)?;
+            fs::write_file(&config_file.path, contents, &config_file.perm)?;
+        }
+
         for systemd_service in &service.systemd_services {
             systemd::restart_service(systemd_service)?;
         }
