@@ -3,6 +3,8 @@ error_chain! {
         Io(::std::io::Error);
         Reqwest(::reqwest::Error);
         SerdeJSON(::serde_json::Error);
+        DBus(::dbus::Error);
+        DBusTypeMismatch(::dbus::arg::TypeMismatchError);
     }
 
     errors {
@@ -37,14 +39,9 @@ error_chain! {
             display("Service `{}` config `{}` not found in `os-config-api.json`", service_id, name)
         }
 
-        Systemctl(args: String) {
-            description("`systemctl` failed")
-            display("`systemctl {}` failed", args)
-        }
-
-        RestartService(name: String) {
-            description("Restarting service failed")
-            display("Restarting {} failed", name)
+        ReloadRestartService(name: String) {
+            description("Reloading or restarting service failed")
+            display("Reloading or restarting {} failed", name)
         }
 
         WriteFile(path: String) {
@@ -63,7 +60,7 @@ pub fn exit_code(e: &Error) -> i32 {
     match *e.kind() {
         ErrorKind::ReadOSConfig => 3,
         ErrorKind::GetOSConfigApi => 4,
-        ErrorKind::RestartService(_) => 5,
+        ErrorKind::ReloadRestartService(_) => 5,
         ErrorKind::WriteFile(_) => 6,
         ErrorKind::ServiceNotFoundJSON(_) => 7,
         ErrorKind::ConfigNotFoundJSON(_, _) => 8,

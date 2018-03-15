@@ -1,6 +1,7 @@
 #![recursion_limit = "1024"]
 
 extern crate clap;
+extern crate dbus;
 extern crate reqwest;
 
 #[macro_use]
@@ -58,7 +59,7 @@ fn run() -> Result<()> {
         }
 
         for systemd_service in &service.systemd_services {
-            systemd::restart_service(systemd_service)?;
+            systemd::reload_or_restart_service(systemd_service)?;
         }
     }
 
