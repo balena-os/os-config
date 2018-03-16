@@ -84,14 +84,6 @@ mod tests {
                     "ca": {
                         "path": "/etc/openvpn/ca.crt",
                         "perm": ""
-                    },
-                    "up": {
-                        "path": "/etc/openvpn/upscript.sh",
-                        "perm": "0755"
-                    },
-                    "down": {
-                        "path": "/etc/openvpn/downscript.sh",
-                        "perm": "0755"
                     }
                 },
                 "systemd_services": [
@@ -99,7 +91,7 @@ mod tests {
                 ]
             },
             {
-                "id": "dropbear",
+                "id": "ssh",
                 "files": {
                     "authorized_keys": {
                         "path": "/home/root/.ssh/authorized_keys",
@@ -129,20 +121,12 @@ mod tests {
                         "ca".into() => ConfigFile {
                             path: "/etc/openvpn/ca.crt".into(),
                             perm: "".into()
-                        },
-                        "up".into() => ConfigFile {
-                            path: "/etc/openvpn/upscript.sh".into(),
-                            perm: "0755".into()
-                        },
-                        "down".into() => ConfigFile {
-                            path: "/etc/openvpn/downscript.sh".into(),
-                            perm: "0755".into()
                         }
                     },
                     systemd_services: vec!["openvpn.service".into()],
                 },
                 Service {
-                    id: "dropbear".into(),
+                    id: "ssh".into(),
                     files: hashmap!{
                         "authorized_keys".into() => ConfigFile {
                             path: "/home/root/.ssh/authorized_keys".into(),
