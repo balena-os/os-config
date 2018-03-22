@@ -33,6 +33,8 @@ use config_json::merge_config_json;
 use os_config::read_os_config;
 use os_config_api::get_os_config_api;
 
+const SUPERVISOR_SERVICE: &str = "resin-supervisor.service";
+
 fn main() {
     if let Err(ref e) = run() {
         let stderr = &mut ::std::io::stderr();
@@ -70,6 +72,8 @@ fn run() -> Result<()> {
             systemd::reload_or_restart_service(systemd_service)?;
         }
     }
+
+    systemd::reload_or_restart_service(SUPERVISOR_SERVICE)?;
 
     Ok(())
 }

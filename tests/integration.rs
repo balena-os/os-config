@@ -26,6 +26,8 @@ const BASE_URL_REDEFINE: &str = "BASE_URL_REDEFINE";
 const OS_CONFIG_PATH_REDEFINE: &str = "OS_CONFIG_PATH_REDEFINE";
 const CONFIG_JSON_PATH_REDEFINE: &str = "CONFIG_JSON_PATH_REDEFINE";
 
+const SUPERVISOR_SERVICE: &str = "resin-supervisor.service";
+
 /*******************************************************************************
 *  Integration tests
 */
@@ -37,9 +39,15 @@ fn calling_without_args() {
 
     let script_path = create_service_script(&tmp_dir);
 
-    create_mock_service(1, &script_path);
-    create_mock_service(2, &script_path);
-    create_mock_service(3, &script_path);
+    let service_1 = unit_name(1);
+    let service_2 = unit_name(2);
+    let service_3 = unit_name(3);
+
+    create_mock_service(SUPERVISOR_SERVICE, &script_path);
+
+    create_mock_service(&service_1, &script_path);
+    create_mock_service(&service_2, &script_path);
+    create_mock_service(&service_3, &script_path);
 
     let config_json = unindent::unindent(
         r#"
@@ -161,6 +169,7 @@ fn calling_without_args() {
         Reloading or restarting mock-service-1.service...
         Reloading or restarting mock-service-2.service...
         Reloading or restarting mock-service-3.service...
+        Reloading or restarting resin-supervisor.service...
         "#,
     );
 
@@ -223,9 +232,11 @@ fn calling_without_args() {
         "#,
     );
 
-    remove_mock_service(1);
-    remove_mock_service(2);
-    remove_mock_service(3);
+    remove_mock_service(SUPERVISOR_SERVICE);
+
+    remove_mock_service(&service_1);
+    remove_mock_service(&service_2);
+    remove_mock_service(&service_3);
 
     tmp_dir.close().unwrap();
 }
@@ -320,21 +331,21 @@ fn create_service_script(tmp_dir: &TempDir) -> String {
     create_tmp_file(tmp_dir, "mock-service.sh", &contents, Some(0o755))
 }
 
-fn create_mock_service(index: usize, exec_path: &str) {
-    create_unit(index, exec_path);
-    enable_service(index);
+fn create_mock_service(name: &str, exec_path: &str) {
+    create_unit(name, exec_path);
+    enable_service(name);
 }
 
-fn remove_mock_service(index: usize) {
-    disable_service(index);
-    remove_file(unit_path(index)).unwrap();
+fn remove_mock_service(name: &str) {
+    disable_service(name);
+    remove_file(unit_path(name)).unwrap();
 }
 
-fn create_unit(index: usize, exec_path: &str) {
+fn create_unit(name: &str, exec_path: &str) {
     let unit = unindent::unindent(&format!(
         r#"
             [Unit]
-            Description=Mock Service #{}
+            Description={}
 
             [Service]
             Type=simple
@@ -342,25 +353,25 @@ fn create_unit(index: usize, exec_path: &str) {
 
             [Install]
             WantedBy=multi-user.target
-            "#,
-        index, exec_path
+        "#,
+        name, exec_path
     ));
 
-    let path = unit_path(index);
+    let path = unit_path(name);
 
     create_file(&path, &unit, None);
 }
 
-fn enable_service(index: usize) {
-    systemctl(&format!("--system enable {}", unit_name(index)));
+fn enable_service(name: &str) {
+    systemctl(&format!("--system enable {}", name));
 }
 
-fn disable_service(index: usize) {
-    systemctl(&format!("--system disable {}", unit_name(index)));
+fn disable_service(name: &str) {
+    systemctl(&format!("--system disable {}", name));
 }
 
-fn unit_path(index: usize) -> String {
-    format!("/etc/systemd/system/{}", unit_name(index))
+fn unit_path(name: &str) -> String {
+    format!("/etc/systemd/system/{}", name)
 }
 
 fn unit_name(index: usize) -> String {
