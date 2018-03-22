@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::thread;
+use std::time::Duration;
 
 use reqwest;
 
@@ -31,18 +33,49 @@ impl OsConfigApi {
     }
 }
 
-pub fn get_os_config_api(base_url: &str) -> Result<OsConfigApi> {
-    get_os_config_api_impl(base_url).chain_err(|| ErrorKind::GetOSConfigApi)
+pub fn get_os_config_api(base_url: &str, retry_limit: u64) -> Result<OsConfigApi> {
+    get_os_config_api_impl(base_url, retry_limit).chain_err(|| ErrorKind::GetOSConfigApi)
 }
 
-fn get_os_config_api_impl(base_url: &str) -> Result<OsConfigApi> {
+fn get_os_config_api_impl(base_url: &str, retry_limit: u64) -> Result<OsConfigApi> {
     let url = format!("{}{}", base_url, "configure");
 
-    let json_data = reqwest::get(&url)?.text()?;
+    let json_data = retry_get(&url, retry_limit)?.text()?;
 
     validate_schema_version(&json_data)?;
 
     Ok(serde_json::from_str(&json_data)?)
+}
+
+fn retry_get(url: &str, retry_limit: u64) -> Result<reqwest::Response> {
+    let mut sleeped = 0;
+
+    loop {
+        match reqwest::get(url) {
+            Ok(response) => {
+                return Ok(response);
+            }
+            _ => {
+                if sleeped >= retry_limit {
+                    bail!(ErrorKind::RetryLimitReached(retry_limit));
+                }
+            }
+        }
+
+        let sleep = if sleeped < 10 {
+            1
+        } else if sleeped < 30 {
+            2
+        } else if sleeped < 60 {
+            5
+        } else {
+            10
+        };
+
+        thread::sleep(Duration::from_secs(sleep));
+
+        sleeped += sleep;
+    }
 }
 
 #[cfg(test)]

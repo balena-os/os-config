@@ -59,6 +59,11 @@ error_chain! {
             description("Parsing permission mode failed")
             display("Parsing permission mode `{}` failed", mode)
         }
+
+        RetryLimitReached(retry_limit: u64) {
+            description("Retry limit reached")
+            display("Retry limit of {} seconds reached", retry_limit)
+        }
     }
 }
 

@@ -5,8 +5,8 @@ extern crate serde_json;
 extern crate tempdir;
 extern crate unindent;
 
-use std::sync::mpsc;
 use std::thread;
+use std::time::Duration;
 use std::process::Command;
 use std::fs::{remove_file, File, OpenOptions};
 use std::io::{Read, Write};
@@ -27,6 +27,8 @@ const OS_CONFIG_PATH_REDEFINE: &str = "OS_CONFIG_PATH_REDEFINE";
 const CONFIG_JSON_PATH_REDEFINE: &str = "CONFIG_JSON_PATH_REDEFINE";
 
 const SUPERVISOR_SERVICE: &str = "resin-supervisor.service";
+
+const MOCK_JSON_SERVER_ADDRESS: &str = "127.0.0.1:54673";
 
 /*******************************************************************************
 *  Integration tests
@@ -157,7 +159,7 @@ fn calling_without_args() {
         "#,
     );
 
-    let serve = serve_config(os_config_api);
+    let serve = serve_config(os_config_api, 5);
 
     let env = assert_cli::Environment::inherit()
         .insert(BASE_URL_REDEFINE, &serve.base_url)
@@ -245,26 +247,24 @@ fn calling_without_args() {
 *  Mock JSON HTTP server
 */
 
-fn serve_config(config: String) -> Serve {
-    let (addr_tx, addr_rx) = mpsc::channel();
+fn serve_config(config: String, sleep: u64) -> Serve {
     let (shutdown_tx, shutdown_rx) = oneshot::channel();
 
-    let addr = "127.0.0.1:0".parse().unwrap();
+    let addr = MOCK_JSON_SERVER_ADDRESS.parse().unwrap();
 
     let thread = thread::Builder::new()
         .name("json-server".to_string())
         .spawn(move || {
+            thread::sleep(Duration::from_secs(sleep));
+
             let srv = Http::new()
                 .bind(&addr, move || Ok(ConfigurationService::new(config.clone())))
                 .unwrap();
-            addr_tx.send(srv.local_addr().unwrap()).unwrap();
             srv.run_until(shutdown_rx.then(|_| Ok(()))).unwrap();
         })
         .unwrap();
 
-    let addr = addr_rx.recv().unwrap();
-
-    let base_url = format!("http://{}/", addr);
+    let base_url = format!("http://{}/", MOCK_JSON_SERVER_ADDRESS);
 
     Serve {
         base_url,

@@ -59,7 +59,7 @@ fn run() -> Result<()> {
 
     let os_config = read_os_config(&args.os_config_path)?;
 
-    let os_config_api = get_os_config_api(&args.base_url)?;
+    let os_config_api = get_os_config_api(&args.base_url, args.retry_limit)?;
 
     for service in &os_config.services {
         for (name, config_file) in &service.files {
