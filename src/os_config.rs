@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 use std::path::Path;
-use std::fs::File;
-use std::io::Read;
 
 use serde_json;
 use serde_json::Value;
 
 use errors::*;
+use fs::read_file;
 
 pub const SCHEMA_VERSION: &str = "1.0.0";
 
@@ -29,16 +28,12 @@ pub struct ConfigFile {
     pub perm: String,
 }
 
-pub fn read_os_config(config_path: &Path) -> Result<OsConfig> {
-    read_os_config_impl(config_path).chain_err(|| ErrorKind::ReadOSConfig)
+pub fn read_os_config(os_config_path: &Path) -> Result<OsConfig> {
+    read_os_config_impl(os_config_path).chain_err(|| ErrorKind::ReadOSConfig)
 }
 
-fn read_os_config_impl(config_path: &Path) -> Result<OsConfig> {
-    let mut f = File::open(config_path)?;
-
-    let mut json_data = String::new();
-
-    f.read_to_string(&mut json_data)?;
+fn read_os_config_impl(os_config_path: &Path) -> Result<OsConfig> {
+    let json_data = read_file(os_config_path)?;
 
     validate_schema_version(&json_data)?;
 

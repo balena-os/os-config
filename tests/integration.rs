@@ -22,8 +22,9 @@ use hyper::server::{Http, Request, Response, Service};
 
 use tempdir::TempDir;
 
-const BASE_URL_ENV_VAR: &str = "OS_CONFIG_BASE_URL";
-const CONFIG_PATH_ENV_VAR: &str = "OS_CONFIG_CONFIG_PATH";
+const BASE_URL_REDEFINE: &str = "BASE_URL_REDEFINE";
+const OS_CONFIG_PATH_REDEFINE: &str = "OS_CONFIG_PATH_REDEFINE";
+const CONFIG_JSON_PATH_REDEFINE: &str = "CONFIG_JSON_PATH_REDEFINE";
 
 /*******************************************************************************
 *  Integration tests
@@ -39,6 +40,44 @@ fn calling_without_args() {
     create_mock_service(1, &script_path);
     create_mock_service(2, &script_path);
     create_mock_service(3, &script_path);
+
+    let config_json = unindent::unindent(
+        r#"
+        {
+            "deviceType": "raspberrypi3",
+            "hostname": "resin",
+            "persistentLogging": false
+        }
+        "#,
+    );
+
+    let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
+
+    let config_arg_json = unindent::unindent(
+        r#"
+        {
+            "applicationName": "aaaaaa",
+            "applicationId": 123456,
+            "deviceType": "raspberrypi3",
+            "userId": 654321,
+            "username": "username",
+            "appUpdatePollInterval": 60000,
+            "listenPort": 48484,
+            "vpnPort": 443,
+            "apiEndpoint": "https://api.resin.io",
+            "vpnEndpoint": "vpn.resin.io",
+            "registryEndpoint": "registry2.resin.io",
+            "deltaEndpoint": "https://delta.resin.io",
+            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+            "apiKey": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1.prod"
+        }
+        "#,
+    );
+
+    let config_arg_json_path = create_tmp_file(&tmp_dir, "config-arg.json", &config_arg_json, None);
 
     let os_config = unindent::unindent(&format!(
         r#"
@@ -106,14 +145,16 @@ fn calling_without_args() {
                 }
             },
             "schema_version": "1.0.0"
-        }"#,
+        }
+        "#,
     );
 
     let serve = serve_config(os_config_api);
 
     let env = assert_cli::Environment::inherit()
-        .insert(BASE_URL_ENV_VAR, &serve.base_url)
-        .insert(CONFIG_PATH_ENV_VAR, &os_config_path);
+        .insert(BASE_URL_REDEFINE, &serve.base_url)
+        .insert(OS_CONFIG_PATH_REDEFINE, &os_config_path)
+        .insert(CONFIG_JSON_PATH_REDEFINE, &config_json_path);
 
     let output = unindent::unindent(
         r#"
@@ -124,6 +165,7 @@ fn calling_without_args() {
     );
 
     assert_cli::Assert::main_binary()
+        .with_args(&[&config_arg_json_path])
         .with_env(env)
         .succeeds()
         .stdout()
@@ -152,6 +194,33 @@ fn calling_without_args() {
         &format!("{}/mock-3.conf", tmp_dir_path),
         "MOCK-3-0123456789",
         None,
+    );
+
+    validate_json_file(
+        &config_json_path,
+        r#"
+        {
+            "deviceType": "raspberrypi3",
+            "hostname": "resin",
+            "persistentLogging": false,
+            "applicationName": "aaaaaa",
+            "applicationId": 123456,
+            "userId": 654321,
+            "username": "username",
+            "appUpdatePollInterval": 60000,
+            "listenPort": 48484,
+            "vpnPort": 443,
+            "apiEndpoint": "https://api.resin.io",
+            "vpnEndpoint": "vpn.resin.io",
+            "registryEndpoint": "registry2.resin.io",
+            "deltaEndpoint": "https://delta.resin.io",
+            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+            "apiKey": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1.prod"
+        }
+        "#,
     );
 
     remove_mock_service(1);
@@ -331,7 +400,7 @@ fn create_file(path: &str, contents: &str, mode: Option<u32>) {
     file.sync_all().unwrap();
 }
 
-fn validate_file(path: &str, contents: &str, mode: Option<u32>) {
+fn validate_file(path: &str, expected: &str, mode: Option<u32>) {
     let mut file = File::open(path).unwrap();
 
     if let Some(mode) = mode {
@@ -343,5 +412,17 @@ fn validate_file(path: &str, contents: &str, mode: Option<u32>) {
     let mut read_contents = String::new();
     file.read_to_string(&mut read_contents).unwrap();
 
-    assert_eq!(&read_contents, contents);
+    assert_eq!(&read_contents, expected);
+}
+
+fn validate_json_file(path: &str, expected: &str) {
+    let mut file = File::open(path).unwrap();
+    let mut read_contents = String::new();
+    file.read_to_string(&mut read_contents).unwrap();
+
+    let read_json: serde_json::Value = serde_json::from_str(&read_contents).unwrap();
+
+    let expected_json: serde_json::Value = serde_json::from_str(expected).unwrap();
+
+    assert_eq!(read_json, expected_json);
 }

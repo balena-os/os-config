@@ -1,45 +1,79 @@
-use clap::App;
+use clap::{App, Arg, ArgMatches};
 
 use std::path::{Path, PathBuf};
 use std::env;
 
-const DEFAULT_BASE_URL: &str = "https://api.resin.io/v1/";
-const DEFAULT_CONFIG_PATH: &str = "/etc/os-config.json";
+const BASE_URL: &str = "https://api.resin.io/v1/";
+const OS_CONFIG_PATH: &str = "/etc/os-config.json";
+const CONFIG_JSON_PATH: &str = "/mnt/boot/config.json";
 
-const BASE_URL_ENV_VAR: &str = "OS_CONFIG_BASE_URL";
-const CONFIG_PATH_ENV_VAR: &str = "OS_CONFIG_CONFIG_PATH";
+const BASE_URL_REDEFINE: &str = "BASE_URL_REDEFINE";
+const OS_CONFIG_PATH_REDEFINE: &str = "OS_CONFIG_PATH_REDEFINE";
+const CONFIG_JSON_PATH_REDEFINE: &str = "CONFIG_JSON_PATH_REDEFINE";
 
 pub struct Args {
     pub base_url: String,
-    pub config_path: PathBuf,
+    pub os_config_path: PathBuf,
+    pub config_json_path: PathBuf,
+    pub config_arg_json_path: Option<PathBuf>,
 }
 
 pub fn get_cli_args() -> Args {
-    let _matches = App::new(env!("CARGO_PKG_NAME"))
+    let matches = App::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"))
         .author(env!("CARGO_PKG_AUTHORS"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
+        .arg(
+            Arg::with_name("CONFIG_ARG_JSON")
+                .help(&format!(
+                    "Sets the input config.json to merge with {}",
+                    CONFIG_JSON_PATH
+                ))
+                .required(false)
+                .index(1),
+        )
         .get_matches();
 
     let base_url = get_base_url();
-    let config_path = get_config_path();
+    let os_config_path = get_os_config_path();
+    let config_json_path = get_config_json_path();
+    let config_arg_json_path = get_config_arg_json_path(&matches);
 
     Args {
         base_url,
-        config_path,
+        os_config_path,
+        config_json_path,
+        config_arg_json_path,
     }
 }
 
-fn get_config_path() -> PathBuf {
-    match env::var(CONFIG_PATH_ENV_VAR) {
-        Ok(val) => Path::new(&val).to_path_buf(),
-        Err(_) => Path::new(DEFAULT_CONFIG_PATH).to_path_buf(),
+fn get_os_config_path() -> PathBuf {
+    path_buf(&try_redefined(OS_CONFIG_PATH, OS_CONFIG_PATH_REDEFINE))
+}
+
+fn get_config_json_path() -> PathBuf {
+    path_buf(&try_redefined(CONFIG_JSON_PATH, CONFIG_JSON_PATH_REDEFINE))
+}
+
+fn get_config_arg_json_path(matches: &ArgMatches) -> Option<PathBuf> {
+    if let Some(path) = matches.value_of("CONFIG_ARG_JSON") {
+        Some(path_buf(path))
+    } else {
+        None
     }
 }
 
 fn get_base_url() -> String {
-    match env::var(BASE_URL_ENV_VAR) {
-        Ok(val) => val.to_string(),
-        Err(_) => DEFAULT_BASE_URL.to_string(),
+    try_redefined(BASE_URL, BASE_URL_REDEFINE)
+}
+
+fn try_redefined(default: &str, redefine_env_var: &str) -> String {
+    match env::var(redefine_env_var) {
+        Ok(val) => val,
+        Err(_) => default.to_string(),
     }
+}
+
+fn path_buf(path: &str) -> PathBuf {
+    Path::new(path).to_path_buf()
 }

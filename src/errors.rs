@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 error_chain! {
     foreign_links {
         Io(::std::io::Error);
@@ -39,14 +41,18 @@ error_chain! {
             display("Service `{}` config `{}` not found in `os-config-api.json`", service_id, name)
         }
 
+        NotAnObjectJSON {
+            description("Expected JSON object")
+        }
+
         ReloadRestartService(name: String) {
             description("Reloading or restarting service failed")
             display("Reloading or restarting {} failed", name)
         }
 
-        WriteFile(path: String) {
+        WriteFile(path: PathBuf) {
             description("Writing file failed")
-            display("Writing `{}` failed", path)
+            display("Writing {:?} failed", path)
         }
 
         ParsePermissionMode(mode: String) {
