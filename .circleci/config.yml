@@ -11,8 +11,10 @@ build: &build
     - checkout
 
     - run: cargo build --release --target=$TARGET
+    - run: cargo build --release --target=$TARGET --example endpoint
  
     - run: cross-strip target/$TARGET/release/$BINARY
+    - run: cross-strip target/$TARGET/release/examples/endpoint
 
     - run: |
         VERSION=$CIRCLE_TAG
@@ -32,6 +34,7 @@ build: &build
 
     - run: mkdir -p pack /tmp/dist
     - run: mv target/$TARGET/release/$BINARY pack/$BINARY
+    - run: mv target/$TARGET/release/examples/endpoint pack/endpoint
     - run: tar -czvf $ARCHIVE_PATH -C pack .
     - run: rm -rdf pack
 
