@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::ffi::OsString;
 
 error_chain! {
     foreign_links {
@@ -53,6 +54,16 @@ error_chain! {
         WriteFile(path: PathBuf) {
             description("Writing file failed")
             display("Writing {:?} failed", path)
+        }
+
+        NotAFile(path: PathBuf) {
+            description("Expected file")
+            display("Expected file: {:?}", path)
+        }
+
+        NotAUnicodeFileName(file_name: OsString) {
+            description("Expected Unicode file name")
+            display("Expected Unicode file name: {:?}", file_name)
         }
 
         ParsePermissionMode(mode: String) {
