@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 use std::ffi::OsString;
 
+use args::get_os_config_path;
+
 error_chain! {
     foreign_links {
         Io(::std::io::Error);
@@ -11,6 +13,15 @@ error_chain! {
     }
 
     errors {
+        IsManaged {
+            description("Evaluating managed/unmanaged state failed")
+        }
+
+        MergeConfigJSON {
+            description("Merging `config.json` failed")
+            display("Merging {:?} failed", get_os_config_path())
+        }
+
         ReadOSConfig {
             description("Reading `os-config.json` failed")
         }
@@ -86,6 +97,8 @@ pub fn exit_code(e: &Error) -> i32 {
         ErrorKind::WriteFile(_) => 6,
         ErrorKind::ServiceNotFoundJSON(_) => 7,
         ErrorKind::ConfigNotFoundJSON(_, _) => 8,
+        ErrorKind::MergeConfigJSON => 9,
+        ErrorKind::IsManaged => 10,
         _ => 1,
     }
 }

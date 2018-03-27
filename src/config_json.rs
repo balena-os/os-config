@@ -6,7 +6,22 @@ use fs::{read_file, write_file};
 use serde_json;
 use serde_json::{Map, Value};
 
+pub fn is_managed(config_json_path: &Path) -> Result<bool> {
+    is_managed_impl(config_json_path).chain_err(|| ErrorKind::IsManaged)
+}
+
+fn is_managed_impl(config_json_path: &Path) -> Result<bool> {
+    let config_json = read_json_object_file(config_json_path)?;
+
+    Ok(config_json.contains_key("apiEndpoint"))
+}
+
 pub fn merge_config_json(config_json_path: &Path, config_arg_json_path: &Path) -> Result<()> {
+    merge_config_json_impl(config_json_path, config_arg_json_path)
+        .chain_err(|| ErrorKind::MergeConfigJSON)
+}
+
+fn merge_config_json_impl(config_json_path: &Path, config_arg_json_path: &Path) -> Result<()> {
     let mut config_json = read_json_object_file(config_json_path)?;
     let config_arg_json = read_json_object_file(config_arg_json_path)?;
 

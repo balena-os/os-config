@@ -29,7 +29,7 @@ use std::path::Path;
 
 use errors::*;
 use args::get_cli_args;
-use config_json::merge_config_json;
+use config_json::{is_managed, merge_config_json};
 use os_config::read_os_config;
 use os_config_api::get_os_config_api;
 
@@ -55,6 +55,11 @@ fn run() -> Result<()> {
 
     if let Some(ref config_arg_json_path) = args.config_arg_json_path {
         merge_config_json(&args.config_json_path, config_arg_json_path)?;
+    }
+
+    if !is_managed(&args.config_json_path)? {
+        println!("Unmanaged device. Exiting...");
+        return Ok(());
     }
 
     let os_config = read_os_config(&args.os_config_path)?;

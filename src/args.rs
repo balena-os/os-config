@@ -53,7 +53,7 @@ pub fn get_cli_args() -> Args {
     }
 }
 
-fn get_os_config_path() -> PathBuf {
+pub fn get_os_config_path() -> PathBuf {
     path_buf(&try_redefined(OS_CONFIG_PATH, OS_CONFIG_PATH_REDEFINE))
 }
 
