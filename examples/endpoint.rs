@@ -21,7 +21,7 @@ use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Http, Request, Response, Service};
 
 const MOCK_JSON_SERVER_ADDRESS: &str = "127.0.0.1:54673";
-const MOCK_JSON_ENDPOINT: &str = "/configure";
+const MOCK_JSON_ENDPOINT: &str = "/os/v1/config";
 
 fn main() {
     let json_path = get_json_path();

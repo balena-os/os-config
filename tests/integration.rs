@@ -22,13 +22,14 @@ use hyper::server::{Http, Request, Response, Service};
 
 use tempdir::TempDir;
 
-const BASE_URL_REDEFINE: &str = "BASE_URL_REDEFINE";
+const CONFIG_URL_REDEFINE: &str = "CONFIG_URL_REDEFINE";
 const OS_CONFIG_PATH_REDEFINE: &str = "OS_CONFIG_PATH_REDEFINE";
 const CONFIG_JSON_PATH_REDEFINE: &str = "CONFIG_JSON_PATH_REDEFINE";
 
 const SUPERVISOR_SERVICE: &str = "resin-supervisor.service";
 
 const MOCK_JSON_SERVER_ADDRESS: &str = "127.0.0.1:54673";
+const MOCK_JSON_ENDPOINT: &str = "/os/v1/config";
 
 /*******************************************************************************
 *  Integration tests
@@ -162,7 +163,7 @@ fn calling_without_args() {
     let serve = serve_config(os_config_api, 5);
 
     let env = assert_cli::Environment::inherit()
-        .insert(BASE_URL_REDEFINE, &serve.base_url)
+        .insert(CONFIG_URL_REDEFINE, &serve.config_url)
         .insert(OS_CONFIG_PATH_REDEFINE, &os_config_path)
         .insert(CONFIG_JSON_PATH_REDEFINE, &config_json_path);
 
@@ -264,17 +265,17 @@ fn serve_config(config: String, sleep: u64) -> Serve {
         })
         .unwrap();
 
-    let base_url = format!("http://{}/", MOCK_JSON_SERVER_ADDRESS);
+    let config_url = format!("http://{}{}", MOCK_JSON_SERVER_ADDRESS, MOCK_JSON_ENDPOINT);
 
     Serve {
-        base_url,
+        config_url,
         shutdown_tx: Some(shutdown_tx),
         thread: Some(thread),
     }
 }
 
 struct Serve {
-    base_url: String,
+    config_url: String,
     shutdown_tx: Option<oneshot::Sender<()>>,
     thread: Option<thread::JoinHandle<()>>,
 }
@@ -304,7 +305,7 @@ impl Service for ConfigurationService {
 
     fn call(&self, req: Request) -> Self::Future {
         futures::future::ok(match (req.method(), req.path()) {
-            (&Get, "/configure") => {
+            (&Get, MOCK_JSON_ENDPOINT) => {
                 let bytes = self.config.as_bytes().to_vec();
                 Response::new()
                     .with_header(ContentLength(bytes.len() as u64))

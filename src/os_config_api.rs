@@ -33,14 +33,12 @@ impl OsConfigApi {
     }
 }
 
-pub fn get_os_config_api(base_url: &str, retry_limit: u64) -> Result<OsConfigApi> {
-    get_os_config_api_impl(base_url, retry_limit).chain_err(|| ErrorKind::GetOSConfigApi)
+pub fn get_os_config_api(config_url: &str, retry_limit: u64) -> Result<OsConfigApi> {
+    get_os_config_api_impl(config_url, retry_limit).chain_err(|| ErrorKind::GetOSConfigApi)
 }
 
-fn get_os_config_api_impl(base_url: &str, retry_limit: u64) -> Result<OsConfigApi> {
-    let url = format!("{}{}", base_url, "configure");
-
-    let json_data = retry_get(&url, retry_limit)?.text()?;
+fn get_os_config_api_impl(config_url: &str, retry_limit: u64) -> Result<OsConfigApi> {
+    let json_data = retry_get(config_url, retry_limit)?.text()?;
 
     validate_schema_version(&json_data)?;
 
