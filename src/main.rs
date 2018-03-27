@@ -1,5 +1,10 @@
 #![recursion_limit = "1024"]
 
+#[macro_use]
+extern crate log;
+
+extern crate env_logger;
+
 extern crate clap;
 extern crate dbus;
 extern crate reqwest;
@@ -18,13 +23,13 @@ extern crate maplit;
 
 mod args;
 mod errors;
+mod logger;
 mod config_json;
 mod os_config;
 mod os_config_api;
 mod systemd;
 mod fs;
 
-use std::io::Write;
 use std::path::Path;
 
 use errors::*;
@@ -37,13 +42,10 @@ const SUPERVISOR_SERVICE: &str = "resin-supervisor.service";
 
 fn main() {
     if let Err(ref e) = run() {
-        let stderr = &mut ::std::io::stderr();
-        let errmsg = "Error writing to stderr";
-
-        writeln!(stderr, "\x1B[1;31mError: {}\x1B[0m", e).expect(errmsg);
+        error!("\x1B[1;31mError: {}\x1B[0m", e);
 
         for inner in e.iter().skip(1) {
-            writeln!(stderr, "  caused by: {}", inner).expect(errmsg);
+            error!("  caused by: {}", inner);
         }
 
         ::std::process::exit(exit_code(e));
@@ -51,6 +53,8 @@ fn main() {
 }
 
 fn run() -> Result<()> {
+    logger::init_logger();
+
     let args = get_cli_args();
 
     if let Some(ref config_arg_json_path) = args.config_arg_json_path {
@@ -58,7 +62,7 @@ fn run() -> Result<()> {
     }
 
     if !is_managed(&args.config_json_path)? {
-        println!("Unmanaged device. Exiting...");
+        info!("Unmanaged device. Exiting...");
         return Ok(());
     }
 

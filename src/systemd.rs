@@ -11,7 +11,7 @@ pub fn reload_or_restart_service(name: &str) -> Result<()> {
 }
 
 fn reload_or_restart_service_impl(name: &str) -> Result<()> {
-    println!("Reloading or restarting {}...", name);
+    info!("Reloading or restarting {}...", name);
 
     let connection = dbus::Connection::get_private(dbus::BusType::System)?;
 
