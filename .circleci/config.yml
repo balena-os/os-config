@@ -1,110 +1,30 @@
 version: 2
 
-build: &build
-  docker:
-    - image: majorz/rust-$CIRCLE_JOB:rust-1.24.1
-
-      environment:
-        BINARY: os-config
-
-  steps:
-    - checkout
-
-    - run: cargo build --release --target=$TARGET
-    - run: cargo build --release --target=$TARGET --example endpoint
- 
-    - run: cross-strip target/$TARGET/release/$BINARY
-    - run: cross-strip target/$TARGET/release/examples/endpoint
-
-    - run: |
-        VERSION=$CIRCLE_TAG
-        if [ -z "$CIRCLE_TAG" ]; then VERSION="$CIRCLE_BRANCH-$(echo $CIRCLE_SHA1 | cut -c -7)"; fi
-        echo "VERSION=$VERSION"
-        echo "export VERSION=$VERSION" >> $BASH_ENV
-
-    - run: |
-        ARCHIVE_NAME="$BINARY-$VERSION-$CIRCLE_JOB.tar.gz"
-        echo "ARCHIVE_NAME=$ARCHIVE_NAME"
-        echo "export ARCHIVE_NAME=$ARCHIVE_NAME" >> $BASH_ENV
-
-    - run: |
-        ARCHIVE_PATH="/tmp/dist/$ARCHIVE_NAME"
-        echo "ARCHIVE_PATH=$ARCHIVE_PATH"
-        echo "export ARCHIVE_PATH=$ARCHIVE_PATH" >> $BASH_ENV
-
-    - run: mkdir -p pack /tmp/dist
-    - run: mv target/$TARGET/release/$BINARY pack/$BINARY
-    - run: mv target/$TARGET/release/examples/endpoint pack/endpoint
-    - run: tar -czvf $ARCHIVE_PATH -C pack .
-    - run: rm -rdf pack
-
-    - store_artifacts:
-        path: /tmp/dist
-        destination: /
-
-test: &test
-  machine: true
-
-  environment:
-    DOCKER_IMAGE: majorz/rust-test-deploy-systemd:rust-nightly-2018-03-07
-
-  steps:
-    - checkout
-
-    - run: docker pull $DOCKER_IMAGE
-    - run: docker run --rm --privileged -v /:/host $DOCKER_IMAGE setup
-    - run: docker run -d --name sysd --security-opt seccomp=unconfined --tmpfs /run --tmpfs /run/lock -v $PWD:/work -v /sys/fs/cgroup:/sys/fs/cgroup:ro -t $DOCKER_IMAGE
-
-    - run: docker ps -a
-
-    # Prepare cgroup on the host at /tmp/cgroup to avoid error: "failed to connect to bus: no such file or directory"
-    - run: sudo mkdir -p /tmp/cgroup/systemd && sudo mount -t cgroup systemd /tmp/cgroup/systemd -o ro,noexec,nosuid,nodev,none,name=systemd
-
-    - run: docker exec -i sysd cargo fmt -- --write-mode=diff
-    - run: docker exec -i sysd cargo clippy -- -D warnings
-    - run: docker exec -i sysd cargo test -- --nocapture
-
 jobs:
   test:
-    <<: *test
-  aarch64:
-    <<: *build
+    machine: true
+
     environment:
-      TARGET: aarch64-unknown-linux-gnu
-  rpi:
-    <<: *build
-    environment:
-      TARGET: arm-unknown-linux-gnueabihf
-  armv7hf:
-    <<: *build
-    environment:
-      TARGET: armv7-unknown-linux-gnueabihf
-  i386:
-    <<: *build
-    environment:
-      TARGET: i686-unknown-linux-gnu
-  amd64:
-    <<: *build
-    environment:
-      TARGET: x86_64-unknown-linux-gnu
+      DOCKER_IMAGE: majorz/rust-test-deploy-systemd:rust-nightly-2018-03-07
+
+    steps:
+      - checkout
+
+      - run: docker pull $DOCKER_IMAGE
+      - run: docker run --rm --privileged -v /:/host $DOCKER_IMAGE setup
+      - run: docker run -d --name sysd --security-opt seccomp=unconfined --tmpfs /run --tmpfs /run/lock -v $PWD:/work -v /sys/fs/cgroup:/sys/fs/cgroup:ro -t $DOCKER_IMAGE
+
+      - run: docker ps -a
+
+      # Prepare cgroup on the host at /tmp/cgroup to avoid error: "failed to connect to bus: no such file or directory"
+      - run: sudo mkdir -p /tmp/cgroup/systemd && sudo mount -t cgroup systemd /tmp/cgroup/systemd -o ro,noexec,nosuid,nodev,none,name=systemd
+
+      - run: docker exec -i sysd cargo fmt -- --write-mode=diff
+      - run: docker exec -i sysd cargo clippy -- -D warnings
+      - run: docker exec -i sysd cargo test -- --nocapture
 
 workflows:
   version: 2
-  build:
+  test:
     jobs:
       - test
-      - aarch64:
-          requires:
-            - test
-      - rpi:
-          requires:
-            - test
-      - armv7hf:
-          requires:
-            - test
-      - i386:
-          requires:
-            - test
-      - amd64:
-          requires:
-            - test
