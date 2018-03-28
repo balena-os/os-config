@@ -235,6 +235,8 @@ fn calling_without_args() {
         "#,
     );
 
+    wait_for_systemctl_jobs();
+
     remove_mock_service(SUPERVISOR_SERVICE);
 
     remove_mock_service(&service_1);
@@ -379,12 +381,34 @@ fn unit_name(index: usize) -> String {
     format!("mock-service-{}.service", index)
 }
 
-fn systemctl(args: &str) {
+fn wait_for_systemctl_jobs() {
+    let mut count = 0;
+
+    loop {
+        let output = systemctl("list-jobs");
+
+        if output == "No jobs running.\n" {
+            break;
+        }
+
+        if count == 50 {
+            panic!("Uncompleted systemd jobs");
+        }
+
+        count += 1;
+
+        thread::sleep(Duration::from_millis(100));
+    }
+}
+
+fn systemctl(args: &str) -> String {
     let args_vec = args.split_whitespace().collect::<Vec<_>>();
 
-    let status = Command::new("systemctl").args(&args_vec).status().unwrap();
+    let output = Command::new("systemctl").args(&args_vec).output().unwrap();
 
-    assert!(status.success())
+    assert!(output.status.success());
+
+    String::from(String::from_utf8_lossy(&output.stdout))
 }
 
 /*******************************************************************************
