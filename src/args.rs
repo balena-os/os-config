@@ -1,7 +1,7 @@
 use clap::{App, Arg, ArgMatches};
 
-use std::path::{Path, PathBuf};
 use std::env;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 const CONFIG_URL: &str = "https://api.resin.io/os/v1/config";

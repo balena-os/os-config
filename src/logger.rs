@@ -1,6 +1,6 @@
-use std::env;
-use log::LevelFilter;
 use env_logger::{Builder, Target};
+use log::LevelFilter;
+use std::env;
 
 pub fn init_logger() {
     let mut builder = Builder::new();

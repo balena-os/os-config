@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use std::ffi::OsString;
+use std::path::PathBuf;
 
 use args::get_os_config_path;
 

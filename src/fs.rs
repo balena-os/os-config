@@ -1,6 +1,6 @@
 use std::fs::{rename, File, OpenOptions};
-use std::os::unix::fs::OpenOptionsExt;
 use std::io::{Read, Write};
+use std::os::unix::fs::OpenOptionsExt;
 use std::path::Path;
 use std::u32;
 

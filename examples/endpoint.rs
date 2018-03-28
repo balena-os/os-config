@@ -4,21 +4,21 @@ extern crate hyper;
 extern crate serde_json;
 extern crate unindent;
 
+use std::fs::File;
+use std::io;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::thread;
-use std::fs::File;
-use std::io::{Read, Write};
-use std::io;
 
 use clap::{App, Arg};
 
 use futures::Future;
-use futures::sync::oneshot;
 use futures::future::FutureResult;
+use futures::sync::oneshot;
 
-use hyper::{Get, StatusCode};
 use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Http, Request, Response, Service};
+use hyper::{Get, StatusCode};
 
 const MOCK_JSON_SERVER_ADDRESS: &str = "127.0.0.1:54673";
 const MOCK_JSON_ENDPOINT: &str = "/os/v1/config";

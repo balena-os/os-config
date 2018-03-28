@@ -22,19 +22,19 @@ extern crate serde_json;
 extern crate maplit;
 
 mod args;
-mod errors;
-mod logger;
 mod config_json;
+mod errors;
+mod fs;
+mod logger;
 mod os_config;
 mod os_config_api;
 mod systemd;
-mod fs;
 
 use std::path::Path;
 
-use errors::*;
 use args::get_cli_args;
 use config_json::{is_managed, merge_config_json};
+use errors::*;
 use os_config::read_os_config;
 use os_config_api::get_os_config_api;
 

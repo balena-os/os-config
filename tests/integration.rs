@@ -5,20 +5,20 @@ extern crate serde_json;
 extern crate tempdir;
 extern crate unindent;
 
-use std::thread;
-use std::time::Duration;
-use std::process::Command;
 use std::fs::{remove_file, File, OpenOptions};
 use std::io::{Read, Write};
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+use std::process::Command;
+use std::thread;
+use std::time::Duration;
 
 use futures::Future;
-use futures::sync::oneshot;
 use futures::future::FutureResult;
+use futures::sync::oneshot;
 
-use hyper::{Get, StatusCode};
 use hyper::header::{ContentLength, ContentType};
 use hyper::server::{Http, Request, Response, Service};
+use hyper::{Get, StatusCode};
 
 use tempdir::TempDir;
 

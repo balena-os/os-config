@@ -5,7 +5,7 @@ jobs:
     machine: true
 
     environment:
-      DOCKER_IMAGE: majorz/rust-test-deploy-systemd:rust-nightly-2018-03-07
+      DOCKER_IMAGE: majorz/rust-test-deploy-systemd:rust-nightly-2018-03-28
 
     steps:
       - checkout
