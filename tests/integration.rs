@@ -155,12 +155,7 @@ fn calling_without_args() {
         "#,
     );
 
-    let serve = serve_config(os_config_api, 5);
-
-    let env = assert_cli::Environment::inherit()
-        .insert(CONFIG_URL_REDEFINE, &serve.config_url)
-        .insert(OS_CONFIG_PATH_REDEFINE, &os_config_path)
-        .insert(CONFIG_JSON_PATH_REDEFINE, &config_json_path);
+    let _serve = serve_config(os_config_api, 5);
 
     let output = unindent::unindent(
         r#"
@@ -173,7 +168,7 @@ fn calling_without_args() {
 
     assert_cli::Assert::main_binary()
         .with_args(&[&config_arg_json_path])
-        .with_env(env)
+        .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
         .is(output)
@@ -241,6 +236,19 @@ fn calling_without_args() {
 }
 
 /*******************************************************************************
+*  os-config launch
+*/
+
+fn os_config_env(os_config_path: &str, config_json_path: &str) -> assert_cli::Environment {
+    let config_url = format!("http://{}{}", MOCK_JSON_SERVER_ADDRESS, MOCK_JSON_ENDPOINT);
+
+    assert_cli::Environment::inherit()
+        .insert(CONFIG_URL_REDEFINE, &config_url)
+        .insert(OS_CONFIG_PATH_REDEFINE, os_config_path)
+        .insert(CONFIG_JSON_PATH_REDEFINE, config_json_path)
+}
+
+/*******************************************************************************
 *  Mock JSON HTTP server
 */
 
@@ -261,17 +269,13 @@ fn serve_config(config: String, sleep: u64) -> Serve {
         })
         .unwrap();
 
-    let config_url = format!("http://{}{}", MOCK_JSON_SERVER_ADDRESS, MOCK_JSON_ENDPOINT);
-
     Serve {
-        config_url,
         shutdown_tx: Some(shutdown_tx),
         thread: Some(thread),
     }
 }
 
 struct Serve {
-    config_url: String,
     shutdown_tx: Option<oneshot::Sender<()>>,
     thread: Option<thread::JoinHandle<()>>,
 }
