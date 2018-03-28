@@ -231,8 +231,6 @@ fn calling_without_args() {
     service_1.ensure_restarted();
     service_2.ensure_restarted();
     service_3.ensure_restarted();
-
-    tmp_dir.close().unwrap();
 }
 
 /*******************************************************************************
