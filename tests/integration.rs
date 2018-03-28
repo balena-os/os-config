@@ -42,15 +42,10 @@ fn calling_without_args() {
 
     let script_path = create_service_script(&tmp_dir);
 
-    let service_1 = unit_name(1);
-    let service_2 = unit_name(2);
-    let service_3 = unit_name(3);
-
-    create_mock_service(SUPERVISOR_SERVICE, &script_path);
-
-    create_mock_service(&service_1, &script_path);
-    create_mock_service(&service_2, &script_path);
-    create_mock_service(&service_3, &script_path);
+    let supervisor = MockService::new(SUPERVISOR_SERVICE.into(), &script_path);
+    let service_1 = MockService::new(unit_name(1), &script_path);
+    let service_2 = MockService::new(unit_name(2), &script_path);
+    let service_3 = MockService::new(unit_name(3), &script_path);
 
     let config_json = unindent::unindent(
         r#"
@@ -237,11 +232,10 @@ fn calling_without_args() {
 
     wait_for_systemctl_jobs();
 
-    remove_mock_service(SUPERVISOR_SERVICE);
-
-    remove_mock_service(&service_1);
-    remove_mock_service(&service_2);
-    remove_mock_service(&service_3);
+    supervisor.ensure_restarted();
+    service_1.ensure_restarted();
+    service_2.ensure_restarted();
+    service_3.ensure_restarted();
 
     tmp_dir.close().unwrap();
 }
@@ -323,6 +317,33 @@ impl Service for ConfigurationService {
 *  Mock services
 */
 
+struct MockService {
+    name: String,
+    activated: u64,
+}
+
+impl MockService {
+    fn new(name: String, script_path: &str) -> Self {
+        create_mock_service(&name, script_path);
+
+        wait_for_systemctl_jobs();
+
+        let activated = service_active_enter_time(&name);
+
+        MockService { name, activated }
+    }
+
+    fn ensure_restarted(&self) {
+        assert_ne!(self.activated, service_active_enter_time(&self.name));
+    }
+}
+
+impl Drop for MockService {
+    fn drop(&mut self) {
+        remove_mock_service(&self.name);
+    }
+}
+
 fn create_service_script(tmp_dir: &TempDir) -> String {
     let contents = unindent::unindent(
         r#"
@@ -399,6 +420,15 @@ fn wait_for_systemctl_jobs() {
 
         thread::sleep(Duration::from_millis(100));
     }
+}
+
+fn service_active_enter_time(name: &str) -> u64 {
+    let output = systemctl(&format!(
+        "show {} --property=ActiveEnterTimestampMonotonic",
+        name
+    ));
+    let timestamp = &output[30..output.len() - 1];
+    timestamp.parse::<u64>().unwrap()
 }
 
 fn systemctl(args: &str) -> String {
