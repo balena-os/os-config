@@ -84,12 +84,7 @@ fn has_config_changes(os_config: &OsConfig, os_config_api: &OsConfigApi) -> Resu
     for service in &os_config.services {
         for (name, config_file) in &service.files {
             let future = os_config_api.get_config_contents(&service.id, name)?;
-
-            let current = if let Ok(contents) = fs::read_file(Path::new(&config_file.path)) {
-                contents
-            } else {
-                "".to_string()
-            };
+            let current = get_config_contents(&config_file.path);
 
             if future != current {
                 return Ok(true);
@@ -116,4 +111,12 @@ fn reconfigure_services(os_config: &OsConfig, os_config_api: &OsConfigApi) -> Re
     systemd::reload_or_restart_service(SUPERVISOR_SERVICE)?;
 
     Ok(())
+}
+
+fn get_config_contents(path: &str) -> String {
+    if let Ok(contents) = fs::read_file(Path::new(path)) {
+        contents
+    } else {
+        "".into()
+    }
 }
