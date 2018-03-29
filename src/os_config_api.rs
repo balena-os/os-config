@@ -50,6 +50,7 @@ fn retry_get(url: &str) -> Result<reqwest::Response> {
 
     loop {
         if let Ok(response) = reqwest::get(url) {
+            info!("Service configuration fetched from {}", url);
             return Ok(response);
         }
 

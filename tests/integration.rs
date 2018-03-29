@@ -155,14 +155,21 @@ fn calling_without_args() {
 
     let _serve = serve_config(os_config_api, 5);
 
-    let output = unindent::unindent(
+    let output = unindent::unindent(&format!(
         r#"
+        {0}/config.json merged
+        Service configuration fetched from http://127.0.0.1:54673/os/v1/config
+        {0}/not-a-service-1.conf updated
+        {0}/mock-1.conf updated
+        {0}/mock-2.conf updated
         Reloading or restarting mock-service-1.service...
         Reloading or restarting mock-service-2.service...
+        {0}/mock-3.conf updated
         Reloading or restarting mock-service-3.service...
         Reloading or restarting resin-supervisor.service...
         "#,
-    );
+        tmp_dir_path
+    ));
 
     assert_cli::Assert::main_binary()
         .with_args(&[&config_arg_json])

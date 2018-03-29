@@ -31,6 +31,8 @@ fn merge_config_json_impl(config_json_path: &Path, config_arg_json: &str) -> Res
 
     write_json_object_file(config_json_path, &config_json)?;
 
+    info!("{} merged", config_json_path.to_string_lossy());
+
     Ok(())
 }
 

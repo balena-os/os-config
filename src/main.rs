@@ -97,10 +97,15 @@ fn has_config_changes(os_config: &OsConfig, os_config_api: &OsConfigApi) -> Resu
 
 fn reconfigure_services(os_config: &OsConfig, os_config_api: &OsConfigApi) -> Result<()> {
     for service in &os_config.services {
-        for (name, config_file) in &service.files {
+        // Iterate through config files alphanumerically for integration testing consistency
+        let mut names = service.files.keys().collect::<Vec<_>>();
+        names.sort();
+        for name in names {
+            let config_file = &service.files[name as &str];
             let contents = os_config_api.get_config_contents(&service.id, name)?;
             let mode = fs::parse_mode(&config_file.perm)?;
             fs::write_file(Path::new(&config_file.path), contents, mode)?;
+            info!("{} updated", &config_file.path);
         }
 
         for systemd_service in &service.systemd_services {
