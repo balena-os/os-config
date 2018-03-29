@@ -35,8 +35,8 @@ use std::path::Path;
 use args::get_cli_args;
 use config_json::{is_managed, merge_config_json};
 use errors::*;
-use os_config::read_os_config;
-use os_config_api::get_os_config_api;
+use os_config::{read_os_config, OsConfig};
+use os_config_api::{get_os_config_api, OsConfigApi};
 
 const SUPERVISOR_SERVICE: &str = "resin-supervisor.service";
 
@@ -70,6 +70,37 @@ fn run() -> Result<()> {
 
     let os_config_api = get_os_config_api(&args.config_url, args.retry_limit)?;
 
+    if !has_config_changes(&os_config, &os_config_api)? {
+        info!("No configuration changes. Exiting...");
+        return Ok(());
+    }
+
+    reconfigure_services(&os_config, &os_config_api)?;
+
+    Ok(())
+}
+
+fn has_config_changes(os_config: &OsConfig, os_config_api: &OsConfigApi) -> Result<bool> {
+    for service in &os_config.services {
+        for (name, config_file) in &service.files {
+            let future = os_config_api.get_config_contents(&service.id, name)?;
+
+            let current = if let Ok(contents) = fs::read_file(Path::new(&config_file.path)) {
+                contents
+            } else {
+                "".to_string()
+            };
+
+            if future != current {
+                return Ok(true);
+            }
+        }
+    }
+
+    Ok(false)
+}
+
+fn reconfigure_services(os_config: &OsConfig, os_config_api: &OsConfigApi) -> Result<()> {
     for service in &os_config.services {
         for (name, config_file) in &service.files {
             let contents = os_config_api.get_config_contents(&service.id, name)?;
