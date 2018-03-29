@@ -30,6 +30,3 @@ futures = "0.1"
 maplit = "1.0"
 tempdir = "0.3"
 unindent = "0.1"
-
-[profile.release]
-lto = true
