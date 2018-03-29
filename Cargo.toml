@@ -3,6 +3,8 @@ name = "os-config"
 version = "0.0.1"
 authors = ["Zahari Petkov <zahari@resin.io>", "Andrei Gherzan <andrei@resin.io>"]
 description = "resinOS configuration tool"
+repository = "https://github.com/resin-os/os-config"
+license = "Apache-2.0"
 
 [dependencies]
 log = "0.4"
