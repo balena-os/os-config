@@ -57,8 +57,8 @@ fn run() -> Result<()> {
 
     let args = get_cli_args();
 
-    if let Some(ref config_arg_json_path) = args.config_arg_json_path {
-        merge_config_json(&args.config_json_path, config_arg_json_path)?;
+    if let Some(ref config_arg_json) = args.config_arg_json {
+        merge_config_json(&args.config_json_path, config_arg_json)?;
     }
 
     if !is_managed(&args.config_json_path)? {

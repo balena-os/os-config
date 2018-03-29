@@ -16,14 +16,14 @@ fn is_managed_impl(config_json_path: &Path) -> Result<bool> {
     Ok(config_json.contains_key("apiEndpoint"))
 }
 
-pub fn merge_config_json(config_json_path: &Path, config_arg_json_path: &Path) -> Result<()> {
-    merge_config_json_impl(config_json_path, config_arg_json_path)
+pub fn merge_config_json(config_json_path: &Path, config_arg_json: &str) -> Result<()> {
+    merge_config_json_impl(config_json_path, config_arg_json)
         .chain_err(|| ErrorKind::MergeConfigJSON)
 }
 
-fn merge_config_json_impl(config_json_path: &Path, config_arg_json_path: &Path) -> Result<()> {
+fn merge_config_json_impl(config_json_path: &Path, config_arg_json: &str) -> Result<()> {
     let mut config_json = read_json_object_file(config_json_path)?;
-    let config_arg_json = read_json_object_file(config_arg_json_path)?;
+    let config_arg_json = json_object_from_string(config_arg_json)?;
 
     for (key, value) in &config_arg_json {
         config_json.insert(key.clone(), value.clone());
@@ -37,7 +37,11 @@ fn merge_config_json_impl(config_json_path: &Path, config_arg_json_path: &Path) 
 fn read_json_object_file(path: &Path) -> Result<Map<String, Value>> {
     let contents = read_file(path)?;
 
-    let value: Value = serde_json::from_str(&contents)?;
+    json_object_from_string(&contents)
+}
+
+fn json_object_from_string(contents: &str) -> Result<Map<String, Value>> {
+    let value: Value = serde_json::from_str(contents)?;
 
     if let Value::Object(map) = value {
         Ok(map)

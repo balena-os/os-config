@@ -83,8 +83,6 @@ fn calling_without_args() {
         "#,
     );
 
-    let config_arg_json_path = create_tmp_file(&tmp_dir, "config-arg.json", &config_arg_json, None);
-
     let os_config = unindent::unindent(&format!(
         r#"
         {{
@@ -167,7 +165,7 @@ fn calling_without_args() {
     );
 
     assert_cli::Assert::main_binary()
-        .with_args(&[&config_arg_json_path])
+        .with_args(&[&config_arg_json])
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()

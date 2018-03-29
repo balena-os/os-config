@@ -15,7 +15,7 @@ pub struct Args {
     pub config_url: String,
     pub os_config_path: PathBuf,
     pub config_json_path: PathBuf,
-    pub config_arg_json_path: Option<PathBuf>,
+    pub config_arg_json: Option<String>,
 }
 
 pub fn get_cli_args() -> Args {
@@ -37,13 +37,13 @@ pub fn get_cli_args() -> Args {
     let config_url = get_config_url();
     let os_config_path = get_os_config_path();
     let config_json_path = get_config_json_path();
-    let config_arg_json_path = get_config_arg_json_path(&matches);
+    let config_arg_json = get_config_arg_json(&matches);
 
     Args {
         config_url,
         os_config_path,
         config_json_path,
-        config_arg_json_path,
+        config_arg_json,
     }
 }
 
@@ -55,9 +55,9 @@ fn get_config_json_path() -> PathBuf {
     path_buf(&try_redefined(CONFIG_JSON_PATH, CONFIG_JSON_PATH_REDEFINE))
 }
 
-fn get_config_arg_json_path(matches: &ArgMatches) -> Option<PathBuf> {
-    if let Some(path) = matches.value_of("CONFIG_ARG_JSON") {
-        Some(path_buf(path))
+fn get_config_arg_json(matches: &ArgMatches) -> Option<String> {
+    if let Some(contents) = matches.value_of("CONFIG_ARG_JSON") {
+        Some(contents.into())
     } else {
         None
     }
