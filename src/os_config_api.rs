@@ -33,31 +33,24 @@ impl OsConfigApi {
     }
 }
 
-pub fn get_os_config_api(config_url: &str, retry_limit: u64) -> Result<OsConfigApi> {
-    get_os_config_api_impl(config_url, retry_limit).chain_err(|| ErrorKind::GetOSConfigApi)
+pub fn get_os_config_api(config_url: &str) -> Result<OsConfigApi> {
+    get_os_config_api_impl(config_url).chain_err(|| ErrorKind::GetOSConfigApi)
 }
 
-fn get_os_config_api_impl(config_url: &str, retry_limit: u64) -> Result<OsConfigApi> {
-    let json_data = retry_get(config_url, retry_limit)?.text()?;
+fn get_os_config_api_impl(config_url: &str) -> Result<OsConfigApi> {
+    let json_data = retry_get(config_url)?.text()?;
 
     validate_schema_version(&json_data)?;
 
     Ok(serde_json::from_str(&json_data)?)
 }
 
-fn retry_get(url: &str, retry_limit: u64) -> Result<reqwest::Response> {
+fn retry_get(url: &str) -> Result<reqwest::Response> {
     let mut sleeped = 0;
 
     loop {
-        match reqwest::get(url) {
-            Ok(response) => {
-                return Ok(response);
-            }
-            _ => {
-                if sleeped >= retry_limit {
-                    bail!(ErrorKind::RetryLimitReached(retry_limit));
-                }
-            }
+        if let Ok(response) = reqwest::get(url) {
+            return Ok(response);
         }
 
         let sleep = if sleeped < 10 {
@@ -66,8 +59,10 @@ fn retry_get(url: &str, retry_limit: u64) -> Result<reqwest::Response> {
             2
         } else if sleeped < 60 {
             5
-        } else {
+        } else if sleeped < 300 {
             10
+        } else {
+            30
         };
 
         thread::sleep(Duration::from_secs(sleep));

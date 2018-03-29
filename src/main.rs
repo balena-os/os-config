@@ -68,7 +68,7 @@ fn run() -> Result<()> {
 
     let os_config = read_os_config(&args.os_config_path)?;
 
-    let os_config_api = get_os_config_api(&args.config_url, args.retry_limit)?;
+    let os_config_api = get_os_config_api(&args.config_url)?;
 
     if !has_config_changes(&os_config, &os_config_api)? {
         info!("No configuration changes. Exiting...");
