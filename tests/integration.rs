@@ -107,7 +107,8 @@ fn calling_with_json_argument() {
 
     let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
 
-    let os_config_api = unindent::unindent(r#"
+    let os_config_api = unindent::unindent(
+        r#"
         {
             "services": {
                 "not-a-service-1": {
@@ -123,7 +124,8 @@ fn calling_with_json_argument() {
             },
             "schema_version": "1.0.0"
         }
-        "#);
+        "#,
+    );
 
     let _serve = serve_config(os_config_api, 5);
 
