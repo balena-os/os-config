@@ -29,14 +29,14 @@ const CONFIG_JSON_PATH_REDEFINE: &str = "CONFIG_JSON_PATH_REDEFINE";
 const SUPERVISOR_SERVICE: &str = "resin-supervisor.service";
 
 const MOCK_JSON_SERVER_ADDRESS: &str = "127.0.0.1:54673";
-const MOCK_JSON_ENDPOINT: &str = "/os/v1/config";
+const CONFIG_ROUTE: &str = "/os/v1/config";
 
 /*******************************************************************************
 *  Integration tests
 */
 
 #[test]
-fn calling_without_args() {
+fn calling_with_json_argument() {
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
@@ -47,43 +47,17 @@ fn calling_without_args() {
     let service_2 = MockService::new(unit_name(2), &script_path);
     let service_3 = MockService::new(unit_name(3), &script_path);
 
-    let config_json = unindent::unindent(
-        r#"
+    let config_json = r#"
         {
             "deviceType": "raspberrypi3",
             "hostname": "resin",
             "persistentLogging": false
         }
-        "#,
-    );
+        "#;
 
-    let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
+    let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
 
-    let config_arg_json = unindent::unindent(
-        r#"
-        {
-            "applicationName": "aaaaaa",
-            "applicationId": 123456,
-            "deviceType": "raspberrypi3",
-            "userId": 654321,
-            "username": "username",
-            "appUpdatePollInterval": 60000,
-            "listenPort": 48484,
-            "vpnPort": 443,
-            "apiEndpoint": "https://api.resin.io",
-            "vpnEndpoint": "vpn.resin.io",
-            "registryEndpoint": "registry2.resin.io",
-            "deltaEndpoint": "https://delta.resin.io",
-            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
-            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
-            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
-            "apiKey": "12345678abcd1234efgh1234567890ab",
-            "version": "9.99.9+rev1.prod"
-        }
-        "#,
-    );
-
-    let os_config = unindent::unindent(&format!(
+    let os_config = format!(
         r#"
         {{
             "services": [
@@ -129,12 +103,11 @@ fn calling_without_args() {
         }}
         "#,
         tmp_dir_path
-    ));
+    );
 
     let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
 
-    let os_config_api = unindent::unindent(
-        r#"
+    let os_config_api = unindent::unindent(r#"
         {
             "services": {
                 "not-a-service-1": {
@@ -150,10 +123,31 @@ fn calling_without_args() {
             },
             "schema_version": "1.0.0"
         }
-        "#,
-    );
+        "#);
 
     let _serve = serve_config(os_config_api, 5);
+
+    let config_arg_json = r#"
+        {
+            "applicationName": "aaaaaa",
+            "applicationId": 123456,
+            "deviceType": "raspberrypi3",
+            "userId": 654321,
+            "username": "username",
+            "appUpdatePollInterval": 60000,
+            "listenPort": 48484,
+            "vpnPort": 443,
+            "apiEndpoint": "https://api.resin.io",
+            "vpnEndpoint": "vpn.resin.io",
+            "registryEndpoint": "registry2.resin.io",
+            "deltaEndpoint": "https://delta.resin.io",
+            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+            "apiKey": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1.prod"
+        }
+        "#;
 
     let output = unindent::unindent(&format!(
         r#"
@@ -172,7 +166,7 @@ fn calling_without_args() {
     ));
 
     assert_cli::Assert::main_binary()
-        .with_args(&[&config_arg_json])
+        .with_args(&[config_arg_json])
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
@@ -243,7 +237,7 @@ fn calling_without_args() {
 */
 
 fn os_config_env(os_config_path: &str, config_json_path: &str) -> assert_cli::Environment {
-    let config_url = format!("http://{}{}", MOCK_JSON_SERVER_ADDRESS, MOCK_JSON_ENDPOINT);
+    let config_url = format!("http://{}{}", MOCK_JSON_SERVER_ADDRESS, CONFIG_ROUTE);
 
     assert_cli::Environment::inherit()
         .insert(CONFIG_URL_REDEFINE, &config_url)
@@ -308,7 +302,7 @@ impl Service for ConfigurationService {
 
     fn call(&self, req: Request) -> Self::Future {
         futures::future::ok(match (req.method(), req.path()) {
-            (&Get, MOCK_JSON_ENDPOINT) => {
+            (&Get, CONFIG_ROUTE) => {
                 let bytes = self.config.as_bytes().to_vec();
                 Response::new()
                     .with_header(ContentLength(bytes.len() as u64))
@@ -352,14 +346,12 @@ impl Drop for MockService {
 }
 
 fn create_service_script(tmp_dir: &TempDir) -> String {
-    let contents = unindent::unindent(
-        r#"
+    let contents = r#"
         #!/usr/bin/env bash
 
         sleep infinity
-        "#,
-    );
-    create_tmp_file(tmp_dir, "mock-service.sh", &contents, Some(0o755))
+        "#;
+    create_tmp_file(tmp_dir, "mock-service.sh", contents, Some(0o755))
 }
 
 fn create_mock_service(name: &str, exec_path: &str) {
@@ -373,7 +365,7 @@ fn remove_mock_service(name: &str) {
 }
 
 fn create_unit(name: &str, exec_path: &str) {
-    let unit = unindent::unindent(&format!(
+    let unit = format!(
         r#"
             [Unit]
             Description={}
@@ -386,7 +378,7 @@ fn create_unit(name: &str, exec_path: &str) {
             WantedBy=multi-user.target
         "#,
         name, exec_path
-    ));
+    );
 
     let path = unit_path(name);
 
@@ -469,7 +461,8 @@ fn create_file(path: &str, contents: &str, mode: Option<u32>) {
 
     let mut file = open_options.open(path).unwrap();
 
-    file.write_all(contents.as_bytes()).unwrap();
+    let unindented = unindent::unindent(contents);
+    file.write_all(unindented.as_bytes()).unwrap();
     file.sync_all().unwrap();
 }
 
