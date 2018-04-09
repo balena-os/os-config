@@ -6,14 +6,22 @@ use fs::{read_file, write_file};
 use serde_json;
 use serde_json::{Map, Value};
 
-pub fn is_managed(config_json_path: &Path) -> Result<bool> {
-    is_managed_impl(config_json_path).chain_err(|| ErrorKind::IsManaged)
+pub fn get_api_endpoint(config_json_path: &Path) -> Result<Option<String>> {
+    get_api_endpoint_impl(config_json_path).chain_err(|| ErrorKind::GetApiEndpoint)
 }
 
-fn is_managed_impl(config_json_path: &Path) -> Result<bool> {
+fn get_api_endpoint_impl(config_json_path: &Path) -> Result<Option<String>> {
     let config_json = read_json_object_file(config_json_path)?;
 
-    Ok(config_json.contains_key("apiEndpoint"))
+    if let Some(value) = config_json.get("apiEndpoint") {
+        if let Some(api_endpoint) = value.as_str() {
+            Ok(Some(api_endpoint.to_string()))
+        } else {
+            bail!(ErrorKind::ApiEndpointNotStringJSON)
+        }
+    } else {
+        Ok(None)
+    }
 }
 
 pub fn merge_config_json(config_json_path: &Path, config_arg_json: &str) -> Result<()> {

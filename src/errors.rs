@@ -13,8 +13,8 @@ error_chain! {
     }
 
     errors {
-        IsManaged {
-            description("Evaluating managed/unmanaged state failed")
+        GetApiEndpoint {
+            description("Gettig API endpoint failed")
         }
 
         MergeConfigJSON {
@@ -57,6 +57,10 @@ error_chain! {
             description("Expected JSON object")
         }
 
+        ApiEndpointNotStringJSON {
+            description("config.json `apiEndpoint` should be a string")
+        }
+
         ReloadRestartService(name: String) {
             description("Reloading or restarting service failed")
             display("Reloading or restarting {} failed", name)
@@ -93,7 +97,7 @@ pub fn exit_code(e: &Error) -> i32 {
         ErrorKind::ServiceNotFoundJSON(_) => 7,
         ErrorKind::ConfigNotFoundJSON(_, _) => 8,
         ErrorKind::MergeConfigJSON => 9,
-        ErrorKind::IsManaged => 10,
+        ErrorKind::GetApiEndpoint => 10,
         _ => 1,
     }
 }

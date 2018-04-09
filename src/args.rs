@@ -3,16 +3,16 @@ use clap::{App, Arg, ArgMatches};
 use std::env;
 use std::path::{Path, PathBuf};
 
-const CONFIG_URL: &str = "https://api.resin.io/os/v1/config";
+const CONFIG_ROUTE: &str = "/os/v1/config";
 const OS_CONFIG_PATH: &str = "/etc/os-config.json";
 const CONFIG_JSON_PATH: &str = "/mnt/boot/config.json";
 
-const CONFIG_URL_REDEFINE: &str = "CONFIG_URL_REDEFINE";
+const CONFIG_ROUTE_REDEFINE: &str = "CONFIG_ROUTE_REDEFINE";
 const OS_CONFIG_PATH_REDEFINE: &str = "OS_CONFIG_PATH_REDEFINE";
 const CONFIG_JSON_PATH_REDEFINE: &str = "CONFIG_JSON_PATH_REDEFINE";
 
 pub struct Args {
-    pub config_url: String,
+    pub config_route: String,
     pub os_config_path: PathBuf,
     pub config_json_path: PathBuf,
     pub config_arg_json: Option<String>,
@@ -34,13 +34,13 @@ pub fn get_cli_args() -> Args {
         )
         .get_matches();
 
-    let config_url = get_config_url();
+    let config_route = get_config_route();
     let os_config_path = get_os_config_path();
     let config_json_path = get_config_json_path();
     let config_arg_json = get_config_arg_json(&matches);
 
     Args {
-        config_url,
+        config_route,
         os_config_path,
         config_json_path,
         config_arg_json,
@@ -63,8 +63,8 @@ fn get_config_arg_json(matches: &ArgMatches) -> Option<String> {
     }
 }
 
-fn get_config_url() -> String {
-    try_redefined(CONFIG_URL, CONFIG_URL_REDEFINE)
+fn get_config_route() -> String {
+    try_redefined(CONFIG_ROUTE, CONFIG_ROUTE_REDEFINE)
 }
 
 fn try_redefined(default: &str, redefine_env_var: &str) -> String {

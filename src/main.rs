@@ -33,10 +33,10 @@ mod systemd;
 use std::path::Path;
 
 use args::get_cli_args;
-use config_json::{is_managed, merge_config_json};
+use config_json::{get_api_endpoint, merge_config_json};
 use errors::*;
 use os_config::{read_os_config, OsConfig};
-use os_config_api::{get_os_config_api, OsConfigApi};
+use os_config_api::{config_url, get_os_config_api, OsConfigApi};
 
 const SUPERVISOR_SERVICE: &str = "resin-supervisor.service";
 
@@ -61,14 +61,16 @@ fn run() -> Result<()> {
         merge_config_json(&args.config_json_path, config_arg_json)?;
     }
 
-    if !is_managed(&args.config_json_path)? {
+    let api_endpoint = if let Some(api_endpoint) = get_api_endpoint(&args.config_json_path)? {
+        api_endpoint
+    } else {
         info!("Unmanaged device. Exiting...");
         return Ok(());
-    }
+    };
 
     let os_config = read_os_config(&args.os_config_path)?;
 
-    let os_config_api = get_os_config_api(&args.config_url)?;
+    let os_config_api = get_os_config_api(&config_url(&api_endpoint, &args.config_route))?;
 
     if !has_config_changes(&os_config, &os_config_api)? {
         info!("No configuration changes. Exiting...");

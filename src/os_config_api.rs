@@ -33,6 +33,10 @@ impl OsConfigApi {
     }
 }
 
+pub fn config_url(api_endpoint: &str, config_route: &str) -> String {
+    format!("{}{}", api_endpoint, config_route)
+}
+
 pub fn get_os_config_api(config_url: &str) -> Result<OsConfigApi> {
     get_os_config_api_impl(config_url).chain_err(|| ErrorKind::GetOSConfigApi)
 }
