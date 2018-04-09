@@ -1,6 +1,6 @@
 [package]
 name = "os-config"
-version = "0.0.3"
+version = "0.0.4"
 authors = ["Zahari Petkov <zahari@resin.io>", "Andrei Gherzan <andrei@resin.io>"]
 description = "resinOS configuration tool"
 repository = "https://github.com/resin-os/os-config"
