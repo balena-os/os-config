@@ -434,8 +434,6 @@ fn update_no_config_changes() {
     let script_path = create_service_script(&tmp_dir);
 
     let supervisor = MockService::new_supervisor(&script_path);
-    start_service(SUPERVISOR_SERVICE);
-
     let service_1 = MockService::new(unit_name(1), &script_path);
     let service_2 = MockService::new(unit_name(2), &script_path);
     let service_3 = MockService::new(unit_name(3), &script_path);
@@ -716,6 +714,7 @@ fn create_mock_service(name: &str, exec_path: &str) {
 }
 
 fn remove_mock_service(name: &str) {
+    stop_service(name);
     disable_service(name);
     remove_file(unit_path(name)).unwrap();
 }
@@ -747,6 +746,10 @@ fn enable_service(name: &str) {
 
 fn start_service(name: &str) {
     systemctl(&format!("--system start {}", name));
+}
+
+fn stop_service(name: &str) {
+    systemctl(&format!("--system stop {}", name));
 }
 
 fn disable_service(name: &str) {
