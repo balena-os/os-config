@@ -246,6 +246,343 @@ fn provision() {
     service_3.ensure_restarted();
 }
 
+#[test]
+fn update() {
+    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
+
+    let script_path = create_service_script(&tmp_dir);
+
+    let supervisor = MockService::new_supervisor(&script_path);
+    start_service(SUPERVISOR_SERVICE);
+
+    let service_1 = MockService::new(unit_name(1), &script_path);
+    let service_2 = MockService::new(unit_name(2), &script_path);
+    let service_3 = MockService::new(unit_name(3), &script_path);
+
+    let config_json = format!(
+        r#"
+        {{
+            "deviceMasterKey": "0123456789abcdef0123456789abcdef",
+            "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
+            "deviceType": "raspberrypi3",
+            "hostname": "resin",
+            "persistentLogging": false,
+            "applicationName": "aaaaaa",
+            "applicationId": 123456,
+            "userId": 654321,
+            "username": "username",
+            "appUpdatePollInterval": 60000,
+            "listenPort": 48484,
+            "vpnPort": 443,
+            "apiEndpoint": "http://{}",
+            "vpnEndpoint": "vpn.resin.io",
+            "registryEndpoint": "registry2.resin.io",
+            "deltaEndpoint": "https://delta.resin.io",
+            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+            "apiKey": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1.prod"
+        }}
+        "#,
+        MOCK_JSON_SERVER_ADDRESS
+    );
+
+    let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
+
+    let os_config = format!(
+        r#"
+        {{
+            "services": [
+                {{
+                    "id": "not-a-service-1",
+                    "files": {{
+                        "main": {{
+                            "path": "{0}/not-a-service-1.conf",
+                            "perm": "755"
+                        }}
+                    }},
+                    "systemd_services": []
+
+                }},
+                {{
+                    "id": "mock-1-2",
+                    "files": {{
+                        "mock-1": {{
+                            "path": "{0}/mock-1.conf",
+                            "perm": "600"
+                        }},
+                        "mock-2": {{
+                            "path": "{0}/mock-2.conf",
+                            "perm": "755"
+                        }}
+                    }},
+                    "systemd_services": ["mock-service-1.service", "mock-service-2.service"]
+
+                }},
+                {{
+                    "id": "mock-3",
+                    "files": {{
+                        "mock-3": {{
+                            "path": "{0}/mock-3.conf",
+                            "perm": ""
+                        }}
+                    }},
+                    "systemd_services": ["mock-service-3.service"]
+
+                }}
+            ],
+            "schema_version": "1.0.0"
+        }}
+        "#,
+        tmp_dir_path
+    );
+
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+
+    create_tmp_file(&tmp_dir, "mock-2.conf", "MOCK-2-0000000000", None);
+
+    create_tmp_file(&tmp_dir, "mock-3.conf", "MOCK-3-0000000000", None);
+
+    let os_config_api = unindent::unindent(
+        r#"
+        {
+            "services": {
+                "not-a-service-1": {
+                    "main": "NO-SYSTEMD\n0123456789\n0123456789\n0123456789\n0123456789\n"
+                },
+                "mock-1-2": {
+                    "mock-1": "MOCK-1-АБВГДЕЖЗИЙ",
+                    "mock-2": "MOCK-2-0123456789"
+                },
+                "mock-3": {
+                    "mock-3": "MOCK-3-0123456789"
+                }
+            },
+            "schema_version": "1.0.0"
+        }
+        "#,
+    );
+
+    let _serve = serve_config(os_config_api, 0);
+
+    let output = unindent::unindent(&format!(
+        r#"
+        Service configuration fetched from http://127.0.0.1:54673/os/v1/config
+        Stopping resin-supervisor.service...
+        Awaiting resin-supervisor.service to enter inactive state...
+        {0}/not-a-service-1.conf updated
+        {0}/mock-1.conf updated
+        {0}/mock-2.conf updated
+        Reloading or restarting mock-service-1.service...
+        Reloading or restarting mock-service-2.service...
+        {0}/mock-3.conf updated
+        Reloading or restarting mock-service-3.service...
+        Starting resin-supervisor.service...
+        "#,
+        tmp_dir_path
+    ));
+
+    assert_cli::Assert::main_binary()
+        .with_args(&["update"])
+        .with_env(os_config_env(&os_config_path, &config_json_path))
+        .succeeds()
+        .stdout()
+        .is(output)
+        .unwrap();
+
+    validate_file(
+        &format!("{}/not-a-service-1.conf", tmp_dir_path),
+        "NO-SYSTEMD\n0123456789\n0123456789\n0123456789\n0123456789\n",
+        Some(0o755),
+    );
+
+    validate_file(
+        &format!("{}/mock-1.conf", tmp_dir_path),
+        "MOCK-1-АБВГДЕЖЗИЙ",
+        Some(0o600),
+    );
+
+    validate_file(
+        &format!("{}/mock-2.conf", tmp_dir_path),
+        "MOCK-2-0123456789",
+        Some(0o755),
+    );
+
+    validate_file(
+        &format!("{}/mock-3.conf", tmp_dir_path),
+        "MOCK-3-0123456789",
+        None,
+    );
+
+    validate_json_file(&config_json_path, &config_json);
+
+    wait_for_systemctl_jobs();
+
+    supervisor.ensure_restarted();
+    service_1.ensure_restarted();
+    service_2.ensure_restarted();
+    service_3.ensure_restarted();
+}
+
+#[test]
+fn update_no_config_changes() {
+    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
+
+    let script_path = create_service_script(&tmp_dir);
+
+    let supervisor = MockService::new_supervisor(&script_path);
+    start_service(SUPERVISOR_SERVICE);
+
+    let service_1 = MockService::new(unit_name(1), &script_path);
+    let service_2 = MockService::new(unit_name(2), &script_path);
+    let service_3 = MockService::new(unit_name(3), &script_path);
+
+    let config_json = format!(
+        r#"
+        {{
+            "deviceMasterKey": "0123456789abcdef0123456789abcdef",
+            "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
+            "deviceType": "raspberrypi3",
+            "hostname": "resin",
+            "persistentLogging": false,
+            "applicationName": "aaaaaa",
+            "applicationId": 123456,
+            "userId": 654321,
+            "username": "username",
+            "appUpdatePollInterval": 60000,
+            "listenPort": 48484,
+            "vpnPort": 443,
+            "apiEndpoint": "http://{}",
+            "vpnEndpoint": "vpn.resin.io",
+            "registryEndpoint": "registry2.resin.io",
+            "deltaEndpoint": "https://delta.resin.io",
+            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+            "apiKey": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1.prod"
+        }}
+        "#,
+        MOCK_JSON_SERVER_ADDRESS
+    );
+
+    let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
+
+    let os_config = format!(
+        r#"
+        {{
+            "services": [
+                {{
+                    "id": "mock-1-2",
+                    "files": {{
+                        "mock-1": {{
+                            "path": "{0}/mock-1.conf",
+                            "perm": "600"
+                        }},
+                        "mock-2": {{
+                            "path": "{0}/mock-2.conf",
+                            "perm": "755"
+                        }}
+                    }},
+                    "systemd_services": ["mock-service-1.service", "mock-service-2.service"]
+
+                }},
+                {{
+                    "id": "mock-3",
+                    "files": {{
+                        "mock-3": {{
+                            "path": "{0}/mock-3.conf",
+                            "perm": ""
+                        }}
+                    }},
+                    "systemd_services": ["mock-service-3.service"]
+
+                }}
+            ],
+            "schema_version": "1.0.0"
+        }}
+        "#,
+        tmp_dir_path
+    );
+
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+
+    create_tmp_file(
+        &tmp_dir,
+        "mock-1.conf",
+        "MOCK-1-АБВГДЕЖЗИЙ",
+        Some(0o600),
+    );
+
+    create_tmp_file(&tmp_dir, "mock-2.conf", "MOCK-2-0123456789", Some(0o755));
+
+    create_tmp_file(&tmp_dir, "mock-3.conf", "MOCK-3-0123456789", None);
+
+    let os_config_api = unindent::unindent(
+        r#"
+        {
+            "services": {
+                "mock-1-2": {
+                    "mock-1": "MOCK-1-АБВГДЕЖЗИЙ",
+                    "mock-2": "MOCK-2-0123456789"
+                },
+                "mock-3": {
+                    "mock-3": "MOCK-3-0123456789"
+                }
+            },
+            "schema_version": "1.0.0"
+        }
+        "#,
+    );
+
+    let _serve = serve_config(os_config_api, 0);
+
+    let output = unindent::unindent(
+        r#"
+        Service configuration fetched from http://127.0.0.1:54673/os/v1/config
+        No configuration changes
+        "#,
+    );
+
+    assert_cli::Assert::main_binary()
+        .with_args(&["update"])
+        .with_env(os_config_env(&os_config_path, &config_json_path))
+        .succeeds()
+        .stdout()
+        .is(output)
+        .unwrap();
+
+    validate_file(
+        &format!("{}/mock-1.conf", tmp_dir_path),
+        "MOCK-1-АБВГДЕЖЗИЙ",
+        Some(0o600),
+    );
+
+    validate_file(
+        &format!("{}/mock-2.conf", tmp_dir_path),
+        "MOCK-2-0123456789",
+        Some(0o755),
+    );
+
+    validate_file(
+        &format!("{}/mock-3.conf", tmp_dir_path),
+        "MOCK-3-0123456789",
+        None,
+    );
+
+    validate_json_file(&config_json_path, &config_json);
+
+    wait_for_systemctl_jobs();
+
+    supervisor.ensure_not_restarted();
+    service_1.ensure_not_restarted();
+    service_2.ensure_not_restarted();
+    service_3.ensure_not_restarted();
+}
+
 /*******************************************************************************
 *  os-config launch
 */
@@ -351,6 +688,10 @@ impl MockService {
 
     fn ensure_restarted(&self) {
         assert_ne!(self.activated, service_active_enter_time(&self.name));
+    }
+
+    fn ensure_not_restarted(&self) {
+        assert_eq!(self.activated, service_active_enter_time(&self.name));
     }
 }
 

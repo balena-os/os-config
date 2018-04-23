@@ -6,6 +6,7 @@ jobs:
 
     environment:
       DOCKER_IMAGE: majorz/rust-test-deploy-systemd:rust-nightly-2018-03-28
+      RUST_TEST_THREADS: 1
 
     steps:
       - checkout

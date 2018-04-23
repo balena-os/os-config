@@ -21,7 +21,7 @@ pub fn provision(args: &Args) -> Result<()> {
     reconfigure(args, config_json, true)
 }
 
-fn reconfigure(args: &Args, config_json: ConfigMap, write_config_json: bool) -> Result<()> {
+pub fn reconfigure(args: &Args, config_json: ConfigMap, write_config_json: bool) -> Result<()> {
     let os_config = read_os_config(&args.os_config_path)?;
 
     let api_endpoint = get_api_endpoint(&config_json)?;
