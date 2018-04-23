@@ -35,19 +35,22 @@ const CONFIG_ROUTE: &str = "/os/v1/config";
 */
 
 #[test]
-fn calling_with_json_argument() {
+fn provision() {
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
     let script_path = create_service_script(&tmp_dir);
 
-    let supervisor = MockService::new(SUPERVISOR_SERVICE.into(), &script_path);
+    let supervisor = MockService::new_supervisor(&script_path);
+    start_service(SUPERVISOR_SERVICE);
+
     let service_1 = MockService::new(unit_name(1), &script_path);
     let service_2 = MockService::new(unit_name(2), &script_path);
     let service_3 = MockService::new(unit_name(3), &script_path);
 
     let config_json = r#"
         {
+            "deviceMasterKey": "0123456789abcdef0123456789abcdef",
             "deviceType": "raspberrypi3",
             "hostname": "resin",
             "persistentLogging": false
@@ -128,7 +131,7 @@ fn calling_with_json_argument() {
 
     let _serve = serve_config(os_config_api, 5);
 
-    let config_arg_json = format!(
+    let json_config = format!(
         r#"
         {{
             "applicationName": "aaaaaa",
@@ -155,8 +158,10 @@ fn calling_with_json_argument() {
 
     let output = unindent::unindent(&format!(
         r#"
-        {0}/config.json merged
         Service configuration fetched from http://127.0.0.1:54673/os/v1/config
+        Stopping resin-supervisor.service...
+        Awaiting resin-supervisor.service to enter inactive state...
+        Writing {0}/config.json
         {0}/not-a-service-1.conf updated
         {0}/mock-1.conf updated
         {0}/mock-2.conf updated
@@ -164,13 +169,13 @@ fn calling_with_json_argument() {
         Reloading or restarting mock-service-2.service...
         {0}/mock-3.conf updated
         Reloading or restarting mock-service-3.service...
-        Reloading or restarting resin-supervisor.service...
+        Starting resin-supervisor.service...
         "#,
         tmp_dir_path
     ));
 
     assert_cli::Assert::main_binary()
-        .with_args(&[&config_arg_json])
+        .with_args(&["provision", &json_config])
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
@@ -206,6 +211,8 @@ fn calling_with_json_argument() {
         &format!(
             r#"
             {{
+                "deviceMasterKey": "0123456789abcdef0123456789abcdef",
+                "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
                 "deviceType": "raspberrypi3",
                 "hostname": "resin",
                 "persistentLogging": false,
@@ -338,6 +345,10 @@ impl MockService {
         MockService { name, activated }
     }
 
+    fn new_supervisor(script_path: &str) -> Self {
+        Self::new(SUPERVISOR_SERVICE.into(), script_path)
+    }
+
     fn ensure_restarted(&self) {
         assert_ne!(self.activated, service_active_enter_time(&self.name));
     }
@@ -391,6 +402,10 @@ fn create_unit(name: &str, exec_path: &str) {
 
 fn enable_service(name: &str) {
     systemctl(&format!("--system enable {}", name));
+}
+
+fn start_service(name: &str) {
+    systemctl(&format!("--system start {}", name));
 }
 
 fn disable_service(name: &str) {

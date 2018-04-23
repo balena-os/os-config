@@ -1,4 +1,4 @@
-use clap::{App, Arg, ArgMatches};
+use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 
 use std::env;
 use std::path::{Path, PathBuf};
@@ -11,11 +11,18 @@ const CONFIG_ROUTE_REDEFINE: &str = "CONFIG_ROUTE_REDEFINE";
 const OS_CONFIG_PATH_REDEFINE: &str = "OS_CONFIG_PATH_REDEFINE";
 const CONFIG_JSON_PATH_REDEFINE: &str = "CONFIG_JSON_PATH_REDEFINE";
 
+pub enum OsConfigSubcommand {
+    Update,
+    Provision,
+    Deprovision,
+}
+
 pub struct Args {
+    pub subcommand: OsConfigSubcommand,
     pub config_route: String,
     pub os_config_path: PathBuf,
     pub config_json_path: PathBuf,
-    pub config_arg_json: Option<String>,
+    pub json_config: Option<String>,
 }
 
 pub fn get_cli_args() -> Args {
@@ -23,27 +30,41 @@ pub fn get_cli_args() -> Args {
         .version(env!("CARGO_PKG_VERSION"))
         .author(env!("CARGO_PKG_AUTHORS"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
-        .arg(
-            Arg::with_name("CONFIG_ARG_JSON")
-                .help(&format!(
-                    "Sets the input config.json to merge with {}",
-                    CONFIG_JSON_PATH
-                ))
-                .required(false)
-                .index(1),
+        .setting(AppSettings::SubcommandRequiredElseHelp)
+        .subcommand(
+            SubCommand::with_name("update")
+                .about("Apply available configuration updates on a provisioned device"),
         )
+        .subcommand(
+            SubCommand::with_name("provision")
+                .about("Provision/reprovision a device")
+                .arg(
+                    Arg::with_name("JSON_CONFIG")
+                        .help("Provisioning JSON configuration")
+                        .required(false)
+                        .index(1),
+                ),
+        )
+        .subcommand(SubCommand::with_name("deprovision").about("Deprovision a device"))
         .get_matches();
+
+    let (subcommand, json_config) = match matches.subcommand() {
+        ("update", _) => (OsConfigSubcommand::Update, None),
+        ("provision", Some(sub_m)) => (OsConfigSubcommand::Provision, Some(get_json_config(sub_m))),
+        ("deprovision", _) => (OsConfigSubcommand::Deprovision, None),
+        _ => unreachable!(),
+    };
 
     let config_route = get_config_route();
     let os_config_path = get_os_config_path();
     let config_json_path = get_config_json_path();
-    let config_arg_json = get_config_arg_json(&matches);
 
     Args {
+        subcommand,
         config_route,
         os_config_path,
         config_json_path,
-        config_arg_json,
+        json_config,
     }
 }
 
@@ -55,11 +76,11 @@ fn get_config_json_path() -> PathBuf {
     path_buf(&try_redefined(CONFIG_JSON_PATH, CONFIG_JSON_PATH_REDEFINE))
 }
 
-fn get_config_arg_json(matches: &ArgMatches) -> Option<String> {
-    if let Some(contents) = matches.value_of("CONFIG_ARG_JSON") {
-        Some(contents.into())
+fn get_json_config(matches: &ArgMatches) -> String {
+    if let Some(contents) = matches.value_of("JSON_CONFIG") {
+        contents.into()
     } else {
-        None
+        unreachable!()
     }
 }
 
