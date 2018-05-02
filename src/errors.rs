@@ -107,6 +107,11 @@ error_chain! {
             display("Writing {:?} failed", path)
         }
 
+        RemoveFile(path: PathBuf) {
+            description("Removing file failed")
+            display("Removing {:?} failed", path)
+        }
+
         NotAFile(path: PathBuf) {
             description("Expected file")
             display("Expected file: {:?}", path)

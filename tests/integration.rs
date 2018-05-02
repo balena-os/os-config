@@ -8,6 +8,7 @@ extern crate unindent;
 use std::fs::{remove_file, File, OpenOptions};
 use std::io::{Read, Write};
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+use std::path::Path;
 use std::process::Command;
 use std::thread;
 use std::time::Duration;
@@ -101,6 +102,7 @@ fn provision() {
 
                 }}
             ],
+            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
             "schema_version": "1.0.0"
         }}
         "#,
@@ -333,6 +335,7 @@ fn update() {
 
                 }}
             ],
+            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
             "schema_version": "1.0.0"
         }}
         "#,
@@ -500,6 +503,7 @@ fn update_no_config_changes() {
 
                 }}
             ],
+            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
             "schema_version": "1.0.0"
         }}
         "#,
@@ -579,6 +583,139 @@ fn update_no_config_changes() {
     service_1.ensure_not_restarted();
     service_2.ensure_not_restarted();
     service_3.ensure_not_restarted();
+}
+
+#[test]
+fn deprovision() {
+    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
+
+    let script_path = create_service_script(&tmp_dir);
+
+    let supervisor = MockService::new_supervisor(&script_path);
+    let service_3 = MockService::new(unit_name(3), &script_path);
+
+    let config_json = format!(
+        r#"
+        {{
+            "deviceMasterKey": "0123456789abcdef0123456789abcdef",
+            "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
+            "deviceType": "raspberrypi3",
+            "hostname": "resin",
+            "persistentLogging": false,
+            "applicationName": "aaaaaa",
+            "applicationId": 123456,
+            "userId": 654321,
+            "username": "username",
+            "appUpdatePollInterval": 60000,
+            "listenPort": 48484,
+            "vpnPort": 443,
+            "apiEndpoint": "http://{}",
+            "vpnEndpoint": "vpn.resin.io",
+            "registryEndpoint": "registry2.resin.io",
+            "deltaEndpoint": "https://delta.resin.io",
+            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+            "apiKey": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1.prod"
+        }}
+        "#,
+        MOCK_JSON_SERVER_ADDRESS
+    );
+
+    let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
+
+    let os_config = format!(
+        r#"
+        {{
+            "services": [
+                {{
+                    "id": "mock-3",
+                    "files": {{
+                        "mock-3": {{
+                            "path": "{0}/mock-3.conf",
+                            "perm": ""
+                        }}
+                    }},
+                    "systemd_services": ["mock-service-3.service"]
+                }}
+            ],
+            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint", "vpnPort", "registryEndpoint", "deltaEndpoint"],
+            "schema_version": "1.0.0"
+        }}
+        "#,
+        tmp_dir_path
+    );
+
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+
+    create_tmp_file(&tmp_dir, "mock-3.conf", "MOCK-3-0123456789", None);
+
+    let os_config_api = unindent::unindent(
+        r#"
+        {
+            "services": {
+                "mock-3": {
+                    "mock-3": "MOCK-3-0123456789"
+                }
+            },
+            "schema_version": "1.0.0"
+        }
+        "#,
+    );
+
+    let _serve = serve_config(os_config_api, 0);
+
+    let output = unindent::unindent(&format!(
+        r#"
+        Stopping resin-supervisor.service...
+        Deleting config.json keys
+        Writing {0}/config.json
+        {0}/mock-3.conf deleted
+        Reloading or restarting mock-service-3.service...
+        Starting resin-supervisor.service...
+        "#,
+        tmp_dir_path
+    ));
+
+    assert_cli::Assert::main_binary()
+        .with_args(&["deprovision"])
+        .with_env(os_config_env(&os_config_path, &config_json_path))
+        .succeeds()
+        .stdout()
+        .is(output)
+        .unwrap();
+
+    validate_does_not_exist(&format!("{}/mock-3.conf", tmp_dir_path));
+
+    validate_json_file(
+        &config_json_path,
+        r#"
+        {
+            "deviceMasterKey": "0123456789abcdef0123456789abcdef",
+            "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
+            "deviceType": "raspberrypi3",
+            "hostname": "resin",
+            "persistentLogging": false,
+            "applicationName": "aaaaaa",
+            "applicationId": 123456,
+            "userId": 654321,
+            "username": "username",
+            "appUpdatePollInterval": 60000,
+            "listenPort": 48484,
+            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1.prod"
+        }
+        "#,
+    );
+
+    wait_for_systemctl_jobs();
+
+    supervisor.ensure_restarted();
+    service_3.ensure_restarted();
 }
 
 /*******************************************************************************
@@ -854,4 +991,8 @@ fn validate_json_file(path: &str, expected: &str) {
     let expected_json: serde_json::Value = serde_json::from_str(expected).unwrap();
 
     assert_eq!(read_json, expected_json);
+}
+
+fn validate_does_not_exist(path: &str) {
+    assert_eq!(Path::new(path).exists(), false);
 }

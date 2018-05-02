@@ -12,6 +12,7 @@ pub const SCHEMA_VERSION: &str = "1.0.0";
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct OsConfig {
     pub services: Vec<Service>,
+    pub keys: Vec<String>,
     pub schema_version: String,
 }
 
@@ -97,6 +98,7 @@ mod tests {
 
             }
         ],
+        "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
         "schema_version": "1.0.0"
     }"#;
 
@@ -131,6 +133,7 @@ mod tests {
                     systemd_services: vec![],
                 },
             ],
+            keys: vec!["apiKey".into(), "apiEndpoint".into(), "vpnEndpoint".into()],
             schema_version: SCHEMA_VERSION.into(),
         };
 

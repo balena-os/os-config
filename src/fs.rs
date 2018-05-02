@@ -68,3 +68,7 @@ pub fn parse_mode(mode: &str) -> Result<Option<u32>> {
         Ok(None)
     }
 }
+
+pub fn remove_file(path: &Path) -> Result<()> {
+    ::std::fs::remove_file(path).chain_err(|| ErrorKind::RemoveFile(path.to_path_buf()))
+}
