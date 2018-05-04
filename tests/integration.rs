@@ -1271,7 +1271,10 @@ fn validate_json_file(path: &str, expected: &str, erase_api_key: bool) {
     let mut read_json: serde_json::Value = serde_json::from_str(&read_contents).unwrap();
 
     if erase_api_key {
-        read_json.as_object_mut().unwrap().remove("deviceApiKey");
+        let option = read_json.as_object_mut().unwrap().remove("deviceApiKey");
+        if let Some(value) = option {
+            assert_eq!(value.as_str().unwrap().len(), 32);
+        }
     }
 
     let expected_json: serde_json::Value = serde_json::from_str(expected).unwrap();
