@@ -3,10 +3,8 @@ use std::path::Path;
 
 use SUPERVISOR_SERVICE;
 use args::Args;
-use config_json::{get_api_endpoint, get_master_key, merge_config_json, set_api_key,
-                  write_config_json, ConfigMap};
+use config_json::{get_api_endpoint, merge_config_json, write_config_json, ConfigMap};
 use errors::*;
-use keys::generate_api_key;
 use os_config::{read_os_config, OsConfig};
 use os_config_api::{config_url, get_os_config_api, OsConfigApi};
 use systemd;
@@ -18,13 +16,17 @@ pub fn provision(args: &Args) -> Result<()> {
         unreachable!()
     };
 
-    reconfigure(args, config_json, true)
+    reconfigure(args, &config_json, true)
 }
 
-pub fn reconfigure(args: &Args, config_json: ConfigMap, write_config_json: bool) -> Result<()> {
+pub fn reconfigure(args: &Args, config_json: &ConfigMap, write_config_json: bool) -> Result<()> {
     let os_config = read_os_config(&args.os_config_path)?;
 
-    let api_endpoint = get_api_endpoint(&config_json)?;
+    let api_endpoint = if let Some(api_endpoint) = get_api_endpoint(config_json)? {
+        api_endpoint
+    } else {
+        bail!(ErrorKind::ApiEndpointNotFoundJSON)
+    };
 
     let os_config_api = get_os_config_api(&config_url(&api_endpoint, &args.config_route))?;
 
@@ -45,7 +47,6 @@ pub fn reconfigure(args: &Args, config_json: ConfigMap, write_config_json: bool)
         config_json,
         &os_config,
         &os_config_api,
-        &api_endpoint,
         has_config_changes,
         write_config_json,
     );
@@ -57,20 +58,16 @@ pub fn reconfigure(args: &Args, config_json: ConfigMap, write_config_json: bool)
 
 fn reconfigure_core(
     args: &Args,
-    mut config_json: ConfigMap,
+    config_json: &ConfigMap,
     os_config: &OsConfig,
     os_config_api: &OsConfigApi,
-    api_endpoint: &str,
     has_config_changes: bool,
     write: bool,
 ) -> Result<()> {
     systemd::await_service_state(SUPERVISOR_SERVICE, "inactive")?;
 
     if write {
-        let master_key = get_master_key(&config_json)?;
-        let api_key = generate_api_key(&master_key, api_endpoint)?;
-        set_api_key(&mut config_json, api_key);
-        write_config_json(&args.config_json_path, &config_json)?;
+        write_config_json(&args.config_json_path, config_json)?;
     }
 
     if has_config_changes {

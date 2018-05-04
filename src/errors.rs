@@ -70,12 +70,8 @@ error_chain! {
             description("`apiEndpoint` not found")
         }
 
-        MasterKeyNotStringJSON {
-            description("`deviceMasterKey` should be a string")
-        }
-
-        MasterKeyNotFoundJSON {
-            description("`deviceMasterKey` not found")
+        DeviceApiKeyNotStringJSON {
+            description("`deviceApiKey` should be a string")
         }
 
         StartService(name: String) {
@@ -125,10 +121,6 @@ error_chain! {
         ParsePermissionMode(mode: String) {
             description("Parsing permission mode failed")
             display("Parsing permission mode `{}` failed", mode)
-        }
-
-        GenerateDeviceApiKey {
-            description("Generating `deviceApiKey` failed")
         }
     }
 }

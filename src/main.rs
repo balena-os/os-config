@@ -9,6 +9,7 @@ extern crate clap;
 extern crate dbus;
 extern crate hex;
 extern crate openssl;
+extern crate rand;
 extern crate reqwest;
 
 #[macro_use]

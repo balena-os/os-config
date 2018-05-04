@@ -51,7 +51,6 @@ fn provision() {
 
     let config_json = r#"
         {
-            "deviceMasterKey": "0123456789abcdef0123456789abcdef",
             "deviceType": "raspberrypi3",
             "hostname": "resin",
             "persistentLogging": false
@@ -213,8 +212,6 @@ fn provision() {
         &format!(
             r#"
             {{
-                "deviceMasterKey": "0123456789abcdef0123456789abcdef",
-                "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
                 "deviceType": "raspberrypi3",
                 "hostname": "resin",
                 "persistentLogging": false,
@@ -238,6 +235,7 @@ fn provision() {
             "#,
             MOCK_JSON_SERVER_ADDRESS
         ),
+        true,
     );
 
     wait_for_systemctl_jobs();
@@ -246,6 +244,293 @@ fn provision() {
     service_1.ensure_restarted();
     service_2.ensure_restarted();
     service_3.ensure_restarted();
+}
+
+#[test]
+fn reprovision() {
+    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
+
+    let script_path = create_service_script(&tmp_dir);
+
+    let supervisor = MockService::new_supervisor(&script_path);
+    start_service(SUPERVISOR_SERVICE);
+
+    let config_json = r#"
+        {
+            "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
+            "deviceType": "raspberrypi3",
+            "hostname": "resin",
+            "persistentLogging": false,
+            "applicationName": "aaaaaa",
+            "applicationId": 123456,
+            "userId": 654321,
+            "username": "username",
+            "appUpdatePollInterval": 60000,
+            "listenPort": 48484,
+            "vpnPort": 443,
+            "apiEndpoint": "http://old.endpoiont",
+            "vpnEndpoint": "vpn.resin.io",
+            "registryEndpoint": "registry2.resin.io",
+            "deltaEndpoint": "https://delta.resin.io",
+            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+            "apiKey": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1.prod"
+        }
+        "#;
+
+    let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
+
+    let os_config = unindent::unindent(
+        r#"
+        {
+            "services": [
+            ],
+            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
+            "schema_version": "1.0.0"
+        }
+        "#,
+    );
+
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+
+    let os_config_api = unindent::unindent(
+        r#"
+        {
+            "services": {
+            },
+            "schema_version": "1.0.0"
+        }
+        "#,
+    );
+
+    let _serve = serve_config(os_config_api, 0);
+
+    let json_config = format!(
+        r#"
+        {{
+            "applicationName": "aaaaaa",
+            "applicationId": 123456,
+            "deviceType": "raspberrypi3",
+            "userId": 654321,
+            "username": "username",
+            "appUpdatePollInterval": 60000,
+            "listenPort": 48484,
+            "vpnPort": 443,
+            "apiEndpoint": "http://{}",
+            "vpnEndpoint": "vpn.resin.io",
+            "registryEndpoint": "registry2.resin.io",
+            "deltaEndpoint": "https://delta.resin.io",
+            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+            "apiKey": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1.prod"
+        }}
+        "#,
+        MOCK_JSON_SERVER_ADDRESS
+    );
+
+    let output = unindent::unindent(&format!(
+        r#"
+        Service configuration fetched from http://127.0.0.1:54673/os/v1/config
+        No configuration changes
+        Stopping resin-supervisor.service...
+        Awaiting resin-supervisor.service to enter inactive state...
+        Writing {0}/config.json
+        Starting resin-supervisor.service...
+        "#,
+        tmp_dir_path
+    ));
+
+    assert_cli::Assert::main_binary()
+        .with_args(&["provision", &json_config])
+        .with_env(os_config_env(&os_config_path, &config_json_path))
+        .succeeds()
+        .stdout()
+        .is(output)
+        .unwrap();
+
+    validate_json_file(
+        &config_json_path,
+        &format!(
+            r#"
+            {{
+                "deviceType": "raspberrypi3",
+                "hostname": "resin",
+                "persistentLogging": false,
+                "applicationName": "aaaaaa",
+                "applicationId": 123456,
+                "userId": 654321,
+                "username": "username",
+                "appUpdatePollInterval": 60000,
+                "listenPort": 48484,
+                "vpnPort": 443,
+                "apiEndpoint": "http://{}",
+                "vpnEndpoint": "vpn.resin.io",
+                "registryEndpoint": "registry2.resin.io",
+                "deltaEndpoint": "https://delta.resin.io",
+                "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+                "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+                "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+                "apiKey": "12345678abcd1234efgh1234567890ab",
+                "version": "9.99.9+rev1.prod",
+                "http://old.endpoiont": "f0f0236b70be9a5983d3fd49ac9719b9"
+            }}
+            "#,
+            MOCK_JSON_SERVER_ADDRESS
+        ),
+        true,
+    );
+
+    wait_for_systemctl_jobs();
+
+    supervisor.ensure_restarted();
+}
+
+#[test]
+fn reprovision_stored() {
+    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
+
+    let script_path = create_service_script(&tmp_dir);
+
+    let supervisor = MockService::new_supervisor(&script_path);
+    start_service(SUPERVISOR_SERVICE);
+
+    let config_json = unindent::unindent(&format!(
+        r#"
+        {{
+            "deviceType": "raspberrypi3",
+            "hostname": "resin",
+            "persistentLogging": false,
+            "applicationName": "aaaaaa",
+            "applicationId": 123456,
+            "userId": 654321,
+            "username": "username",
+            "appUpdatePollInterval": 60000,
+            "listenPort": 48484,
+            "vpnPort": 443,
+            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1.prod",
+            "http://{}": "f0f0236b70be9a5983d3fd49ac9719b9"
+        }}
+        "#,
+        MOCK_JSON_SERVER_ADDRESS
+    ));
+
+    let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
+
+    let os_config = unindent::unindent(
+        r#"
+        {
+            "services": [
+            ],
+            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
+            "schema_version": "1.0.0"
+        }
+        "#,
+    );
+
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+
+    let os_config_api = unindent::unindent(
+        r#"
+        {
+            "services": {
+            },
+            "schema_version": "1.0.0"
+        }
+        "#,
+    );
+
+    let _serve = serve_config(os_config_api, 0);
+
+    let json_config = format!(
+        r#"
+        {{
+            "applicationName": "aaaaaa",
+            "applicationId": 123456,
+            "deviceType": "raspberrypi3",
+            "userId": 654321,
+            "username": "username",
+            "appUpdatePollInterval": 60000,
+            "listenPort": 48484,
+            "vpnPort": 443,
+            "apiEndpoint": "http://{}",
+            "vpnEndpoint": "vpn.resin.io",
+            "registryEndpoint": "registry2.resin.io",
+            "deltaEndpoint": "https://delta.resin.io",
+            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+            "apiKey": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1.prod"
+        }}
+        "#,
+        MOCK_JSON_SERVER_ADDRESS
+    );
+
+    let output = unindent::unindent(&format!(
+        r#"
+        Service configuration fetched from http://127.0.0.1:54673/os/v1/config
+        No configuration changes
+        Stopping resin-supervisor.service...
+        Awaiting resin-supervisor.service to enter inactive state...
+        Writing {0}/config.json
+        Starting resin-supervisor.service...
+        "#,
+        tmp_dir_path
+    ));
+
+    assert_cli::Assert::main_binary()
+        .with_args(&["provision", &json_config])
+        .with_env(os_config_env(&os_config_path, &config_json_path))
+        .succeeds()
+        .stdout()
+        .is(output)
+        .unwrap();
+
+    validate_json_file(
+        &config_json_path,
+        &format!(
+            r#"
+            {{
+                "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
+                "deviceType": "raspberrypi3",
+                "hostname": "resin",
+                "persistentLogging": false,
+                "applicationName": "aaaaaa",
+                "applicationId": 123456,
+                "userId": 654321,
+                "username": "username",
+                "appUpdatePollInterval": 60000,
+                "listenPort": 48484,
+                "vpnPort": 443,
+                "apiEndpoint": "http://{0}",
+                "vpnEndpoint": "vpn.resin.io",
+                "registryEndpoint": "registry2.resin.io",
+                "deltaEndpoint": "https://delta.resin.io",
+                "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+                "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+                "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+                "apiKey": "12345678abcd1234efgh1234567890ab",
+                "version": "9.99.9+rev1.prod",
+                "http://{0}": "f0f0236b70be9a5983d3fd49ac9719b9"
+            }}
+            "#,
+            MOCK_JSON_SERVER_ADDRESS
+        ),
+        false,
+    );
+
+    wait_for_systemctl_jobs();
+
+    supervisor.ensure_restarted();
 }
 
 #[test]
@@ -265,7 +550,6 @@ fn update() {
     let config_json = format!(
         r#"
         {{
-            "deviceMasterKey": "0123456789abcdef0123456789abcdef",
             "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
             "deviceType": "raspberrypi3",
             "hostname": "resin",
@@ -419,7 +703,7 @@ fn update() {
         None,
     );
 
-    validate_json_file(&config_json_path, &config_json);
+    validate_json_file(&config_json_path, &config_json, false);
 
     wait_for_systemctl_jobs();
 
@@ -444,7 +728,6 @@ fn update_no_config_changes() {
     let config_json = format!(
         r#"
         {{
-            "deviceMasterKey": "0123456789abcdef0123456789abcdef",
             "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
             "deviceType": "raspberrypi3",
             "hostname": "resin",
@@ -575,7 +858,7 @@ fn update_no_config_changes() {
         None,
     );
 
-    validate_json_file(&config_json_path, &config_json);
+    validate_json_file(&config_json_path, &config_json, false);
 
     wait_for_systemctl_jobs();
 
@@ -598,7 +881,6 @@ fn deprovision() {
     let config_json = format!(
         r#"
         {{
-            "deviceMasterKey": "0123456789abcdef0123456789abcdef",
             "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
             "deviceType": "raspberrypi3",
             "hostname": "resin",
@@ -693,7 +975,6 @@ fn deprovision() {
         &config_json_path,
         r#"
         {
-            "deviceMasterKey": "0123456789abcdef0123456789abcdef",
             "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
             "deviceType": "raspberrypi3",
             "hostname": "resin",
@@ -710,6 +991,7 @@ fn deprovision() {
             "version": "9.99.9+rev1.prod"
         }
         "#,
+        false,
     );
 
     wait_for_systemctl_jobs();
@@ -981,12 +1263,16 @@ fn validate_file(path: &str, expected: &str, mode: Option<u32>) {
     assert_eq!(&read_contents, expected);
 }
 
-fn validate_json_file(path: &str, expected: &str) {
+fn validate_json_file(path: &str, expected: &str, erase_api_key: bool) {
     let mut file = File::open(path).unwrap();
     let mut read_contents = String::new();
     file.read_to_string(&mut read_contents).unwrap();
 
-    let read_json: serde_json::Value = serde_json::from_str(&read_contents).unwrap();
+    let mut read_json: serde_json::Value = serde_json::from_str(&read_contents).unwrap();
+
+    if erase_api_key {
+        read_json.as_object_mut().unwrap().remove("deviceApiKey");
+    }
 
     let expected_json: serde_json::Value = serde_json::from_str(expected).unwrap();
 
