@@ -42,7 +42,7 @@ fn merge_config_json_impl(config_json_path: &Path, json_config: &str) -> Result<
 fn define_api_key(config_json: &mut ConfigMap, json_config: &ConfigMap) -> Result<()> {
     if let Some(old_api_key) = get_api_key(config_json)? {
         if let Some(old_api_endpoint) = get_api_endpoint(config_json)? {
-            config_json.insert(old_api_endpoint, old_api_key.into());
+            config_json.insert(strip_api_endpoint(&old_api_endpoint), old_api_key.into());
         }
     }
 
@@ -64,6 +64,16 @@ fn define_api_key(config_json: &mut ConfigMap, json_config: &ConfigMap) -> Resul
     Ok(())
 }
 
+fn strip_api_endpoint(api_endpoint: &str) -> String {
+    if api_endpoint.starts_with("https://") {
+        api_endpoint[8..].into()
+    } else if api_endpoint.starts_with("http://") {
+        api_endpoint[7..].into()
+    } else {
+        unreachable!();
+    }
+}
+
 fn get_api_key(config_json: &ConfigMap) -> Result<Option<String>> {
     if let Some(value) = config_json.get("deviceApiKey") {
         if let Some(api_key) = value.as_str() {
@@ -81,7 +91,7 @@ fn set_api_key(config_json: &mut ConfigMap, api_key: String) {
 }
 
 fn get_api_key_for_endpoint(config_json: &ConfigMap, api_endpoint: &str) -> Result<Option<String>> {
-    if let Some(value) = config_json.get(api_endpoint) {
+    if let Some(value) = config_json.get(&strip_api_endpoint(api_endpoint)) {
         if let Some(api_key) = value.as_str() {
             Ok(Some(api_key.to_string()))
         } else {

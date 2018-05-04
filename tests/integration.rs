@@ -377,7 +377,7 @@ fn reprovision() {
                 "mixpanelToken": "12345678abcd1234efgh1234567890ab",
                 "apiKey": "12345678abcd1234efgh1234567890ab",
                 "version": "9.99.9+rev1.prod",
-                "http://old.endpoiont": "f0f0236b70be9a5983d3fd49ac9719b9"
+                "old.endpoiont": "f0f0236b70be9a5983d3fd49ac9719b9"
             }}
             "#,
             MOCK_JSON_SERVER_ADDRESS
@@ -417,7 +417,7 @@ fn reprovision_stored() {
             "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
             "mixpanelToken": "12345678abcd1234efgh1234567890ab",
             "version": "9.99.9+rev1.prod",
-            "http://{}": "f0f0236b70be9a5983d3fd49ac9719b9"
+            "{}": "f0f0236b70be9a5983d3fd49ac9719b9"
         }}
         "#,
         MOCK_JSON_SERVER_ADDRESS
@@ -520,7 +520,7 @@ fn reprovision_stored() {
                 "mixpanelToken": "12345678abcd1234efgh1234567890ab",
                 "apiKey": "12345678abcd1234efgh1234567890ab",
                 "version": "9.99.9+rev1.prod",
-                "http://{0}": "f0f0236b70be9a5983d3fd49ac9719b9"
+                "{0}": "f0f0236b70be9a5983d3fd49ac9719b9"
             }}
             "#,
             MOCK_JSON_SERVER_ADDRESS
