@@ -1027,24 +1027,28 @@ fn deprovision() {
 
     validate_json_file(
         &config_json_path,
-        r#"
-        {
-            "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
-            "deviceType": "raspberrypi3",
-            "hostname": "resin",
-            "persistentLogging": false,
-            "applicationName": "aaaaaa",
-            "applicationId": 123456,
-            "userId": 654321,
-            "username": "username",
-            "appUpdatePollInterval": 60000,
-            "listenPort": 48484,
-            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
-            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
-            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
-            "version": "9.99.9+rev1.prod"
-        }
-        "#,
+        &format!(
+            r#"
+            {{
+                "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
+                "deviceType": "raspberrypi3",
+                "hostname": "resin",
+                "persistentLogging": false,
+                "applicationName": "aaaaaa",
+                "applicationId": 123456,
+                "userId": 654321,
+                "username": "username",
+                "appUpdatePollInterval": 60000,
+                "listenPort": 48484,
+                "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+                "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+                "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+                "version": "9.99.9+rev1.prod",
+                "{}": "f0f0236b70be9a5983d3fd49ac9719b9"
+            }}
+            "#,
+            MOCK_JSON_SERVER_ADDRESS
+        ),
         false,
     );
 
@@ -1052,6 +1056,60 @@ fn deprovision() {
 
     supervisor.ensure_restarted();
     service_3.ensure_restarted();
+}
+
+#[test]
+fn deprovision_unmanaged() {
+    let tmp_dir = TempDir::new("os-config").unwrap();
+
+    let config_json = r#"
+        {
+            "deviceType": "raspberrypi3",
+            "hostname": "resin",
+            "persistentLogging": false
+        }
+        "#;
+
+    let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
+
+    let os_config = unindent::unindent(
+        r#"
+        {
+            "services": [
+            ],
+            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
+            "schema_version": "1.0.0"
+        }
+        "#,
+    );
+
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+
+    let os_config_api = unindent::unindent(
+        r#"
+        {
+            "services": {
+            },
+            "schema_version": "1.0.0"
+        }
+        "#,
+    );
+
+    let _serve = serve_config(os_config_api, 0);
+
+    let output = unindent::unindent(
+        r#"
+        Unmanaged device. Exiting...
+        "#,
+    );
+
+    assert_cli::Assert::main_binary()
+        .with_args(&["deprovision"])
+        .with_env(os_config_env(&os_config_path, &config_json_path))
+        .succeeds()
+        .stdout()
+        .is(output)
+        .unwrap();
 }
 
 /*******************************************************************************

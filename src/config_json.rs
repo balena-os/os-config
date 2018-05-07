@@ -40,11 +40,7 @@ fn merge_config_json_impl(config_json_path: &Path, json_config: &str) -> Result<
 }
 
 fn define_api_key(config_json: &mut ConfigMap, json_config: &ConfigMap) -> Result<()> {
-    if let Some(old_api_key) = get_api_key(config_json)? {
-        if let Some(old_api_endpoint) = get_api_endpoint(config_json)? {
-            config_json.insert(strip_api_endpoint(&old_api_endpoint), old_api_key.into());
-        }
-    }
+    store_api_key(config_json)?;
 
     let new_api_endpoint = if let Some(new_api_endpoint) = get_api_endpoint(json_config)? {
         new_api_endpoint
@@ -60,6 +56,16 @@ fn define_api_key(config_json: &mut ConfigMap, json_config: &ConfigMap) -> Resul
         };
 
     set_api_key(config_json, new_api_key);
+
+    Ok(())
+}
+
+pub fn store_api_key(config_json: &mut ConfigMap) -> Result<()> {
+    if let Some(old_api_key) = get_api_key(config_json)? {
+        if let Some(old_api_endpoint) = get_api_endpoint(config_json)? {
+            config_json.insert(strip_api_endpoint(&old_api_endpoint), old_api_key.into());
+        }
+    }
 
     Ok(())
 }
