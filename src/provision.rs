@@ -25,7 +25,8 @@ pub fn reconfigure(args: &Args, config_json: &ConfigMap, write_config_json: bool
     let api_endpoint = if let Some(api_endpoint) = get_api_endpoint(config_json)? {
         api_endpoint
     } else {
-        bail!(ErrorKind::ApiEndpointNotFoundJSON)
+        info!("Unmanaged device. Exiting...");
+        return Ok(());
     };
 
     let os_config_api = get_os_config_api(&config_url(&api_endpoint, &args.config_route))?;

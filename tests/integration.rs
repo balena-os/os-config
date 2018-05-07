@@ -869,6 +869,60 @@ fn update_no_config_changes() {
 }
 
 #[test]
+fn update_unmanaged() {
+    let tmp_dir = TempDir::new("os-config").unwrap();
+
+    let config_json = r#"
+        {
+            "deviceType": "raspberrypi3",
+            "hostname": "resin",
+            "persistentLogging": false
+        }
+        "#;
+
+    let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
+
+    let os_config = r#"
+        {
+            "services": [
+            ],
+            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
+            "schema_version": "1.0.0"
+        }
+        "#;
+
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", os_config, None);
+
+    let os_config_api = unindent::unindent(
+        r#"
+        {
+            "services": {
+            },
+            "schema_version": "1.0.0"
+        }
+        "#,
+    );
+
+    let _serve = serve_config(os_config_api, 0);
+
+    let output = unindent::unindent(
+        r#"
+        Unmanaged device. Exiting...
+        "#,
+    );
+
+    assert_cli::Assert::main_binary()
+        .with_args(&["update"])
+        .with_env(os_config_env(&os_config_path, &config_json_path))
+        .succeeds()
+        .stdout()
+        .is(output)
+        .unwrap();
+
+    validate_json_file(&config_json_path, config_json, false);
+}
+
+#[test]
 fn deprovision() {
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
