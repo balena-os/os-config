@@ -12,9 +12,8 @@ error_chain! {
     }
 
     errors {
-        MergeConfigJSON(path: PathBuf) {
+        MergeConfigJSON {
             description("Merging `config.json` failed")
-            display("Merging {:?} failed", path)
         }
 
         ReadConfigJSON(path: PathBuf) {
@@ -135,7 +134,7 @@ pub fn exit_code(e: &Error) -> i32 {
         ErrorKind::WriteFile(_) => 8,
         ErrorKind::ServiceNotFoundJSON(_) => 9,
         ErrorKind::ConfigNotFoundJSON(_, _) => 10,
-        ErrorKind::MergeConfigJSON(_) => 11,
+        ErrorKind::MergeConfigJSON => 11,
         _ => 1,
     }
 }

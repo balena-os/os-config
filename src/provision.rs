@@ -3,15 +3,22 @@ use std::path::Path;
 
 use SUPERVISOR_SERVICE;
 use args::Args;
-use config_json::{get_api_endpoint, merge_config_json, write_config_json, ConfigMap};
+use config_json::{get_api_endpoint, merge_config_json, read_config_json, write_config_json,
+                  ConfigMap};
 use errors::*;
 use os_config::{read_os_config, OsConfig};
 use os_config_api::{config_url, get_os_config_api, OsConfigApi};
 use systemd;
 
 pub fn provision(args: &Args) -> Result<()> {
-    let config_json = if let Some(ref json_config) = args.json_config {
-        merge_config_json(&args.config_json_path, json_config)?
+    let mut config_json = read_config_json(&args.config_json_path)?;
+
+    let os_config = read_os_config(&args.os_config_path)?;
+
+    if let Some(ref json_config) = args.json_config {
+        clean_config_json_keys(&mut config_json, &os_config);
+
+        merge_config_json(&mut config_json, json_config)?;
     } else {
         unreachable!()
     };
@@ -119,5 +126,11 @@ fn get_config_contents(path: &str) -> String {
         contents
     } else {
         "".into()
+    }
+}
+
+fn clean_config_json_keys(config_json: &mut ConfigMap, os_config: &OsConfig) {
+    for key in &os_config.keys {
+        config_json.remove(key);
     }
 }

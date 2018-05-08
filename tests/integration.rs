@@ -259,6 +259,7 @@ fn reprovision() {
     let config_json = r#"
         {
             "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
+            "old.endpoiont": "f0f0236b70be9a5983d3fd49ac9719b9",
             "deviceType": "raspberrypi3",
             "hostname": "resin",
             "persistentLogging": false,
@@ -1389,7 +1390,12 @@ fn validate_json_file(path: &str, expected: &str, erase_api_key: bool) {
             assert_eq!(value.as_str().unwrap().len(), 32);
         }
 
-        let api_endpoint = read_json.get("apiEndpoint").unwrap().as_str().unwrap().to_string();
+        let api_endpoint = read_json
+            .get("apiEndpoint")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_string();
         let key = &api_endpoint[7..];
 
         let option = read_json.as_object_mut().unwrap().remove(key);
