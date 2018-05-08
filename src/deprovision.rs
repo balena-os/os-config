@@ -28,6 +28,8 @@ pub fn deprovision(args: &Args) -> Result<()> {
 }
 
 fn deprovision_core(config_json: &mut ConfigMap, args: &Args, os_config: &OsConfig) -> Result<()> {
+    systemd::await_service_state(SUPERVISOR_SERVICE, "inactive")?;
+
     store_api_key(config_json)?;
 
     delete_config_json_keys(config_json, args, os_config)?;

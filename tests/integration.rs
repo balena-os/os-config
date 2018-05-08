@@ -1006,6 +1006,7 @@ fn deprovision() {
     let output = unindent::unindent(&format!(
         r#"
         Stopping resin-supervisor.service...
+        Awaiting resin-supervisor.service to enter inactive state...
         Deleting config.json keys
         Writing {0}/config.json
         {0}/mock-3.conf deleted
