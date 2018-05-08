@@ -13,8 +13,8 @@ const CONFIG_JSON_PATH_REDEFINE: &str = "CONFIG_JSON_PATH_REDEFINE";
 
 pub enum OsConfigSubcommand {
     Update,
-    Provision,
-    Deprovision,
+    Configure,
+    Deconfigure,
 }
 
 pub struct Args {
@@ -33,11 +33,11 @@ pub fn get_cli_args() -> Args {
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .subcommand(
             SubCommand::with_name("update")
-                .about("Apply available configuration updates on a provisioned device"),
+                .about("Apply available configuration updates on a configured device"),
         )
         .subcommand(
-            SubCommand::with_name("provision")
-                .about("Provision/reprovision a device")
+            SubCommand::with_name("configure")
+                .about("Configure/reconfigure a device")
                 .arg(
                     Arg::with_name("JSON_CONFIG")
                         .help("Provisioning JSON configuration")
@@ -45,13 +45,13 @@ pub fn get_cli_args() -> Args {
                         .index(1),
                 ),
         )
-        .subcommand(SubCommand::with_name("deprovision").about("Deprovision a device"))
+        .subcommand(SubCommand::with_name("deconfigure").about("Deconfigure a device"))
         .get_matches();
 
     let (subcommand, json_config) = match matches.subcommand() {
         ("update", _) => (OsConfigSubcommand::Update, None),
-        ("provision", Some(sub_m)) => (OsConfigSubcommand::Provision, Some(get_json_config(sub_m))),
-        ("deprovision", _) => (OsConfigSubcommand::Deprovision, None),
+        ("configure", Some(sub_m)) => (OsConfigSubcommand::Configure, Some(get_json_config(sub_m))),
+        ("deconfigure", _) => (OsConfigSubcommand::Deconfigure, None),
         _ => unreachable!(),
     };
 

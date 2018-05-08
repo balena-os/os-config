@@ -36,7 +36,7 @@ const CONFIG_ROUTE: &str = "/os/v1/config";
 */
 
 #[test]
-fn provision() {
+fn configure() {
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
@@ -176,7 +176,7 @@ fn provision() {
     ));
 
     assert_cli::Assert::main_binary()
-        .with_args(&["provision", &json_config])
+        .with_args(&["configure", &json_config])
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
@@ -247,7 +247,7 @@ fn provision() {
 }
 
 #[test]
-fn reprovision() {
+fn reconfigure() {
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
@@ -347,7 +347,7 @@ fn reprovision() {
     ));
 
     assert_cli::Assert::main_binary()
-        .with_args(&["provision", &json_config])
+        .with_args(&["configure", &json_config])
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
@@ -392,7 +392,7 @@ fn reprovision() {
 }
 
 #[test]
-fn reprovision_stored() {
+fn reconfigure_stored() {
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
@@ -489,7 +489,7 @@ fn reprovision_stored() {
     ));
 
     assert_cli::Assert::main_binary()
-        .with_args(&["provision", &json_config])
+        .with_args(&["configure", &json_config])
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
@@ -924,7 +924,7 @@ fn update_unmanaged() {
 }
 
 #[test]
-fn deprovision() {
+fn deconfigure() {
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
@@ -1018,7 +1018,7 @@ fn deprovision() {
     ));
 
     assert_cli::Assert::main_binary()
-        .with_args(&["deprovision"])
+        .with_args(&["deconfigure"])
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
@@ -1061,7 +1061,7 @@ fn deprovision() {
 }
 
 #[test]
-fn deprovision_unmanaged() {
+fn deconfigure_unmanaged() {
     let tmp_dir = TempDir::new("os-config").unwrap();
 
     let config_json = r#"
@@ -1101,12 +1101,12 @@ fn deprovision_unmanaged() {
 
     let output = unindent::unindent(
         r#"
-        Unmanaged device. Exiting...
+        Unconfigured device. Exiting...
         "#,
     );
 
     assert_cli::Assert::main_binary()
-        .with_args(&["deprovision"])
+        .with_args(&["deconfigure"])
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()

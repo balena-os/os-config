@@ -26,14 +26,14 @@ extern crate maplit;
 
 mod args;
 mod config_json;
-mod deprovision;
+mod configure;
+mod deconfigure;
 mod errors;
 mod fs;
 mod keys;
 mod logger;
 mod os_config;
 mod os_config_api;
-mod provision;
 mod systemd;
 mod update;
 
@@ -61,7 +61,7 @@ fn run() -> Result<()> {
 
     match args.subcommand {
         OsConfigSubcommand::Update => update::update(&args),
-        OsConfigSubcommand::Provision => provision::provision(&args),
-        OsConfigSubcommand::Deprovision => deprovision::deprovision(&args),
+        OsConfigSubcommand::Configure => configure::configure(&args),
+        OsConfigSubcommand::Deconfigure => deconfigure::deconfigure(&args),
     }
 }

@@ -8,11 +8,11 @@ use errors::*;
 use os_config::{read_os_config, OsConfig};
 use systemd;
 
-pub fn deprovision(args: &Args) -> Result<()> {
+pub fn deconfigure(args: &Args) -> Result<()> {
     let mut config_json = read_config_json(&args.config_json_path)?;
 
     if get_api_endpoint(&config_json)?.is_none() {
-        info!("Unmanaged device. Exiting...");
+        info!("Unconfigured device. Exiting...");
         return Ok(());
     };
 
@@ -20,14 +20,14 @@ pub fn deprovision(args: &Args) -> Result<()> {
 
     systemd::stop_service(SUPERVISOR_SERVICE)?;
 
-    let result = deprovision_core(&mut config_json, args, &os_config);
+    let result = deconfigure_core(&mut config_json, args, &os_config);
 
     systemd::start_service(SUPERVISOR_SERVICE)?;
 
     result
 }
 
-fn deprovision_core(config_json: &mut ConfigMap, args: &Args, os_config: &OsConfig) -> Result<()> {
+fn deconfigure_core(config_json: &mut ConfigMap, args: &Args, os_config: &OsConfig) -> Result<()> {
     systemd::await_service_state(SUPERVISOR_SERVICE, "inactive")?;
 
     store_api_key(config_json)?;

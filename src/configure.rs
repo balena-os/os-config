@@ -10,7 +10,7 @@ use os_config::{read_os_config, OsConfig};
 use os_config_api::{config_url, get_os_config_api, OsConfigApi};
 use systemd;
 
-pub fn provision(args: &Args) -> Result<()> {
+pub fn configure(args: &Args) -> Result<()> {
     let mut config_json = read_config_json(&args.config_json_path)?;
 
     let os_config = read_os_config(&args.os_config_path)?;
