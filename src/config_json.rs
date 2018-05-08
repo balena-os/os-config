@@ -55,7 +55,7 @@ fn define_api_key(config_json: &mut ConfigMap, json_config: &ConfigMap) -> Resul
             generate_api_key()
         };
 
-    set_api_key(config_json, new_api_key);
+    set_api_key(config_json, new_api_key, new_api_endpoint);
 
     Ok(())
 }
@@ -92,8 +92,10 @@ fn get_api_key(config_json: &ConfigMap) -> Result<Option<String>> {
     }
 }
 
-fn set_api_key(config_json: &mut ConfigMap, api_key: String) {
-    config_json.insert("deviceApiKey".into(), Value::String(api_key));
+fn set_api_key(config_json: &mut ConfigMap, api_key: String, api_endpoint: String) {
+    config_json.insert("deviceApiKey".into(), Value::String(api_key.clone()));
+
+    config_json.insert(strip_api_endpoint(&api_endpoint), Value::String(api_key));
 }
 
 fn get_api_key_for_endpoint(config_json: &ConfigMap, api_endpoint: &str) -> Result<Option<String>> {

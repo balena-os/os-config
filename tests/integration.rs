@@ -1388,6 +1388,14 @@ fn validate_json_file(path: &str, expected: &str, erase_api_key: bool) {
         if let Some(value) = option {
             assert_eq!(value.as_str().unwrap().len(), 32);
         }
+
+        let api_endpoint = read_json.get("apiEndpoint").unwrap().as_str().unwrap().to_string();
+        let key = &api_endpoint[7..];
+
+        let option = read_json.as_object_mut().unwrap().remove(key);
+        if let Some(value) = option {
+            assert_eq!(value.as_str().unwrap().len(), 32);
+        }
     }
 
     let expected_json: serde_json::Value = serde_json::from_str(expected).unwrap();
