@@ -73,7 +73,7 @@ pub fn await_service_state_impl(name: &str, state: &str) -> Result<()> {
 
     let unit_path = connection.with_path(SYSTEMD, path.get_unit(name)?, 5000);
 
-    for _ in 0..30 {
+    for _ in 0..90 {
         let active_state = unit_path.get_active_state()?;
 
         if active_state == state {
