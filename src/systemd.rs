@@ -59,13 +59,12 @@ fn reload_or_restart_service_impl(name: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn await_service_state(name: &str, state: &str) -> Result<()> {
-    await_service_state_impl(name, state)
-        .chain_err(|| ErrorKind::AwaitServiceState(name.into(), state.into()))
+pub fn await_service_exit(name: &str) -> Result<()> {
+    await_service_exit_impl(name).chain_err(|| ErrorKind::AwaitServiceExit(name.into()))
 }
 
-pub fn await_service_state_impl(name: &str, state: &str) -> Result<()> {
-    info!("Awaiting {} to enter {} state...", name, state);
+pub fn await_service_exit_impl(name: &str) -> Result<()> {
+    info!("Awaiting {} to exit...", name);
 
     let connection = dbus::Connection::get_private(dbus::BusType::System)?;
 
@@ -76,14 +75,14 @@ pub fn await_service_state_impl(name: &str, state: &str) -> Result<()> {
     for _ in 0..90 {
         let active_state = unit_path.get_active_state()?;
 
-        if active_state == state {
+        if active_state == "inactive" || active_state == "failed" {
             return Ok(());
         }
 
         thread::sleep(Duration::from_secs(1));
     }
 
-    bail!(ErrorKind::AwaitServiceStateTimeout)
+    bail!(ErrorKind::AwaitServiceExitTimeout)
 }
 
 pub trait OrgFreedesktopSystemd1Manager {

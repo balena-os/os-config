@@ -88,13 +88,13 @@ error_chain! {
             display("Reloading or restarting {} failed", name)
         }
 
-        AwaitServiceState(name: String, state: String) {
-            description("Awaiting service to enter state failed")
-            display("Awaiting {} to enter {} state failed", name, state)
+        AwaitServiceExit(name: String) {
+            description("Awaiting service to exit failed")
+            display("Awaiting {} to exit failed", name)
         }
 
-        AwaitServiceStateTimeout {
-            description("Timed out awaiting service state")
+        AwaitServiceExitTimeout {
+            description("Timed out awaiting service to exit")
         }
 
         WriteFile(path: PathBuf) {

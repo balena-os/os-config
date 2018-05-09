@@ -72,7 +72,7 @@ fn reconfigure_core(
     has_config_changes: bool,
     write: bool,
 ) -> Result<()> {
-    systemd::await_service_state(SUPERVISOR_SERVICE, "inactive")?;
+    systemd::await_service_exit(SUPERVISOR_SERVICE)?;
 
     if write {
         write_config_json(&args.config_json_path, config_json)?;

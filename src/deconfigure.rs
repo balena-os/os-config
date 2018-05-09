@@ -28,7 +28,7 @@ pub fn deconfigure(args: &Args) -> Result<()> {
 }
 
 fn deconfigure_core(config_json: &mut ConfigMap, args: &Args, os_config: &OsConfig) -> Result<()> {
-    systemd::await_service_state(SUPERVISOR_SERVICE, "inactive")?;
+    systemd::await_service_exit(SUPERVISOR_SERVICE)?;
 
     store_api_key(config_json)?;
 
