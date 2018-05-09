@@ -12,6 +12,7 @@ const OS_CONFIG_PATH_REDEFINE: &str = "OS_CONFIG_PATH_REDEFINE";
 const CONFIG_JSON_PATH_REDEFINE: &str = "CONFIG_JSON_PATH_REDEFINE";
 
 pub enum OsConfigSubcommand {
+    GenerateApiKey,
     Update,
     Configure,
     Deconfigure,
@@ -32,6 +33,10 @@ pub fn get_cli_args() -> Args {
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .subcommand(
+            SubCommand::with_name("generate-api-key")
+                .about("Generates deviceApiKey for configured device"),
+        )
+        .subcommand(
             SubCommand::with_name("update")
                 .about("Apply available configuration updates on a configured device"),
         )
@@ -49,6 +54,7 @@ pub fn get_cli_args() -> Args {
         .get_matches();
 
     let (subcommand, json_config) = match matches.subcommand() {
+        ("generate-api-key", _) => (OsConfigSubcommand::GenerateApiKey, None),
         ("update", _) => (OsConfigSubcommand::Update, None),
         ("configure", Some(sub_m)) => (OsConfigSubcommand::Configure, Some(get_json_config(sub_m))),
         ("deconfigure", _) => (OsConfigSubcommand::Deconfigure, None),

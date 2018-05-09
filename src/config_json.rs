@@ -1,11 +1,13 @@
 use std::path::Path;
 
-use errors::*;
-use fs::{read_file, write_file};
-use keys::generate_api_key;
+use hex;
+use rand::{thread_rng, Rng};
 
 use serde_json;
 use serde_json::{Map, Value};
+
+use errors::*;
+use fs::{read_file, write_file};
 
 pub type ConfigMap = Map<String, Value>;
 
@@ -50,7 +52,7 @@ fn define_api_key(config_json: &mut ConfigMap, json_config: &ConfigMap) -> Resul
         if let Some(existing_api_key) = get_api_key_for_endpoint(config_json, &new_api_endpoint)? {
             existing_api_key
         } else {
-            generate_api_key()
+            generate_random_key()
         };
 
     set_api_key(config_json, new_api_key, &new_api_endpoint);
@@ -66,6 +68,36 @@ pub fn store_api_key(config_json: &mut ConfigMap) -> Result<()> {
     }
 
     Ok(())
+}
+
+pub enum GenerateApiKeyResult {
+    UnconfiguredDevice,
+    GeneratedAlready,
+    GeneratedNew,
+    Reusing,
+}
+
+pub fn first_time_generate_api_key(config_json: &mut ConfigMap) -> Result<GenerateApiKeyResult> {
+    let api_endpoint = if let Some(api_endpoint) = get_api_endpoint(config_json)? {
+        api_endpoint
+    } else {
+        return Ok(GenerateApiKeyResult::UnconfiguredDevice);
+    };
+
+    if get_api_key(config_json)?.is_some() {
+        return Ok(GenerateApiKeyResult::GeneratedAlready);
+    }
+
+    let (api_key, result) =
+        if let Some(existing_api_key) = get_api_key_for_endpoint(config_json, &api_endpoint)? {
+            (existing_api_key, GenerateApiKeyResult::Reusing)
+        } else {
+            (generate_random_key(), GenerateApiKeyResult::GeneratedNew)
+        };
+
+    set_api_key(config_json, api_key, &api_endpoint);
+
+    Ok(result)
 }
 
 fn strip_api_endpoint(api_endpoint: &str) -> String {
@@ -140,4 +172,10 @@ fn write_json_object_file(path: &Path, map: &ConfigMap) -> Result<()> {
     write_file(path, &contents, None)?;
 
     Ok(())
+}
+
+pub fn generate_random_key() -> String {
+    let mut buf = [0u8; 16];
+    thread_rng().fill_bytes(&mut buf);
+    hex::encode(buf)
 }

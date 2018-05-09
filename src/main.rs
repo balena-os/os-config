@@ -30,7 +30,7 @@ mod configure;
 mod deconfigure;
 mod errors;
 mod fs;
-mod keys;
+mod generate;
 mod logger;
 mod os_config;
 mod os_config_api;
@@ -60,6 +60,7 @@ fn run() -> Result<()> {
     let args = get_cli_args();
 
     match args.subcommand {
+        OsConfigSubcommand::GenerateApiKey => generate::generate_api_key(&args),
         OsConfigSubcommand::Update => update::update(&args),
         OsConfigSubcommand::Configure => configure::configure(&args),
         OsConfigSubcommand::Deconfigure => deconfigure::deconfigure(&args),

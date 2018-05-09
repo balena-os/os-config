@@ -260,7 +260,7 @@ fn reconfigure() {
     let config_json = r#"
         {
             "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
-            "old.endpoiont": "f0f0236b70be9a5983d3fd49ac9719b9",
+            "old.endpoint.com": "f0f0236b70be9a5983d3fd49ac9719b9",
             "deviceType": "raspberrypi3",
             "hostname": "resin",
             "persistentLogging": false,
@@ -271,7 +271,7 @@ fn reconfigure() {
             "appUpdatePollInterval": 60000,
             "listenPort": 48484,
             "vpnPort": 443,
-            "apiEndpoint": "http://old.endpoiont",
+            "apiEndpoint": "http://old.endpoint.com",
             "vpnEndpoint": "vpn.resin.io",
             "registryEndpoint": "registry2.resin.io",
             "deltaEndpoint": "https://delta.resin.io",
@@ -380,7 +380,7 @@ fn reconfigure() {
                 "mixpanelToken": "12345678abcd1234efgh1234567890ab",
                 "apiKey": "12345678abcd1234efgh1234567890ab",
                 "version": "9.99.9+rev1.prod",
-                "old.endpoiont": "f0f0236b70be9a5983d3fd49ac9719b9"
+                "old.endpoint.com": "f0f0236b70be9a5983d3fd49ac9719b9"
             }}
             "#,
             MOCK_JSON_SERVER_ADDRESS
@@ -1117,6 +1117,247 @@ fn deconfigure_unmanaged() {
         .stdout()
         .is(output)
         .unwrap();
+}
+
+#[test]
+fn generate_api_key_unmanaged() {
+    let tmp_dir = TempDir::new("os-config").unwrap();
+
+    let config_json = r#"
+        {
+            "deviceType": "raspberrypi3",
+            "hostname": "resin",
+            "persistentLogging": false
+        }
+        "#;
+
+    let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
+
+    let os_config = unindent::unindent(
+        r#"
+        {
+            "services": [
+            ],
+            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
+            "schema_version": "1.0.0"
+        }
+        "#,
+    );
+
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+
+    let output = unindent::unindent(
+        r#"
+        Unconfigured device
+        "#,
+    );
+
+    assert_cli::Assert::main_binary()
+        .with_args(&["generate-api-key"])
+        .with_env(os_config_env(&os_config_path, &config_json_path))
+        .succeeds()
+        .stdout()
+        .is(output)
+        .unwrap();
+
+    validate_json_file(&config_json_path, config_json, false);
+}
+
+#[test]
+fn generate_api_key_already_generated() {
+    let tmp_dir = TempDir::new("os-config").unwrap();
+
+    let config_json = r#"
+        {
+            "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
+            "deviceType": "raspberrypi3",
+            "hostname": "resin",
+            "persistentLogging": false,
+            "applicationName": "aaaaaa",
+            "applicationId": 123456,
+            "userId": 654321,
+            "username": "username",
+            "appUpdatePollInterval": 60000,
+            "listenPort": 48484,
+            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1.prod",
+            "apiEndpoint": "http://api.endpoint.com",
+            "api.endpoint.com": "f0f0236b70be9a5983d3fd49ac9719b9"
+        }
+        "#;
+
+    let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
+
+    let os_config = unindent::unindent(
+        r#"
+        {
+            "services": [
+            ],
+            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
+            "schema_version": "1.0.0"
+        }
+        "#,
+    );
+
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+
+    let output = unindent::unindent(
+        r#"
+        `deviceApiKey` already generated
+        "#,
+    );
+
+    assert_cli::Assert::main_binary()
+        .with_args(&["generate-api-key"])
+        .with_env(os_config_env(&os_config_path, &config_json_path))
+        .succeeds()
+        .stdout()
+        .is(output)
+        .unwrap();
+
+    validate_json_file(&config_json_path, config_json, false);
+}
+
+#[test]
+fn generate_api_key_reuse() {
+    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
+
+    let config_json = r#"
+        {
+            "deviceType": "raspberrypi3",
+            "hostname": "resin",
+            "persistentLogging": false,
+            "applicationName": "aaaaaa",
+            "applicationId": 123456,
+            "userId": 654321,
+            "username": "username",
+            "appUpdatePollInterval": 60000,
+            "listenPort": 48484,
+            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1.prod",
+            "apiEndpoint": "http://api.endpoint.com",
+            "api.endpoint.com": "f0f0236b70be9a5983d3fd49ac9719b9"
+        }
+        "#;
+
+    let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
+
+    let os_config = unindent::unindent(
+        r#"
+        {
+            "services": [
+            ],
+            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
+            "schema_version": "1.0.0"
+        }
+        "#,
+    );
+
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+
+    let output = unindent::unindent(&format!(
+        r#"
+        Reusing stored `deviceApiKey`
+        Writing {0}/config.json
+        "#,
+        tmp_dir_path
+    ));
+
+    assert_cli::Assert::main_binary()
+        .with_args(&["generate-api-key"])
+        .with_env(os_config_env(&os_config_path, &config_json_path))
+        .succeeds()
+        .stdout()
+        .is(output)
+        .unwrap();
+
+    validate_json_file(
+        &config_json_path,
+        r#"
+        {
+            "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
+            "deviceType": "raspberrypi3",
+            "hostname": "resin",
+            "persistentLogging": false,
+            "applicationName": "aaaaaa",
+            "applicationId": 123456,
+            "userId": 654321,
+            "username": "username",
+            "appUpdatePollInterval": 60000,
+            "listenPort": 48484,
+            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1.prod",
+            "apiEndpoint": "http://api.endpoint.com",
+            "api.endpoint.com": "f0f0236b70be9a5983d3fd49ac9719b9"
+        }
+        "#,
+        false,
+    );
+}
+
+#[test]
+fn generate_api_key_new() {
+    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
+
+    let config_json = r#"
+        {
+            "deviceType": "raspberrypi3",
+            "hostname": "resin",
+            "persistentLogging": false,
+            "applicationName": "aaaaaa",
+            "applicationId": 123456,
+            "userId": 654321,
+            "username": "username",
+            "appUpdatePollInterval": 60000,
+            "listenPort": 48484,
+            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1.prod",
+            "apiEndpoint": "http://api.endpoint.com"
+        }
+        "#;
+
+    let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
+
+    let os_config = unindent::unindent(
+        r#"
+        {
+            "services": [
+            ],
+            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
+            "schema_version": "1.0.0"
+        }
+        "#,
+    );
+
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+
+    let output = unindent::unindent(&format!(
+        r#"
+        New `deviceApiKey` generated
+        Writing {0}/config.json
+        "#,
+        tmp_dir_path
+    ));
+
+    assert_cli::Assert::main_binary()
+        .with_args(&["generate-api-key"])
+        .with_env(os_config_env(&os_config_path, &config_json_path))
+        .succeeds()
+        .stdout()
+        .is(output)
+        .unwrap();
+
+    validate_json_file(&config_json_path, config_json, true);
 }
 
 /*******************************************************************************
