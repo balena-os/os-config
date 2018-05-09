@@ -32,7 +32,7 @@ pub fn reconfigure(args: &Args, config_json: &ConfigMap, write_config_json: bool
     let api_endpoint = if let Some(api_endpoint) = get_api_endpoint(config_json)? {
         api_endpoint
     } else {
-        info!("Unmanaged device. Exiting...");
+        info!("Unconfigured device. Exiting...");
         return Ok(());
     };
 

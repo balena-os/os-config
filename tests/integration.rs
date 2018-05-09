@@ -913,7 +913,7 @@ fn update_unmanaged() {
 
     let output = unindent::unindent(
         r#"
-        Unmanaged device. Exiting...
+        Unconfigured device. Exiting...
         "#,
     );
 
