@@ -159,7 +159,8 @@ fn configure() {
 
     let output = unindent::unindent(&format!(
         r#"
-        Service configuration fetched from http://127.0.0.1:54673/os/v1/config
+        Fetching service configuration from http://127.0.0.1:54673/os/v1/config...
+        Service configuration retrieved
         Stopping resin-supervisor.service...
         Awaiting resin-supervisor.service to enter inactive state...
         Writing {0}/config.json
@@ -336,7 +337,8 @@ fn reconfigure() {
 
     let output = unindent::unindent(&format!(
         r#"
-        Service configuration fetched from http://127.0.0.1:54673/os/v1/config
+        Fetching service configuration from http://127.0.0.1:54673/os/v1/config...
+        Service configuration retrieved
         No configuration changes
         Stopping resin-supervisor.service...
         Awaiting resin-supervisor.service to enter inactive state...
@@ -478,7 +480,8 @@ fn reconfigure_stored() {
 
     let output = unindent::unindent(&format!(
         r#"
-        Service configuration fetched from http://127.0.0.1:54673/os/v1/config
+        Fetching service configuration from http://127.0.0.1:54673/os/v1/config...
+        Service configuration retrieved
         No configuration changes
         Stopping resin-supervisor.service...
         Awaiting resin-supervisor.service to enter inactive state...
@@ -657,7 +660,8 @@ fn update() {
 
     let output = unindent::unindent(&format!(
         r#"
-        Service configuration fetched from http://127.0.0.1:54673/os/v1/config
+        Fetching service configuration from http://127.0.0.1:54673/os/v1/config...
+        Service configuration retrieved
         Stopping resin-supervisor.service...
         Awaiting resin-supervisor.service to enter inactive state...
         {0}/not-a-service-1.conf updated
@@ -828,7 +832,8 @@ fn update_no_config_changes() {
 
     let output = unindent::unindent(
         r#"
-        Service configuration fetched from http://127.0.0.1:54673/os/v1/config
+        Fetching service configuration from http://127.0.0.1:54673/os/v1/config...
+        Service configuration retrieved
         No configuration changes
         "#,
     );

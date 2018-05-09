@@ -52,9 +52,11 @@ fn get_os_config_api_impl(config_url: &str) -> Result<OsConfigApi> {
 fn retry_get(url: &str) -> Result<reqwest::Response> {
     let mut sleeped = 0;
 
+    info!("Fetching service configuration from {}...", url);
+
     loop {
         if let Ok(response) = reqwest::get(url) {
-            info!("Service configuration fetched from {}", url);
+            info!("Service configuration retrieved");
             return Ok(response);
         }
 
@@ -73,6 +75,10 @@ fn retry_get(url: &str) -> Result<reqwest::Response> {
         thread::sleep(Duration::from_secs(sleep));
 
         sleeped += sleep;
+
+        if sleeped % 10 == 0 {
+            info!("Awaiting service configuration...")
+        }
     }
 }
 
