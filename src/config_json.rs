@@ -30,6 +30,8 @@ pub fn merge_config_json(config_json: &mut ConfigMap, json_config: &str) -> Resu
 fn merge_config_json_impl(config_json: &mut ConfigMap, json_config: &str) -> Result<()> {
     let json_config = json_object_from_string(json_config)?;
 
+    validate_device_type(config_json, &json_config)?;
+
     define_api_key(config_json, &json_config)?;
 
     for (key, value) in &json_config {
@@ -37,6 +39,33 @@ fn merge_config_json_impl(config_json: &mut ConfigMap, json_config: &str) -> Res
     }
 
     Ok(())
+}
+
+fn validate_device_type(config_json: &ConfigMap, json_config: &ConfigMap) -> Result<()> {
+    if let Some(old_device_type) = get_device_type(config_json)? {
+        if let Some(new_device_type) = get_device_type(json_config)? {
+            if old_device_type != new_device_type {
+                bail!(ErrorKind::UnexpectedDeviceTypeJSON(
+                    old_device_type,
+                    new_device_type
+                ));
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn get_device_type(config_json: &ConfigMap) -> Result<Option<String>> {
+    if let Some(value) = config_json.get("deviceType") {
+        if let Some(api_endpoint) = value.as_str() {
+            Ok(Some(api_endpoint.to_string()))
+        } else {
+            bail!(ErrorKind::DeviceTypeNotStringJSON)
+        }
+    } else {
+        Ok(None)
+    }
 }
 
 fn define_api_key(config_json: &mut ConfigMap, json_config: &ConfigMap) -> Result<()> {

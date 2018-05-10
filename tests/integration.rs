@@ -248,6 +248,74 @@ fn configure() {
 }
 
 #[test]
+fn incompatible_device_types() {
+    let tmp_dir = TempDir::new("os-config").unwrap();
+
+    let config_json = r#"
+        {
+            "deviceType": "raspberrypi3",
+            "hostname": "resin",
+            "persistentLogging": false
+        }
+        "#;
+
+    let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
+
+    let os_config = unindent::unindent(
+        r#"
+        {
+            "services": [
+            ],
+            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
+            "schema_version": "1.0.0"
+        }
+        "#
+    );
+
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+
+    let json_config = format!(
+        r#"
+        {{
+            "applicationName": "aaaaaa",
+            "applicationId": 123456,
+            "deviceType": "incompatible-device-type",
+            "userId": 654321,
+            "username": "username",
+            "appUpdatePollInterval": 60000,
+            "listenPort": 48484,
+            "vpnPort": 443,
+            "apiEndpoint": "http://{}",
+            "vpnEndpoint": "vpn.resin.io",
+            "registryEndpoint": "registry2.resin.io",
+            "deltaEndpoint": "https://delta.resin.io",
+            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+            "apiKey": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1.prod"
+        }}
+        "#,
+        MOCK_JSON_SERVER_ADDRESS
+    );
+
+    let output = unindent::unindent(
+        "
+        \x1B[1;31mError: Merging `config.json` failed\x1B[0m
+          caused by: Expected schema version raspberrypi3, got incompatible-device-type
+        "
+    );
+
+    assert_cli::Assert::main_binary()
+        .with_args(&["configure", &json_config])
+        .with_env(os_config_env(&os_config_path, &config_json_path))
+        .fails()
+        .stdout()
+        .is(output)
+        .unwrap();
+}
+
+#[test]
 fn reconfigure() {
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();

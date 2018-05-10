@@ -43,7 +43,7 @@ error_chain! {
         }
 
         UnexpectedShemaVersionJSON(expected: &'static str, got: String) {
-            description("Expected schema version")
+            description("Unexpected schema version")
             display("Expected schema version {}, got {}", expected, got)
         }
 
@@ -71,6 +71,15 @@ error_chain! {
 
         DeviceApiKeyNotStringJSON {
             description("`deviceApiKey` should be a string")
+        }
+
+        DeviceTypeNotStringJSON {
+            description("`deviceType` should be a string")
+        }
+
+        UnexpectedDeviceTypeJSON(expected: String, got: String) {
+            description("Unexpected schema version")
+            display("Expected schema version {}, got {}", expected, got)
         }
 
         StartService(name: String) {
