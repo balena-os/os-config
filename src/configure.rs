@@ -102,6 +102,14 @@ fn has_config_changes(os_config: &OsConfig, os_config_api: &OsConfigApi) -> Resu
 
 fn configure_services(os_config: &OsConfig, os_config_api: &OsConfigApi) -> Result<()> {
     for service in &os_config.services {
+        for systemd_service in &service.systemd_services {
+            systemd::stop_service(systemd_service)?;
+        }
+
+        for systemd_service in &service.systemd_services {
+            systemd::await_service_exit(systemd_service)?;
+        }
+
         // Iterate through config files alphanumerically for integration testing consistency
         let mut names = service.files.keys().collect::<Vec<_>>();
         names.sort();
@@ -114,7 +122,7 @@ fn configure_services(os_config: &OsConfig, os_config_api: &OsConfigApi) -> Resu
         }
 
         for systemd_service in &service.systemd_services {
-            systemd::reload_or_restart_service(systemd_service)?;
+            systemd::start_service(systemd_service)?;
         }
     }
 
