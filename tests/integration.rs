@@ -308,7 +308,7 @@ fn incompatible_device_types() {
     let output = unindent::unindent(
         "
         \x1B[1;31mError: Merging `config.json` failed\x1B[0m
-          caused by: Expected schema version raspberrypi3, got incompatible-device-type
+          caused by: Expected `deviceType` raspberrypi3, got incompatible-device-type
         ",
     );
 

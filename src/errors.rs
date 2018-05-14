@@ -78,8 +78,8 @@ error_chain! {
         }
 
         UnexpectedDeviceTypeJSON(expected: String, got: String) {
-            description("Unexpected schema version")
-            display("Expected schema version {}, got {}", expected, got)
+            description("Unexpected `deviceType`")
+            display("Expected `deviceType` {}, got {}", expected, got)
         }
 
         StartService(name: String) {
