@@ -27,8 +27,8 @@ extern crate maplit;
 
 mod args;
 mod config_json;
-mod configure;
-mod deconfigure;
+mod join;
+mod leave;
 mod errors;
 mod fs;
 mod generate;
@@ -63,7 +63,7 @@ fn run() -> Result<()> {
     match args.subcommand {
         OsConfigSubcommand::GenerateApiKey => generate::generate_api_key(&args),
         OsConfigSubcommand::Update => update::update(&args),
-        OsConfigSubcommand::Configure => configure::configure(&args),
-        OsConfigSubcommand::Deconfigure => deconfigure::deconfigure(&args),
+        OsConfigSubcommand::Join => join::join(&args),
+        OsConfigSubcommand::Leave => leave::leave(&args),
     }
 }

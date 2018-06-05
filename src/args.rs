@@ -14,8 +14,8 @@ const CONFIG_JSON_PATH_REDEFINE: &str = "CONFIG_JSON_PATH_REDEFINE";
 pub enum OsConfigSubcommand {
     GenerateApiKey,
     Update,
-    Configure,
-    Deconfigure,
+    Join,
+    Leave,
 }
 
 pub struct Args {
@@ -41,7 +41,7 @@ pub fn get_cli_args() -> Args {
                 .about("Apply available configuration updates on a configured device"),
         )
         .subcommand(
-            SubCommand::with_name("configure")
+            SubCommand::with_name("join")
                 .about("Configure/reconfigure a device")
                 .arg(
                     Arg::with_name("JSON_CONFIG")
@@ -50,14 +50,14 @@ pub fn get_cli_args() -> Args {
                         .index(1),
                 ),
         )
-        .subcommand(SubCommand::with_name("deconfigure").about("Deconfigure a device"))
+        .subcommand(SubCommand::with_name("leave").about("Deconfigure a device"))
         .get_matches();
 
     let (subcommand, json_config) = match matches.subcommand() {
         ("generate-api-key", _) => (OsConfigSubcommand::GenerateApiKey, None),
         ("update", _) => (OsConfigSubcommand::Update, None),
-        ("configure", Some(sub_m)) => (OsConfigSubcommand::Configure, Some(get_json_config(sub_m))),
-        ("deconfigure", _) => (OsConfigSubcommand::Deconfigure, None),
+        ("join", Some(sub_m)) => (OsConfigSubcommand::Join, Some(get_json_config(sub_m))),
+        ("leave", _) => (OsConfigSubcommand::Leave, None),
         _ => unreachable!(),
     };
 

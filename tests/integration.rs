@@ -36,7 +36,7 @@ const CONFIG_ROUTE: &str = "/os/v1/config";
 */
 
 #[test]
-fn configure() {
+fn join() {
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
@@ -183,7 +183,7 @@ fn configure() {
     ));
 
     assert_cli::Assert::main_binary()
-        .with_args(&["configure", &json_config])
+        .with_args(&["join", &json_config])
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
@@ -314,7 +314,7 @@ fn incompatible_device_types() {
     );
 
     assert_cli::Assert::main_binary()
-        .with_args(&["configure", &json_config])
+        .with_args(&["join", &json_config])
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .fails()
         .stdout()
@@ -426,7 +426,7 @@ fn reconfigure() {
     ));
 
     assert_cli::Assert::main_binary()
-        .with_args(&["configure", &json_config])
+        .with_args(&["join", &json_config])
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
@@ -575,7 +575,7 @@ fn reconfigure_stored() {
     ));
 
     assert_cli::Assert::main_binary()
-        .with_args(&["configure", &json_config])
+        .with_args(&["join", &json_config])
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
@@ -1022,7 +1022,7 @@ fn update_unmanaged() {
 }
 
 #[test]
-fn deconfigure() {
+fn leave() {
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
@@ -1116,7 +1116,7 @@ fn deconfigure() {
     ));
 
     assert_cli::Assert::main_binary()
-        .with_args(&["deconfigure"])
+        .with_args(&["leave"])
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
@@ -1161,7 +1161,7 @@ fn deconfigure() {
 }
 
 #[test]
-fn deconfigure_unmanaged() {
+fn leave_unmanaged() {
     let tmp_dir = TempDir::new("os-config").unwrap();
 
     let config_json = r#"
@@ -1206,7 +1206,7 @@ fn deconfigure_unmanaged() {
     );
 
     assert_cli::Assert::main_binary()
-        .with_args(&["deconfigure"])
+        .with_args(&["leave"])
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()

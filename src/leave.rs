@@ -8,7 +8,7 @@ use errors::*;
 use os_config::{read_os_config, OsConfig};
 use systemd;
 
-pub fn deconfigure(args: &Args) -> Result<()> {
+pub fn leave(args: &Args) -> Result<()> {
     let mut config_json = read_config_json(&args.config_json_path)?;
 
     if get_api_endpoint(&config_json)?.is_none() {
