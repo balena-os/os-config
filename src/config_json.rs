@@ -84,17 +84,37 @@ fn define_api_key(config_json: &mut ConfigMap, json_config: &ConfigMap) -> Resul
             generate_random_key()
         };
 
-    set_api_key(config_json, new_api_key, &new_api_endpoint);
-
-    Ok(())
+    set_api_key(config_json, &new_api_key, &new_api_endpoint)
 }
 
 pub fn store_api_key(config_json: &mut ConfigMap) -> Result<()> {
     if let Some(old_api_key) = get_api_key(config_json)? {
         if let Some(old_api_endpoint) = get_api_endpoint(config_json)? {
-            config_json.insert(strip_api_endpoint(&old_api_endpoint), old_api_key.into());
+            insert_api_key(config_json, &old_api_key, &old_api_endpoint)?;
         }
     }
+
+    Ok(())
+}
+
+fn insert_api_key(config_json: &mut ConfigMap, api_key: &str, api_endpoint: &str) -> Result<()> {
+    if let Some(value) = config_json.get_mut("deviceApiKeys") {
+        if let Some(keys) = value.as_object_mut() {
+            keys.insert(
+                strip_api_endpoint(api_endpoint),
+                Value::String(api_key.into()),
+            );
+        } else {
+            bail!(ErrorKind::DeviceApiKeysNotMapJSON)
+        }
+
+        return Ok(());
+    }
+
+    config_json.insert(
+        "deviceApiKeys".into(),
+        json!({ strip_api_endpoint(api_endpoint): api_key }),
+    );
 
     Ok(())
 }
@@ -124,7 +144,7 @@ pub fn first_time_generate_api_key(config_json: &mut ConfigMap) -> Result<Genera
             (generate_random_key(), GenerateApiKeyResult::GeneratedNew)
         };
 
-    set_api_key(config_json, api_key, &api_endpoint);
+    set_api_key(config_json, &api_key, &api_endpoint)?;
 
     Ok(result)
 }
@@ -151,18 +171,26 @@ fn get_api_key(config_json: &ConfigMap) -> Result<Option<String>> {
     }
 }
 
-fn set_api_key(config_json: &mut ConfigMap, api_key: String, api_endpoint: &str) {
-    config_json.insert("deviceApiKey".into(), Value::String(api_key.clone()));
+fn set_api_key(config_json: &mut ConfigMap, api_key: &str, api_endpoint: &str) -> Result<()> {
+    config_json.insert("deviceApiKey".into(), Value::String(api_key.into()));
 
-    config_json.insert(strip_api_endpoint(api_endpoint), Value::String(api_key));
+    insert_api_key(config_json, api_key, api_endpoint)
 }
 
 fn get_api_key_for_endpoint(config_json: &ConfigMap, api_endpoint: &str) -> Result<Option<String>> {
-    if let Some(value) = config_json.get(&strip_api_endpoint(api_endpoint)) {
-        if let Some(api_key) = value.as_str() {
-            Ok(Some(api_key.to_string()))
+    if let Some(keys_value) = config_json.get("deviceApiKeys") {
+        if let Some(keys) = keys_value.as_object() {
+            if let Some(value) = keys.get(&strip_api_endpoint(api_endpoint)) {
+                if let Some(api_key) = value.as_str() {
+                    Ok(Some(api_key.to_string()))
+                } else {
+                    bail!(ErrorKind::DeviceApiKeyNotStringJSON)
+                }
+            } else {
+                Ok(None)
+            }
         } else {
-            bail!(ErrorKind::DeviceApiKeyNotStringJSON)
+            bail!(ErrorKind::DeviceApiKeysNotMapJSON)
         }
     } else {
         Ok(None)

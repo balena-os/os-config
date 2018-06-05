@@ -73,6 +73,10 @@ error_chain! {
             description("`deviceApiKey` should be a string")
         }
 
+        DeviceApiKeysNotMapJSON {
+            description("`deviceApiKeys` should be a map")
+        }
+
         DeviceTypeNotStringJSON {
             description("`deviceType` should be a string")
         }

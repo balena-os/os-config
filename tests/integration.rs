@@ -237,7 +237,8 @@ fn configure() {
                 "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
                 "mixpanelToken": "12345678abcd1234efgh1234567890ab",
                 "apiKey": "12345678abcd1234efgh1234567890ab",
-                "version": "9.99.9+rev1.prod"
+                "version": "9.99.9+rev1.prod",
+                "deviceApiKeys": {{}}
             }}
             "#,
             MOCK_JSON_SERVER_ADDRESS
@@ -334,7 +335,6 @@ fn reconfigure() {
     let config_json = r#"
         {
             "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
-            "old.endpoint.com": "f0f0236b70be9a5983d3fd49ac9719b9",
             "deviceType": "raspberrypi3",
             "hostname": "resin",
             "persistentLogging": false,
@@ -353,7 +353,10 @@ fn reconfigure() {
             "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
             "mixpanelToken": "12345678abcd1234efgh1234567890ab",
             "apiKey": "12345678abcd1234efgh1234567890ab",
-            "version": "9.99.9+rev1.prod"
+            "version": "9.99.9+rev1.prod",
+            "deviceApiKeys": {
+                "old.endpoint.com": "f0f0236b70be9a5983d3fd49ac9719b9"
+            }
         }
         "#;
 
@@ -454,7 +457,9 @@ fn reconfigure() {
                 "mixpanelToken": "12345678abcd1234efgh1234567890ab",
                 "apiKey": "12345678abcd1234efgh1234567890ab",
                 "version": "9.99.9+rev1.prod",
-                "old.endpoint.com": "f0f0236b70be9a5983d3fd49ac9719b9"
+                "deviceApiKeys": {{
+                    "old.endpoint.com": "f0f0236b70be9a5983d3fd49ac9719b9"
+                }}
             }}
             "#,
             MOCK_JSON_SERVER_ADDRESS
@@ -494,7 +499,11 @@ fn reconfigure_stored() {
             "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
             "mixpanelToken": "12345678abcd1234efgh1234567890ab",
             "version": "9.99.9+rev1.prod",
-            "{}": "f0f0236b70be9a5983d3fd49ac9719b9"
+            "deviceApiKeys": {{
+                "first.endpoint.com": "aaaabbbbccccddddeeeeffffaaaabbbb",
+                "second.endpoint.com": "11112222333344445555666677778888",
+                "{}": "f0f0236b70be9a5983d3fd49ac9719b9"
+            }}
         }}
         "#,
         MOCK_JSON_SERVER_ADDRESS
@@ -598,7 +607,11 @@ fn reconfigure_stored() {
                 "mixpanelToken": "12345678abcd1234efgh1234567890ab",
                 "apiKey": "12345678abcd1234efgh1234567890ab",
                 "version": "9.99.9+rev1.prod",
-                "{0}": "f0f0236b70be9a5983d3fd49ac9719b9"
+                "deviceApiKeys": {{
+                    "first.endpoint.com": "aaaabbbbccccddddeeeeffffaaaabbbb",
+                    "second.endpoint.com": "11112222333344445555666677778888",
+                    "{0}": "f0f0236b70be9a5983d3fd49ac9719b9"
+                }}
             }}
             "#,
             MOCK_JSON_SERVER_ADDRESS
@@ -1131,7 +1144,9 @@ fn deconfigure() {
                 "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
                 "mixpanelToken": "12345678abcd1234efgh1234567890ab",
                 "version": "9.99.9+rev1.prod",
-                "{}": "f0f0236b70be9a5983d3fd49ac9719b9"
+                "deviceApiKeys": {{
+                    "{}": "f0f0236b70be9a5983d3fd49ac9719b9"
+                }}
             }}
             "#,
             MOCK_JSON_SERVER_ADDRESS
@@ -1264,7 +1279,9 @@ fn generate_api_key_already_generated() {
             "mixpanelToken": "12345678abcd1234efgh1234567890ab",
             "version": "9.99.9+rev1.prod",
             "apiEndpoint": "http://api.endpoint.com",
-            "api.endpoint.com": "f0f0236b70be9a5983d3fd49ac9719b9"
+            "deviceApiKeys": {
+                "api.endpoint.com": "f0f0236b70be9a5983d3fd49ac9719b9"
+            }
         }
         "#;
 
@@ -1321,7 +1338,9 @@ fn generate_api_key_reuse() {
             "mixpanelToken": "12345678abcd1234efgh1234567890ab",
             "version": "9.99.9+rev1.prod",
             "apiEndpoint": "http://api.endpoint.com",
-            "api.endpoint.com": "f0f0236b70be9a5983d3fd49ac9719b9"
+            "deviceApiKeys": {
+                "api.endpoint.com": "f0f0236b70be9a5983d3fd49ac9719b9"
+            }
         }
         "#;
 
@@ -1375,7 +1394,9 @@ fn generate_api_key_reuse() {
             "mixpanelToken": "12345678abcd1234efgh1234567890ab",
             "version": "9.99.9+rev1.prod",
             "apiEndpoint": "http://api.endpoint.com",
-            "api.endpoint.com": "f0f0236b70be9a5983d3fd49ac9719b9"
+            "deviceApiKeys": {
+                "api.endpoint.com": "f0f0236b70be9a5983d3fd49ac9719b9"
+            }
         }
         "#,
         false,
@@ -1437,7 +1458,29 @@ fn generate_api_key_new() {
         .is(output)
         .unwrap();
 
-    validate_json_file(&config_json_path, config_json, true);
+    validate_json_file(
+        &config_json_path,
+        r#"
+            {
+                "deviceType": "raspberrypi3",
+                "hostname": "resin",
+                "persistentLogging": false,
+                "applicationName": "aaaaaa",
+                "applicationId": 123456,
+                "userId": 654321,
+                "username": "username",
+                "appUpdatePollInterval": 60000,
+                "listenPort": 48484,
+                "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+                "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+                "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+                "version": "9.99.9+rev1.prod",
+                "apiEndpoint": "http://api.endpoint.com",
+                "deviceApiKeys": {}
+            }
+        "#,
+        true,
+    );
 }
 
 /*******************************************************************************
@@ -1724,7 +1767,14 @@ fn validate_json_file(path: &str, expected: &str, erase_api_key: bool) {
             .to_string();
         let key = &api_endpoint[7..];
 
-        let option = read_json.as_object_mut().unwrap().remove(key);
+        let option = read_json
+            .as_object_mut()
+            .unwrap()
+            .get_mut("deviceApiKeys")
+            .unwrap()
+            .as_object_mut()
+            .unwrap()
+            .remove(key);
         if let Some(value) = option {
             assert_eq!(value.as_str().unwrap().len(), 32);
         }
