@@ -1,8 +1,7 @@
 use fs;
 use std::path::Path;
 
-use SUPERVISOR_SERVICE;
-use args::Args;
+use args::{Args, SUPERVISOR_SERVICE};
 use config_json::{get_api_endpoint, read_config_json, store_api_key, write_config_json, ConfigMap};
 use errors::*;
 use os_config::{read_os_config, OsConfig};
@@ -18,18 +17,22 @@ pub fn leave(args: &Args) -> Result<()> {
 
     let os_config = read_os_config(&args.os_config_path)?;
 
-    systemd::stop_service(SUPERVISOR_SERVICE)?;
+    if args.supervisor_exists {
+        systemd::stop_service(SUPERVISOR_SERVICE)?;
+
+        systemd::await_service_exit(SUPERVISOR_SERVICE)?;
+    }
 
     let result = deconfigure_core(&mut config_json, args, &os_config);
 
-    systemd::start_service(SUPERVISOR_SERVICE)?;
+    if args.supervisor_exists {
+        systemd::start_service(SUPERVISOR_SERVICE)?;
+    }
 
     result
 }
 
 fn deconfigure_core(config_json: &mut ConfigMap, args: &Args, os_config: &OsConfig) -> Result<()> {
-    systemd::await_service_exit(SUPERVISOR_SERVICE)?;
-
     store_api_key(config_json)?;
 
     delete_config_json_keys(config_json, args, os_config)?;

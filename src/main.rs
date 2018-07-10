@@ -27,11 +27,11 @@ extern crate maplit;
 
 mod args;
 mod config_json;
-mod join;
-mod leave;
 mod errors;
 mod fs;
 mod generate;
+mod join;
+mod leave;
 mod logger;
 mod os_config;
 mod os_config_api;
@@ -40,8 +40,6 @@ mod update;
 
 use args::{get_cli_args, OsConfigSubcommand};
 use errors::*;
-
-const SUPERVISOR_SERVICE: &str = "resin-supervisor.service";
 
 fn main() {
     if let Err(ref e) = run() {
