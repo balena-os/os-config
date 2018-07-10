@@ -3,13 +3,21 @@ use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use std::env;
 use std::path::{Path, PathBuf};
 
+use systemd::service_exists;
+
+pub const SUPERVISOR_SERVICE: &str = "resin-supervisor.service";
+
 const CONFIG_ROUTE: &str = "/os/v1/config";
 const OS_CONFIG_PATH: &str = "/etc/os-config.json";
 const CONFIG_JSON_PATH: &str = "/mnt/boot/config.json";
+const CONFIG_JSON_FLASHER_PATH: &str = "/tmp/config.json";
+const FLASHER_FLAG_PATH: &str = "/mnt/boot/resin-image-flasher";
 
 const CONFIG_ROUTE_REDEFINE: &str = "CONFIG_ROUTE_REDEFINE";
 const OS_CONFIG_PATH_REDEFINE: &str = "OS_CONFIG_PATH_REDEFINE";
 const CONFIG_JSON_PATH_REDEFINE: &str = "CONFIG_JSON_PATH_REDEFINE";
+const CONFIG_JSON_FLASHER_PATH_REDEFINE: &str = "CONFIG_JSON_FLASHER_PATH_REDEFINE";
+const FLASHER_FLAG_PATH_REDEFINE: &str = "FLASHER_FLAG_PATH_REDEFINE";
 
 pub enum OsConfigSubcommand {
     GenerateApiKey,
@@ -24,6 +32,7 @@ pub struct Args {
     pub os_config_path: PathBuf,
     pub config_json_path: PathBuf,
     pub json_config: Option<String>,
+    pub supervisor_exists: bool,
 }
 
 pub fn get_cli_args() -> Args {
@@ -64,6 +73,7 @@ pub fn get_cli_args() -> Args {
     let config_route = get_config_route();
     let os_config_path = get_os_config_path();
     let config_json_path = get_config_json_path();
+    let supervisor_exists = service_exists(SUPERVISOR_SERVICE);
 
     Args {
         subcommand,
@@ -71,6 +81,7 @@ pub fn get_cli_args() -> Args {
         os_config_path,
         config_json_path,
         json_config,
+        supervisor_exists,
     }
 }
 
@@ -79,7 +90,29 @@ pub fn get_os_config_path() -> PathBuf {
 }
 
 fn get_config_json_path() -> PathBuf {
+    if get_flasher_flag_path().exists() {
+        get_config_json_flasher_path()
+    } else {
+        get_config_json_standard_path()
+    }
+}
+
+fn get_config_json_standard_path() -> PathBuf {
     path_buf(&try_redefined(CONFIG_JSON_PATH, CONFIG_JSON_PATH_REDEFINE))
+}
+
+fn get_config_json_flasher_path() -> PathBuf {
+    path_buf(&try_redefined(
+        CONFIG_JSON_FLASHER_PATH,
+        CONFIG_JSON_FLASHER_PATH_REDEFINE,
+    ))
+}
+
+fn get_flasher_flag_path() -> PathBuf {
+    path_buf(&try_redefined(
+        FLASHER_FLAG_PATH,
+        FLASHER_FLAG_PATH_REDEFINE,
+    ))
 }
 
 fn get_json_config(matches: &ArgMatches) -> String {

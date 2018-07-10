@@ -25,6 +25,8 @@ use tempdir::TempDir;
 
 const OS_CONFIG_PATH_REDEFINE: &str = "OS_CONFIG_PATH_REDEFINE";
 const CONFIG_JSON_PATH_REDEFINE: &str = "CONFIG_JSON_PATH_REDEFINE";
+const CONFIG_JSON_FLASHER_PATH_REDEFINE: &str = "CONFIG_JSON_FLASHER_PATH_REDEFINE";
+const FLASHER_FLAG_PATH_REDEFINE: &str = "FLASHER_FLAG_PATH_REDEFINE";
 
 const SUPERVISOR_SERVICE: &str = "resin-supervisor.service";
 
@@ -252,6 +254,307 @@ fn join() {
     service_1.ensure_restarted();
     service_2.ensure_restarted();
     service_3.ensure_restarted();
+}
+
+#[test]
+fn join_no_supervisor() {
+    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
+
+    let script_path = create_service_script(&tmp_dir);
+
+    let service_1 = MockService::new(unit_name(1), &script_path);
+
+    let config_json = r#"
+        {
+            "deviceType": "raspberrypi3",
+            "hostname": "resin",
+            "persistentLogging": false
+        }
+        "#;
+
+    let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
+
+    let os_config = format!(
+        r#"
+        {{
+            "services": [
+                {{
+                    "id": "mock-1",
+                    "files": {{
+                        "mock-1": {{
+                            "path": "{0}/mock-1.conf",
+                            "perm": "600"
+                        }}
+                    }},
+                    "systemd_services": ["mock-service-1.service"]
+                }}
+            ],
+            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
+            "schema_version": "1.0.0"
+        }}
+        "#,
+        tmp_dir_path
+    );
+
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+
+    let os_config_api = unindent::unindent(
+        r#"
+        {
+            "services": {
+                "mock-1": {
+                    "mock-1": "MOCK-1-АБВГДЕЖЗИЙ"
+                }
+            },
+            "schema_version": "1.0.0"
+        }
+        "#,
+    );
+
+    let _serve = serve_config(os_config_api, 0);
+
+    let json_config = format!(
+        r#"
+        {{
+            "applicationName": "aaaaaa",
+            "applicationId": 123456,
+            "deviceType": "raspberrypi3",
+            "userId": 654321,
+            "username": "username",
+            "appUpdatePollInterval": 60000,
+            "listenPort": 48484,
+            "vpnPort": 443,
+            "apiEndpoint": "http://{}",
+            "vpnEndpoint": "vpn.resin.io",
+            "registryEndpoint": "registry2.resin.io",
+            "deltaEndpoint": "https://delta.resin.io",
+            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+            "apiKey": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1.prod"
+        }}
+        "#,
+        MOCK_JSON_SERVER_ADDRESS
+    );
+
+    let output = unindent::unindent(&format!(
+        r#"
+        Fetching service configuration from http://127.0.0.1:54673/os/v1/config...
+        Service configuration retrieved
+        Writing {0}/config.json
+        Stopping mock-service-1.service...
+        Awaiting mock-service-1.service to exit...
+        {0}/mock-1.conf updated
+        Starting mock-service-1.service...
+        "#,
+        tmp_dir_path
+    ));
+
+    assert_cli::Assert::main_binary()
+        .with_args(&["join", &json_config])
+        .with_env(os_config_env(&os_config_path, &config_json_path))
+        .succeeds()
+        .stdout()
+        .is(output)
+        .unwrap();
+
+    validate_file(
+        &format!("{}/mock-1.conf", tmp_dir_path),
+        "MOCK-1-АБВГДЕЖЗИЙ",
+        Some(0o600),
+    );
+
+    validate_json_file(
+        &config_json_path,
+        &format!(
+            r#"
+            {{
+                "deviceType": "raspberrypi3",
+                "hostname": "resin",
+                "persistentLogging": false,
+                "applicationName": "aaaaaa",
+                "applicationId": 123456,
+                "userId": 654321,
+                "username": "username",
+                "appUpdatePollInterval": 60000,
+                "listenPort": 48484,
+                "vpnPort": 443,
+                "apiEndpoint": "http://{}",
+                "vpnEndpoint": "vpn.resin.io",
+                "registryEndpoint": "registry2.resin.io",
+                "deltaEndpoint": "https://delta.resin.io",
+                "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+                "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+                "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+                "apiKey": "12345678abcd1234efgh1234567890ab",
+                "version": "9.99.9+rev1.prod",
+                "deviceApiKeys": {{}}
+            }}
+            "#,
+            MOCK_JSON_SERVER_ADDRESS
+        ),
+        true,
+    );
+
+    wait_for_systemctl_jobs();
+
+    service_1.ensure_restarted();
+}
+
+#[test]
+fn join_flasher() {
+    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
+
+    let script_path = create_service_script(&tmp_dir);
+
+    let service_1 = MockService::new(unit_name(1), &script_path);
+
+    let flasher_flag_path = create_tmp_file(&tmp_dir, "resin-image-flasher", "", None);
+
+    let config_json = r#"
+        {
+            "deviceType": "raspberrypi3",
+            "hostname": "resin",
+            "persistentLogging": false
+        }
+        "#;
+
+    let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
+
+    let os_config = format!(
+        r#"
+        {{
+            "services": [
+                {{
+                    "id": "mock-1",
+                    "files": {{
+                        "mock-1": {{
+                            "path": "{0}/mock-1.conf",
+                            "perm": "600"
+                        }}
+                    }},
+                    "systemd_services": ["mock-service-1.service"]
+                }}
+            ],
+            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
+            "schema_version": "1.0.0"
+        }}
+        "#,
+        tmp_dir_path
+    );
+
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+
+    let os_config_api = unindent::unindent(
+        r#"
+        {
+            "services": {
+                "mock-1": {
+                    "mock-1": "MOCK-1-АБВГДЕЖЗИЙ"
+                }
+            },
+            "schema_version": "1.0.0"
+        }
+        "#,
+    );
+
+    let _serve = serve_config(os_config_api, 0);
+
+    let json_config = format!(
+        r#"
+        {{
+            "applicationName": "aaaaaa",
+            "applicationId": 123456,
+            "deviceType": "raspberrypi3",
+            "userId": 654321,
+            "username": "username",
+            "appUpdatePollInterval": 60000,
+            "listenPort": 48484,
+            "vpnPort": 443,
+            "apiEndpoint": "http://{}",
+            "vpnEndpoint": "vpn.resin.io",
+            "registryEndpoint": "registry2.resin.io",
+            "deltaEndpoint": "https://delta.resin.io",
+            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+            "apiKey": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1.prod"
+        }}
+        "#,
+        MOCK_JSON_SERVER_ADDRESS
+    );
+
+    let output = unindent::unindent(&format!(
+        r#"
+        Fetching service configuration from http://127.0.0.1:54673/os/v1/config...
+        Service configuration retrieved
+        Writing {0}/config.json
+        Stopping mock-service-1.service...
+        Awaiting mock-service-1.service to exit...
+        {0}/mock-1.conf updated
+        Starting mock-service-1.service...
+        "#,
+        tmp_dir_path
+    ));
+
+    assert_cli::Assert::main_binary()
+        .with_args(&["join", &json_config])
+        .with_env(
+            assert_cli::Environment::inherit()
+                .insert(OS_CONFIG_PATH_REDEFINE, &os_config_path)
+                .insert(CONFIG_JSON_FLASHER_PATH_REDEFINE, &config_json_path)
+                .insert(FLASHER_FLAG_PATH_REDEFINE, &flasher_flag_path),
+        )
+        .succeeds()
+        .stdout()
+        .is(output)
+        .unwrap();
+
+    validate_file(
+        &format!("{}/mock-1.conf", tmp_dir_path),
+        "MOCK-1-АБВГДЕЖЗИЙ",
+        Some(0o600),
+    );
+
+    validate_json_file(
+        &config_json_path,
+        &format!(
+            r#"
+            {{
+                "deviceType": "raspberrypi3",
+                "hostname": "resin",
+                "persistentLogging": false,
+                "applicationName": "aaaaaa",
+                "applicationId": 123456,
+                "userId": 654321,
+                "username": "username",
+                "appUpdatePollInterval": 60000,
+                "listenPort": 48484,
+                "vpnPort": 443,
+                "apiEndpoint": "http://{}",
+                "vpnEndpoint": "vpn.resin.io",
+                "registryEndpoint": "registry2.resin.io",
+                "deltaEndpoint": "https://delta.resin.io",
+                "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+                "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+                "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+                "apiKey": "12345678abcd1234efgh1234567890ab",
+                "version": "9.99.9+rev1.prod",
+                "deviceApiKeys": {{}}
+            }}
+            "#,
+            MOCK_JSON_SERVER_ADDRESS
+        ),
+        true,
+    );
+
+    wait_for_systemctl_jobs();
+
+    service_1.ensure_restarted();
 }
 
 #[test]

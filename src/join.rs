@@ -1,8 +1,7 @@
 use fs;
 use std::path::Path;
 
-use SUPERVISOR_SERVICE;
-use args::Args;
+use args::{Args, SUPERVISOR_SERVICE};
 use config_json::{get_api_endpoint, merge_config_json, read_config_json, write_config_json,
                   ConfigMap};
 use errors::*;
@@ -48,7 +47,11 @@ pub fn reconfigure(args: &Args, config_json: &ConfigMap, write_config_json: bool
         return Ok(());
     }
 
-    systemd::stop_service(SUPERVISOR_SERVICE)?;
+    if args.supervisor_exists {
+        systemd::stop_service(SUPERVISOR_SERVICE)?;
+
+        systemd::await_service_exit(SUPERVISOR_SERVICE)?;
+    }
 
     let result = reconfigure_core(
         args,
@@ -59,7 +62,9 @@ pub fn reconfigure(args: &Args, config_json: &ConfigMap, write_config_json: bool
         write_config_json,
     );
 
-    systemd::start_service(SUPERVISOR_SERVICE)?;
+    if args.supervisor_exists {
+        systemd::start_service(SUPERVISOR_SERVICE)?;
+    }
 
     result
 }
@@ -72,8 +77,6 @@ fn reconfigure_core(
     has_config_changes: bool,
     write: bool,
 ) -> Result<()> {
-    systemd::await_service_exit(SUPERVISOR_SERVICE)?;
-
     if write {
         write_config_json(&args.config_json_path, config_json)?;
     }
