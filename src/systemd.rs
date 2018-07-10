@@ -85,6 +85,24 @@ pub fn await_service_exit_impl(name: &str) -> Result<()> {
     bail!(ErrorKind::AwaitServiceExitTimeout)
 }
 
+pub fn service_exists(name: &str) -> bool {
+    match service_exists_impl(name) {
+        Ok(result) => result,
+        Err(_) => false,
+    }
+}
+
+fn service_exists_impl(name: &str) -> Result<bool> {
+    let connection = dbus::Connection::get_private(dbus::BusType::System)?;
+
+    let path = connection.with_path(SYSTEMD, SYSTEMD_PATH, 5000);
+
+    match path.get_unit(name) {
+        Ok(_) => Ok(true),
+        Err(_) => Ok(false),
+    }
+}
+
 pub trait OrgFreedesktopSystemd1Manager {
     fn get_unit(&self, name: &str) -> Result<dbus::Path<'static>>;
     fn start_unit(&self, name: &str, mode: &str) -> Result<dbus::Path<'static>>;
