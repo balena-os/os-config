@@ -3,6 +3,7 @@ extern crate futures;
 extern crate hyper;
 extern crate serde_json;
 extern crate tempdir;
+extern crate tokio;
 extern crate unindent;
 
 use std::fs::{remove_file, File, OpenOptions};
@@ -13,13 +14,16 @@ use std::process::Command;
 use std::thread;
 use std::time::Duration;
 
-use futures::Future;
-use futures::future::FutureResult;
+//use futures::Future;
+//use futures::future::FutureResult;
+use futures::future;
 use futures::sync::oneshot;
 
-use hyper::header::{ContentLength, ContentType};
-use hyper::server::{Http, Request, Response, Service};
-use hyper::{Get, StatusCode};
+use hyper::rt::Future;
+use hyper::service::service_fn;
+use hyper::{Body, Method, Response, Server, StatusCode};
+
+//use tokio::runtime::current_thread;
 
 use tempdir::TempDir;
 
@@ -189,7 +193,7 @@ fn join() {
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
-        .is(output)
+        .is(&output as &str)
         .unwrap();
 
     validate_file(
@@ -357,7 +361,7 @@ fn join_no_supervisor() {
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
-        .is(output)
+        .is(&output as &str)
         .unwrap();
 
     validate_file(
@@ -508,10 +512,9 @@ fn join_flasher() {
                 .insert(OS_CONFIG_PATH_REDEFINE, &os_config_path)
                 .insert(CONFIG_JSON_FLASHER_PATH_REDEFINE, &config_json_path)
                 .insert(FLASHER_FLAG_PATH_REDEFINE, &flasher_flag_path),
-        )
-        .succeeds()
+        ).succeeds()
         .stdout()
-        .is(output)
+        .is(&output as &str)
         .unwrap();
 
     validate_file(
@@ -621,7 +624,7 @@ fn incompatible_device_types() {
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .fails()
         .stdout()
-        .is(output)
+        .is(&output as &str)
         .unwrap();
 }
 
@@ -733,7 +736,7 @@ fn reconfigure() {
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
-        .is(output)
+        .is(&output as &str)
         .unwrap();
 
     validate_json_file(
@@ -882,7 +885,7 @@ fn reconfigure_stored() {
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
-        .is(output)
+        .is(&output as &str)
         .unwrap();
 
     validate_json_file(
@@ -1077,7 +1080,7 @@ fn update() {
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
-        .is(output)
+        .is(&output as &str)
         .unwrap();
 
     validate_file(
@@ -1239,7 +1242,7 @@ fn update_no_config_changes() {
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
-        .is(output)
+        .is(&output as &str)
         .unwrap();
 
     validate_file(
@@ -1318,7 +1321,7 @@ fn update_unmanaged() {
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
-        .is(output)
+        .is(&output as &str)
         .unwrap();
 
     validate_json_file(&config_json_path, config_json, false);
@@ -1423,7 +1426,7 @@ fn leave() {
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
-        .is(output)
+        .is(&output as &str)
         .unwrap();
 
     validate_does_not_exist(&format!("{}/mock-3.conf", tmp_dir_path));
@@ -1513,7 +1516,7 @@ fn leave_unmanaged() {
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
-        .is(output)
+        .is(&output as &str)
         .unwrap();
 }
 
@@ -1555,7 +1558,7 @@ fn generate_api_key_unmanaged() {
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
-        .is(output)
+        .is(&output as &str)
         .unwrap();
 
     validate_json_file(&config_json_path, config_json, false);
@@ -1614,7 +1617,7 @@ fn generate_api_key_already_generated() {
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
-        .is(output)
+        .is(&output as &str)
         .unwrap();
 
     validate_json_file(&config_json_path, config_json, false);
@@ -1675,7 +1678,7 @@ fn generate_api_key_reuse() {
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
-        .is(output)
+        .is(&output as &str)
         .unwrap();
 
     validate_json_file(
@@ -1758,7 +1761,7 @@ fn generate_api_key_new() {
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .succeeds()
         .stdout()
-        .is(output)
+        .is(&output as &str)
         .unwrap();
 
     validate_json_file(
@@ -1800,6 +1803,8 @@ fn os_config_env(os_config_path: &str, config_json_path: &str) -> assert_cli::En
 *  Mock JSON HTTP server
 */
 
+type BoxFut = Box<Future<Item = Response<Body>, Error = hyper::Error> + Send>;
+
 fn serve_config(config: String, sleep: u64) -> Serve {
     let (shutdown_tx, shutdown_rx) = oneshot::channel();
 
@@ -1810,12 +1815,29 @@ fn serve_config(config: String, sleep: u64) -> Serve {
         .spawn(move || {
             thread::sleep(Duration::from_secs(sleep));
 
-            let srv = Http::new()
-                .bind(&addr, move || Ok(ConfigurationService::new(config.clone())))
-                .unwrap();
-            srv.run_until(shutdown_rx.then(|_| Ok(()))).unwrap();
-        })
-        .unwrap();
+            let server = Server::bind(&addr)
+                .serve(move || {
+                    let config = config.clone();
+
+                    service_fn(move |req| {
+                        let mut response = Response::new(Body::empty());
+
+                        match (req.method(), req.uri().path()) {
+                            (&Method::GET, CONFIG_ROUTE) => {
+                                *response.body_mut() = Body::from(config.clone());
+                            }
+                            _ => {
+                                *response.status_mut() = StatusCode::NOT_FOUND;
+                            }
+                        }
+
+                        Box::new(future::ok(response)) as BoxFut
+                    })
+                }).with_graceful_shutdown(shutdown_rx)
+                .map_err(|err| eprintln!("server error: {}", err));
+
+            hyper::rt::run(server);
+        }).unwrap();
 
     Serve {
         shutdown_tx: Some(shutdown_tx),
@@ -1832,36 +1854,6 @@ impl Drop for Serve {
     fn drop(&mut self) {
         drop(self.shutdown_tx.take());
         self.thread.take().unwrap().join().unwrap();
-    }
-}
-
-struct ConfigurationService {
-    config: String,
-}
-
-impl ConfigurationService {
-    fn new(config: String) -> Self {
-        ConfigurationService { config }
-    }
-}
-
-impl Service for ConfigurationService {
-    type Request = Request;
-    type Response = Response;
-    type Error = hyper::Error;
-    type Future = FutureResult<Response, hyper::Error>;
-
-    fn call(&self, req: Request) -> Self::Future {
-        futures::future::ok(match (req.method(), req.path()) {
-            (&Get, CONFIG_ROUTE) => {
-                let bytes = self.config.as_bytes().to_vec();
-                Response::new()
-                    .with_header(ContentLength(bytes.len() as u64))
-                    .with_header(ContentType::json())
-                    .with_body(bytes)
-            }
-            _ => Response::new().with_status(StatusCode::NotFound),
-        })
     }
 }
 

@@ -2,8 +2,9 @@ use fs;
 use std::path::Path;
 
 use args::{Args, SUPERVISOR_SERVICE};
-use config_json::{get_api_endpoint, merge_config_json, read_config_json, write_config_json,
-                  ConfigMap};
+use config_json::{
+    get_api_endpoint, merge_config_json, read_config_json, write_config_json, ConfigMap,
+};
 use errors::*;
 use os_config::{read_os_config, OsConfig};
 use os_config_api::{config_url, get_os_config_api, OsConfigApi};

@@ -21,7 +21,8 @@ impl OsConfigApi {
         service_id: &str,
         config_name: &str,
     ) -> Result<&'a str> {
-        let contents_map = self.services
+        let contents_map = self
+            .services
             .get(service_id)
             .chain_err(|| ErrorKind::ServiceNotFoundJSON(service_id.into()))?;
 

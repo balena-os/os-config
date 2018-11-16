@@ -8,18 +8,18 @@ license = "Apache-2.0"
 
 [dependencies]
 log = "0.4"
-env_logger = "0.5"
-reqwest = "0.8"
+env_logger = "0.6"
+reqwest = "0.9"
 serde = "1.0"
 serde_json = "1.0"
 serde_derive = "1.0"
 dbus = "0.6"
 openssl = "0.10"
 hex = "0.3"
-rand = "0.4"
+rand = "0.6"
 
 [dependencies.clap]
-version = "2.31"
+version = "2.32"
 default-features = false
 
 [dependencies.error-chain]
@@ -27,9 +27,10 @@ version = "0.11"
 default-features = false
 
 [dev-dependencies]
-assert_cli = "0.5"
-hyper = "0.11"
+assert_cli = "0.6"
+hyper = "0.12"
 futures = "0.1"
 maplit = "1.0"
 tempdir = "0.3"
 unindent = "0.1"
+tokio = "0.1"
