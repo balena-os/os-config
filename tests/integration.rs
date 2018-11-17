@@ -1,9 +1,10 @@
+extern crate actix_net;
+extern crate actix_web;
 extern crate assert_cli;
+extern crate env_logger;
 extern crate futures;
-extern crate hyper;
 extern crate serde_json;
 extern crate tempdir;
-extern crate tokio;
 extern crate unindent;
 
 use std::fs::{remove_file, File, OpenOptions};
@@ -11,21 +12,16 @@ use std::io::{Read, Write};
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::Path;
 use std::process::Command;
+use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
-//use futures::Future;
-//use futures::future::FutureResult;
-use futures::future;
-use futures::sync::oneshot;
-
-use hyper::rt::Future;
-use hyper::service::service_fn;
-use hyper::{Body, Method, Response, Server, StatusCode};
-
-//use tokio::runtime::current_thread;
-
 use tempdir::TempDir;
+
+use actix_net::server::Server;
+use actix_web::{actix, http, server, App};
+
+use futures::Future;
 
 const OS_CONFIG_PATH_REDEFINE: &str = "OS_CONFIG_PATH_REDEFINE";
 const CONFIG_JSON_PATH_REDEFINE: &str = "CONFIG_JSON_PATH_REDEFINE";
@@ -136,7 +132,7 @@ fn join() {
         "#,
     );
 
-    let _serve = serve_config(os_config_api, 5);
+    let serve = serve_config(os_config_api, 5);
 
     let json_config = format!(
         r#"
@@ -258,6 +254,8 @@ fn join() {
     service_1.ensure_restarted();
     service_2.ensure_restarted();
     service_3.ensure_restarted();
+
+    serve.stop();
 }
 
 #[test]
@@ -316,7 +314,7 @@ fn join_no_supervisor() {
         "#,
     );
 
-    let _serve = serve_config(os_config_api, 0);
+    let serve = serve_config(os_config_api, 0);
 
     let json_config = format!(
         r#"
@@ -405,10 +403,14 @@ fn join_no_supervisor() {
     wait_for_systemctl_jobs();
 
     service_1.ensure_restarted();
+
+    serve.stop();
 }
 
 #[test]
 fn join_flasher() {
+    env_logger::init();
+
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
@@ -465,7 +467,7 @@ fn join_flasher() {
         "#,
     );
 
-    let _serve = serve_config(os_config_api, 0);
+    let serve = serve_config(os_config_api, 0);
 
     let json_config = format!(
         r#"
@@ -558,6 +560,8 @@ fn join_flasher() {
     wait_for_systemctl_jobs();
 
     service_1.ensure_restarted();
+
+    serve.stop();
 }
 
 #[test]
@@ -691,7 +695,7 @@ fn reconfigure() {
         "#,
     );
 
-    let _serve = serve_config(os_config_api, 0);
+    let serve = serve_config(os_config_api, 0);
 
     let json_config = format!(
         r#"
@@ -776,6 +780,8 @@ fn reconfigure() {
     wait_for_systemctl_jobs();
 
     supervisor.ensure_restarted();
+
+    serve.stop();
 }
 
 #[test]
@@ -840,7 +846,7 @@ fn reconfigure_stored() {
         "#,
     );
 
-    let _serve = serve_config(os_config_api, 0);
+    let serve = serve_config(os_config_api, 0);
 
     let json_config = format!(
         r#"
@@ -928,6 +934,8 @@ fn reconfigure_stored() {
     wait_for_systemctl_jobs();
 
     supervisor.ensure_restarted();
+
+    serve.stop();
 }
 
 #[test]
@@ -1049,7 +1057,7 @@ fn update() {
         "#,
     );
 
-    let _serve = serve_config(os_config_api, 0);
+    let serve = serve_config(os_config_api, 0);
 
     let output = unindent::unindent(&format!(
         r#"
@@ -1115,6 +1123,8 @@ fn update() {
     service_1.ensure_restarted();
     service_2.ensure_restarted();
     service_3.ensure_restarted();
+
+    serve.stop();
 }
 
 #[test]
@@ -1227,7 +1237,7 @@ fn update_no_config_changes() {
         "#,
     );
 
-    let _serve = serve_config(os_config_api, 0);
+    let serve = serve_config(os_config_api, 0);
 
     let output = unindent::unindent(
         r#"
@@ -1271,6 +1281,8 @@ fn update_no_config_changes() {
     service_1.ensure_not_restarted();
     service_2.ensure_not_restarted();
     service_3.ensure_not_restarted();
+
+    serve.stop();
 }
 
 #[test]
@@ -1308,7 +1320,7 @@ fn update_unmanaged() {
         "#,
     );
 
-    let _serve = serve_config(os_config_api, 0);
+    let serve = serve_config(os_config_api, 0);
 
     let output = unindent::unindent(
         r#"
@@ -1325,6 +1337,8 @@ fn update_unmanaged() {
         .unwrap();
 
     validate_json_file(&config_json_path, config_json, false);
+
+    serve.stop();
 }
 
 #[test]
@@ -1406,7 +1420,7 @@ fn leave() {
         "#,
     );
 
-    let _serve = serve_config(os_config_api, 0);
+    let serve = serve_config(os_config_api, 0);
 
     let output = unindent::unindent(&format!(
         r#"
@@ -1464,6 +1478,8 @@ fn leave() {
 
     supervisor.ensure_restarted();
     service_3.ensure_restarted();
+
+    serve.stop();
 }
 
 #[test]
@@ -1503,7 +1519,7 @@ fn leave_unmanaged() {
         "#,
     );
 
-    let _serve = serve_config(os_config_api, 0);
+    let serve = serve_config(os_config_api, 0);
 
     let output = unindent::unindent(
         r#"
@@ -1518,6 +1534,8 @@ fn leave_unmanaged() {
         .stdout()
         .is(&output as &str)
         .unwrap();
+
+    serve.stop();
 }
 
 #[test]
@@ -1803,57 +1821,46 @@ fn os_config_env(os_config_path: &str, config_json_path: &str) -> assert_cli::En
 *  Mock JSON HTTP server
 */
 
-type BoxFut = Box<Future<Item = Response<Body>, Error = hyper::Error> + Send>;
-
 fn serve_config(config: String, sleep: u64) -> Serve {
-    let (shutdown_tx, shutdown_rx) = oneshot::channel();
+    let (tx, rx) = mpsc::channel();
 
-    let addr = MOCK_JSON_SERVER_ADDRESS.parse().unwrap();
+    let thread = thread::spawn(move || {
+        thread::sleep(Duration::from_secs(sleep));
 
-    let thread = thread::Builder::new()
-        .name("json-server".to_string())
-        .spawn(move || {
-            thread::sleep(Duration::from_secs(sleep));
+        let sys = actix::System::new("json-server");
 
-            let server = Server::bind(&addr)
-                .serve(move || {
-                    let config = config.clone();
+        let addr = server::new(move || {
+            App::with_state(config.clone())
+                .middleware(actix_web::middleware::Logger::default())
+                .resource(CONFIG_ROUTE, |r| {
+                    r.method(http::Method::GET).f(|req| req.state().clone())
+                })
+        }).workers(1)
+        .bind(MOCK_JSON_SERVER_ADDRESS)
+        .unwrap()
+        .system_exit()
+        .shutdown_timeout(3)
+        .start();
 
-                    service_fn(move |req| {
-                        let mut response = Response::new(Body::empty());
+        tx.send(addr).unwrap();
 
-                        match (req.method(), req.uri().path()) {
-                            (&Method::GET, CONFIG_ROUTE) => {
-                                *response.body_mut() = Body::from(config.clone());
-                            }
-                            _ => {
-                                *response.status_mut() = StatusCode::NOT_FOUND;
-                            }
-                        }
+        sys.run();
+    });
 
-                        Box::new(future::ok(response)) as BoxFut
-                    })
-                }).with_graceful_shutdown(shutdown_rx)
-                .map_err(|err| eprintln!("server error: {}", err));
+    let addr = rx.recv().unwrap();
 
-            hyper::rt::run(server);
-        }).unwrap();
-
-    Serve {
-        shutdown_tx: Some(shutdown_tx),
-        thread: Some(thread),
-    }
+    Serve { addr, thread }
 }
 
 struct Serve {
-    shutdown_tx: Option<oneshot::Sender<()>>,
-    thread: Option<thread::JoinHandle<()>>,
+    addr: actix::Addr<Server>,
+    thread: thread::JoinHandle<()>,
 }
 
-impl Drop for Serve {
-    fn drop(&mut self) {
-        drop(self.shutdown_tx.take());
-        self.thread.take().unwrap().join().unwrap();
+impl Serve {
+    fn stop(self) {
+        let _ = self.addr.send(server::StopServer { graceful: true }).wait();
+        self.thread.join().unwrap();
     }
 }
 

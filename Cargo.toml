@@ -28,9 +28,9 @@ default-features = false
 
 [dev-dependencies]
 assert_cli = "0.6"
-hyper = "0.12"
-futures = "0.1"
 maplit = "1.0"
 tempdir = "0.3"
 unindent = "0.1"
-tokio = "0.1"
+actix-web = "0.7"
+actix-net = "0.2"
+futures = "0.1"
