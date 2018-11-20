@@ -137,7 +137,7 @@ fn join() {
         "#,
     );
 
-    let serve = serve_config(os_config_api, 5, false);
+    let (mut serve, thandle) = serve_config(os_config_api, 5, false);
 
     let json_config = format!(
         r#"
@@ -167,6 +167,7 @@ fn join() {
     let output = unindent::unindent(&format!(
         r#"
         Fetching service configuration from http://localhost:54673/os/v1/config...
+        http://localhost:54673/os/v1/config: an error occurred trying to connect: Connection refused (os error 111)
         Service configuration retrieved
         Stopping resin-supervisor.service...
         Awaiting resin-supervisor.service to exit...
@@ -261,6 +262,7 @@ fn join() {
     service_3.ensure_restarted();
 
     serve.stop();
+    thandle.join().unwrap();
 }
 
 #[test]
@@ -319,7 +321,7 @@ fn join_no_supervisor() {
         "#,
     );
 
-    let serve = serve_config(os_config_api, 0, false);
+    let (mut serve, thandle) = serve_config(os_config_api, 0, false);
 
     let json_config = format!(
         r#"
@@ -410,6 +412,7 @@ fn join_no_supervisor() {
     service_1.ensure_restarted();
 
     serve.stop();
+    thandle.join().unwrap();
 }
 
 #[test]
@@ -470,7 +473,7 @@ fn join_flasher() {
         "#,
     );
 
-    let serve = serve_config(os_config_api, 0, false);
+    let (mut serve, thandle) = serve_config(os_config_api, 0, false);
 
     let json_config = format!(
         r#"
@@ -565,6 +568,7 @@ fn join_flasher() {
     service_1.ensure_restarted();
 
     serve.stop();
+    thandle.join().unwrap();
 }
 
 #[test]
@@ -608,7 +612,7 @@ fn join_with_root_certificate() {
         "#,
     );
 
-    let serve = serve_config(os_config_api, 0, true);
+    let (mut serve, thandle) = serve_config(os_config_api, 0, true);
 
     let json_config = format!(
         r#"
@@ -697,6 +701,7 @@ fn join_with_root_certificate() {
     supervisor.ensure_restarted();
 
     serve.stop();
+    thandle.join().unwrap();
 }
 
 #[test]
@@ -830,7 +835,7 @@ fn reconfigure() {
         "#,
     );
 
-    let serve = serve_config(os_config_api, 0, false);
+    let (mut serve, thandle) = serve_config(os_config_api, 0, false);
 
     let json_config = format!(
         r#"
@@ -917,6 +922,7 @@ fn reconfigure() {
     supervisor.ensure_restarted();
 
     serve.stop();
+    thandle.join().unwrap();
 }
 
 #[test]
@@ -981,7 +987,7 @@ fn reconfigure_stored() {
         "#,
     );
 
-    let serve = serve_config(os_config_api, 0, false);
+    let (mut serve, thandle) = serve_config(os_config_api, 0, false);
 
     let json_config = format!(
         r#"
@@ -1071,6 +1077,7 @@ fn reconfigure_stored() {
     supervisor.ensure_restarted();
 
     serve.stop();
+    thandle.join().unwrap();
 }
 
 #[test]
@@ -1192,7 +1199,7 @@ fn update() {
         "#,
     );
 
-    let serve = serve_config(os_config_api, 0, false);
+    let (mut serve, thandle) = serve_config(os_config_api, 0, false);
 
     let output = unindent::unindent(&format!(
         r#"
@@ -1260,6 +1267,7 @@ fn update() {
     service_3.ensure_restarted();
 
     serve.stop();
+    thandle.join().unwrap();
 }
 
 #[test]
@@ -1372,7 +1380,7 @@ fn update_no_config_changes() {
         "#,
     );
 
-    let serve = serve_config(os_config_api, 0, false);
+    let (mut serve, thandle) = serve_config(os_config_api, 0, false);
 
     let output = unindent::unindent(
         r#"
@@ -1418,6 +1426,7 @@ fn update_no_config_changes() {
     service_3.ensure_not_restarted();
 
     serve.stop();
+    thandle.join().unwrap();
 }
 
 #[test]
@@ -1481,7 +1490,7 @@ fn update_with_root_certificate() {
         "#,
     );
 
-    let serve = serve_config(os_config_api, 0, true);
+    let (mut serve, thandle) = serve_config(os_config_api, 0, true);
 
     let output = unindent::unindent(
         r#"
@@ -1506,6 +1515,7 @@ fn update_with_root_certificate() {
     supervisor.ensure_not_restarted();
 
     serve.stop();
+    thandle.join().unwrap();
 }
 
 #[test]
@@ -1543,7 +1553,7 @@ fn update_unmanaged() {
         "#,
     );
 
-    let serve = serve_config(os_config_api, 0, false);
+    let (mut serve, thandle) = serve_config(os_config_api, 0, false);
 
     let output = unindent::unindent(
         r#"
@@ -1562,6 +1572,7 @@ fn update_unmanaged() {
     validate_json_file(&config_json_path, config_json, false);
 
     serve.stop();
+    thandle.join().unwrap();
 }
 
 #[test]
@@ -1643,7 +1654,7 @@ fn leave() {
         "#,
     );
 
-    let serve = serve_config(os_config_api, 0, false);
+    let (mut serve, thandle) = serve_config(os_config_api, 0, false);
 
     let output = unindent::unindent(&format!(
         r#"
@@ -1703,6 +1714,7 @@ fn leave() {
     service_3.ensure_restarted();
 
     serve.stop();
+    thandle.join().unwrap();
 }
 
 #[test]
@@ -1742,7 +1754,7 @@ fn leave_unmanaged() {
         "#,
     );
 
-    let serve = serve_config(os_config_api, 0, false);
+    let (mut serve, thandle) = serve_config(os_config_api, 0, false);
 
     let output = unindent::unindent(
         r#"
@@ -1759,6 +1771,7 @@ fn leave_unmanaged() {
         .unwrap();
 
     serve.stop();
+    thandle.join().unwrap();
 }
 
 #[test]
@@ -2044,10 +2057,12 @@ fn os_config_env(os_config_path: &str, config_json_path: &str) -> assert_cli::En
 *  Mock JSON HTTP server
 */
 
-fn serve_config(config: String, sleep: u64, with_ssl: bool) -> Serve {
+fn serve_config(config: String, sleep: u64, with_ssl: bool) -> (Serve, thread::JoinHandle<()>) {
     let (tx, rx) = mpsc::channel();
 
-    let thread = thread::spawn(move || {
+    let thandle = thread::spawn(move || {
+        thread::sleep(Duration::from_secs(sleep));
+
         let sys = actix::System::new("json-server");
 
         let mut server = server::new(move || {
@@ -2082,25 +2097,34 @@ fn serve_config(config: String, sleep: u64, with_ssl: bool) -> Serve {
 
         tx.send(addr).unwrap();
 
-        thread::sleep(Duration::from_secs(sleep));
-
         sys.run();
     });
 
-    let addr = rx.recv().unwrap();
-
-    Serve { addr, thread }
+    (Serve::new(rx), thandle)
 }
 
 struct Serve {
-    addr: actix::Addr<Server>,
-    thread: thread::JoinHandle<()>,
+    rx: mpsc::Receiver<actix::Addr<Server>>,
+    stopped: bool,
 }
 
 impl Serve {
-    fn stop(self) {
-        let _ = self.addr.send(server::StopServer { graceful: true }).wait();
-        self.thread.join().unwrap();
+    fn new(rx: mpsc::Receiver<actix::Addr<Server>>) -> Self {
+        Serve { rx, stopped: false }
+    }
+
+    fn stop(&mut self) {
+        let addr = self.rx.recv().unwrap();
+        let _ = addr.send(server::StopServer { graceful: true }).wait();
+        self.stopped = true;
+    }
+}
+
+impl Drop for Serve {
+    fn drop(&mut self) {
+        if !self.stopped {
+            self.stop();
+        }
     }
 }
 

@@ -67,10 +67,22 @@ fn retry_get(url: &str, root_certificate: &Option<&str>) -> Result<reqwest::Resp
 
     let client = builder.build()?;
 
+    let mut last_err = String::new();
+
     loop {
-        if let Ok(response) = client.get(url).send() {
-            info!("Service configuration retrieved");
-            return Ok(response);
+        match client.get(url).send() {
+            Ok(response) => {
+                info!("Service configuration retrieved");
+                return Ok(response);
+            }
+            Err(err) => {
+                // Print the same error only once.
+                let curr_err = format!("{}", err);
+                if last_err != curr_err {
+                    info!("{}", curr_err);
+                    last_err = curr_err;
+                }
+            }
         }
 
         let sleep = if sleeped < 10 {
