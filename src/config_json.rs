@@ -68,6 +68,18 @@ fn get_device_type(config_json: &ConfigMap) -> Result<Option<String>> {
     }
 }
 
+pub fn get_root_certificate(config_json: &ConfigMap) -> Result<Option<String>> {
+    if let Some(value) = config_json.get("balenaRootCA") {
+        if let Some(api_endpoint) = value.as_str() {
+            Ok(Some(api_endpoint.to_string()))
+        } else {
+            bail!(ErrorKind::RootCANotStringJSON)
+        }
+    } else {
+        Ok(None)
+    }
+}
+
 fn define_api_key(config_json: &mut ConfigMap, json_config: &ConfigMap) -> Result<()> {
     store_api_key(config_json)?;
 

@@ -38,25 +38,37 @@ pub fn config_url(api_endpoint: &str, config_route: &str) -> String {
     format!("{}{}", api_endpoint, config_route)
 }
 
-pub fn get_os_config_api(config_url: &str) -> Result<OsConfigApi> {
-    get_os_config_api_impl(config_url).chain_err(|| ErrorKind::GetOSConfigApi)
+pub fn get_os_config_api(config_url: &str, root_certificate: &Option<&str>) -> Result<OsConfigApi> {
+    get_os_config_api_impl(config_url, root_certificate).chain_err(|| ErrorKind::GetOSConfigApi)
 }
 
-fn get_os_config_api_impl(config_url: &str) -> Result<OsConfigApi> {
-    let json_data = retry_get(config_url)?.text()?;
+fn get_os_config_api_impl(
+    config_url: &str,
+    root_certificate: &Option<&str>,
+) -> Result<OsConfigApi> {
+    let json_data = retry_get(config_url, root_certificate)?.text()?;
 
     validate_schema_version(&json_data)?;
 
     Ok(serde_json::from_str(&json_data)?)
 }
 
-fn retry_get(url: &str) -> Result<reqwest::Response> {
+fn retry_get(url: &str, root_certificate: &Option<&str>) -> Result<reqwest::Response> {
     let mut sleeped = 0;
 
     info!("Fetching service configuration from {}...", url);
 
+    let mut builder = reqwest::Client::builder();
+
+    if let Some(root_certificate) = root_certificate {
+        let cert = reqwest::Certificate::from_pem(root_certificate.as_bytes())?;
+        builder = builder.add_root_certificate(cert);
+    };
+
+    let client = builder.build()?;
+
     loop {
-        if let Ok(response) = reqwest::get(url) {
+        if let Ok(response) = client.get(url).send() {
             info!("Service configuration retrieved");
             return Ok(response);
         }

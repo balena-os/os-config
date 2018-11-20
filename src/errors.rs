@@ -81,6 +81,10 @@ error_chain! {
             description("`deviceType` should be a string")
         }
 
+        RootCANotStringJSON {
+            description("`balenaRootCA` should be a string")
+        }
+
         UnexpectedDeviceTypeJSON(expected: String, got: String) {
             description("Unexpected `deviceType`")
             display("Expected `deviceType` {}, got {}", expected, got)

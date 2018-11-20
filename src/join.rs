@@ -3,7 +3,8 @@ use std::path::Path;
 
 use args::{Args, SUPERVISOR_SERVICE};
 use config_json::{
-    get_api_endpoint, merge_config_json, read_config_json, write_config_json, ConfigMap,
+    get_api_endpoint, get_root_certificate, merge_config_json, read_config_json, write_config_json,
+    ConfigMap,
 };
 use errors::*;
 use os_config::{read_os_config, OsConfig};
@@ -36,7 +37,12 @@ pub fn reconfigure(args: &Args, config_json: &ConfigMap, write_config_json: bool
         return Ok(());
     };
 
-    let os_config_api = get_os_config_api(&config_url(&api_endpoint, &args.config_route))?;
+    let root_certificate = get_root_certificate(config_json)?;
+
+    let os_config_api = get_os_config_api(
+        &config_url(&api_endpoint, &args.config_route),
+        &root_certificate.as_ref().map(String::as_str),
+    )?;
 
     let has_config_changes = has_config_changes(&os_config, &os_config_api)?;
 
