@@ -137,7 +137,7 @@ fn join() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 5, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false);
 
     let json_config = format!(
         r#"
@@ -167,7 +167,6 @@ fn join() {
     let output = unindent::unindent(&format!(
         r#"
         Fetching service configuration from http://localhost:54673/os/v1/config...
-        http://localhost:54673/os/v1/config: an error occurred trying to connect: Connection refused (os error 111)
         Service configuration retrieved
         Stopping resin-supervisor.service...
         Awaiting resin-supervisor.service to exit...
@@ -705,6 +704,106 @@ fn join_with_root_certificate() {
 }
 
 #[test]
+fn join_no_endpoint() {
+    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
+
+    let config_json = r#"
+        {
+            "deviceType": "raspberrypi3",
+            "hostname": "resin",
+            "persistentLogging": false
+        }
+        "#;
+
+    let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
+
+    let schema = format!(
+        r#"
+        {{
+            "services": [
+                {{
+                    "id": "mock-1",
+                    "files": {{
+                        "mock-1": {{
+                            "path": "{0}/mock-1.conf",
+                            "perm": "600"
+                        }}
+                    }},
+                    "systemd_services": ["mock-service-1.service"]
+                }}
+            ],
+            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
+            "schema_version": "1.0.0"
+        }}
+        "#,
+        tmp_dir_path
+    );
+
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
+
+    let configuration = unindent::unindent(
+        r#"
+        {
+            "services": {
+                "mock-1": {
+                    "mock-1": "MOCK-1-АБВГДЕЖЗИЙ"
+                }
+            },
+            "schema_version": "1.0.0"
+        }
+        "#,
+    );
+
+    let (mut serve, thandle) = serve_config(configuration, 3, false);
+
+    let json_config = format!(
+        r#"
+        {{
+            "applicationName": "aaaaaa",
+            "applicationId": 123456,
+            "deviceType": "raspberrypi3",
+            "userId": 654321,
+            "username": "username",
+            "appUpdatePollInterval": 60000,
+            "listenPort": 48484,
+            "vpnPort": 443,
+            "apiEndpoint": "http://{}",
+            "vpnEndpoint": "vpn.resin.io",
+            "registryEndpoint": "registry2.resin.io",
+            "deltaEndpoint": "https://delta.resin.io",
+            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+            "apiKey": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1.prod"
+        }}
+        "#,
+        MOCK_JSON_SERVER_ADDRESS
+    );
+
+    let output = unindent::unindent(
+        "
+        Fetching service configuration from http://localhost:54673/os/v1/config...
+        \x1B[1;31mError: Fetching configuration failed\x1B[0m
+          caused by: http://localhost:54673/os/v1/config: an error occurred trying to connect: Connection refused (os error 111)
+          caused by: Connection refused (os error 111)
+        ",
+    );
+
+    assert_cli::Assert::main_binary()
+        .with_args(&["join", &json_config])
+        .with_env(os_config_env(&os_config_path, &config_json_path))
+        .fails()
+        .stdout()
+        .is(&output as &str)
+        .unwrap();
+
+    serve.stop();
+    thandle.join().unwrap();
+}
+
+#[test]
 fn incompatible_device_types() {
     let tmp_dir = TempDir::new("os-config").unwrap();
 
@@ -1199,11 +1298,12 @@ fn update() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 5, false);
 
     let output = unindent::unindent(&format!(
         r#"
         Fetching service configuration from http://localhost:54673/os/v1/config...
+        http://localhost:54673/os/v1/config: an error occurred trying to connect: Connection refused (os error 111)
         Service configuration retrieved
         Stopping resin-supervisor.service...
         Awaiting resin-supervisor.service to exit...
@@ -2057,11 +2157,15 @@ fn os_config_env(os_config_path: &str, config_json_path: &str) -> assert_cli::En
 *  Mock JSON HTTP server
 */
 
-fn serve_config(config: String, sleep: u64, with_ssl: bool) -> (Serve, thread::JoinHandle<()>) {
+fn serve_config(
+    config: String,
+    server_thread_sleep: u64,
+    with_ssl: bool,
+) -> (Serve, thread::JoinHandle<()>) {
     let (tx, rx) = mpsc::channel();
 
     let thandle = thread::spawn(move || {
-        thread::sleep(Duration::from_secs(sleep));
+        thread::sleep(Duration::from_secs(server_thread_sleep));
 
         let sys = actix::System::new("json-server");
 
@@ -2099,6 +2203,11 @@ fn serve_config(config: String, sleep: u64, with_ssl: bool) -> (Serve, thread::J
 
         sys.run();
     });
+
+    if server_thread_sleep == 0 {
+        // Give some time for the server thread to start
+        thread::sleep(Duration::from_secs(1));
+    }
 
     (Serve::new(rx), thandle)
 }

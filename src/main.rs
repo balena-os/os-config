@@ -33,8 +33,8 @@ mod generate;
 mod join;
 mod leave;
 mod logger;
-mod schema;
 mod remote;
+mod schema;
 mod systemd;
 mod update;
 

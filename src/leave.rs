@@ -34,7 +34,11 @@ pub fn leave(args: &Args) -> Result<()> {
     result
 }
 
-fn deconfigure_core(config_json: &mut ConfigMap, args: &Args, schema: &OsConfigSchema) -> Result<()> {
+fn deconfigure_core(
+    config_json: &mut ConfigMap,
+    args: &Args,
+    schema: &OsConfigSchema,
+) -> Result<()> {
     store_api_key(config_json)?;
 
     delete_config_json_keys(config_json, args, schema)?;

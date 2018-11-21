@@ -38,41 +38,51 @@ pub fn config_url(api_endpoint: &str, config_route: &str) -> String {
     format!("{}{}", api_endpoint, config_route)
 }
 
-pub fn fetch_configuration(config_url: &str, root_certificate: &Option<&str>) -> Result<Configuration> {
-    fetch_configuration_impl(config_url, root_certificate).chain_err(|| ErrorKind::FetchConfiguration)
+pub fn fetch_configuration(
+    config_url: &str,
+    root_certificate: &Option<&str>,
+    retry: bool,
+) -> Result<Configuration> {
+    fetch_configuration_impl(config_url, root_certificate, retry)
+        .chain_err(|| ErrorKind::FetchConfiguration)
 }
 
 fn fetch_configuration_impl(
     config_url: &str,
     root_certificate: &Option<&str>,
+    retry: bool,
 ) -> Result<Configuration> {
-    let json_data = retry_request_config(config_url, root_certificate)?.text()?;
+    let client = build_reqwest_client(root_certificate)?;
+
+    let request_fn = if retry {
+        retry_request_config
+    } else {
+        request_config
+    };
+
+    info!("Fetching service configuration from {}...", config_url);
+
+    let json_data = request_fn(config_url, client)?.text()?;
+
+    info!("Service configuration retrieved");
 
     validate_schema_version(&json_data)?;
 
     Ok(serde_json::from_str(&json_data)?)
 }
 
-fn retry_request_config(url: &str, root_certificate: &Option<&str>) -> Result<reqwest::Response> {
+fn request_config(url: &str, client: reqwest::Client) -> Result<reqwest::Response> {
+    Ok(client.get(url).send()?)
+}
+
+fn retry_request_config(url: &str, client: reqwest::Client) -> Result<reqwest::Response> {
     let mut sleeped = 0;
-
-    info!("Fetching service configuration from {}...", url);
-
-    let mut builder = reqwest::Client::builder();
-
-    if let Some(root_certificate) = root_certificate {
-        let cert = reqwest::Certificate::from_pem(root_certificate.as_bytes())?;
-        builder = builder.add_root_certificate(cert);
-    };
-
-    let client = builder.build()?;
 
     let mut last_err = String::new();
 
     loop {
         match client.get(url).send() {
             Ok(response) => {
-                info!("Service configuration retrieved");
                 return Ok(response);
             }
             Err(err) => {
@@ -105,6 +115,17 @@ fn retry_request_config(url: &str, root_certificate: &Option<&str>) -> Result<re
             info!("Awaiting service configuration...")
         }
     }
+}
+
+fn build_reqwest_client(root_certificate: &Option<&str>) -> Result<reqwest::Client> {
+    let mut builder = reqwest::Client::builder();
+
+    if let Some(root_certificate) = root_certificate {
+        let cert = reqwest::Certificate::from_pem(root_certificate.as_bytes())?;
+        builder = builder.add_root_certificate(cert);
+    };
+
+    Ok(builder.build()?)
 }
 
 #[cfg(test)]

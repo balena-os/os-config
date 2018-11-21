@@ -7,8 +7,8 @@ use config_json::{
     ConfigMap,
 };
 use errors::*;
-use schema::{read_os_config_schema, OsConfigSchema};
 use remote::{config_url, fetch_configuration, Configuration};
+use schema::{read_os_config_schema, OsConfigSchema};
 use systemd;
 
 pub fn join(args: &Args) -> Result<()> {
@@ -27,7 +27,7 @@ pub fn join(args: &Args) -> Result<()> {
     reconfigure(args, &config_json, true)
 }
 
-pub fn reconfigure(args: &Args, config_json: &ConfigMap, write_config_json: bool) -> Result<()> {
+pub fn reconfigure(args: &Args, config_json: &ConfigMap, joining: bool) -> Result<()> {
     let schema = read_os_config_schema(&args.os_config_path)?;
 
     let api_endpoint = if let Some(api_endpoint) = get_api_endpoint(config_json)? {
@@ -42,16 +42,17 @@ pub fn reconfigure(args: &Args, config_json: &ConfigMap, write_config_json: bool
     let configuration = fetch_configuration(
         &config_url(&api_endpoint, &args.config_route),
         &root_certificate.as_ref().map(String::as_str),
+        !joining,
     )?;
 
     let has_config_changes = has_config_changes(&schema, &configuration)?;
 
     if !has_config_changes {
         info!("No configuration changes");
-    }
 
-    if !(has_config_changes || write_config_json) {
-        return Ok(());
+        if !joining {
+            return Ok(());
+        }
     }
 
     if args.supervisor_exists {
@@ -66,7 +67,7 @@ pub fn reconfigure(args: &Args, config_json: &ConfigMap, write_config_json: bool
         &schema,
         &configuration,
         has_config_changes,
-        write_config_json,
+        joining,
     );
 
     if args.supervisor_exists {
@@ -82,9 +83,9 @@ fn reconfigure_core(
     schema: &OsConfigSchema,
     configuration: &Configuration,
     has_config_changes: bool,
-    write: bool,
+    joining: bool,
 ) -> Result<()> {
-    if write {
+    if joining {
         write_config_json(&args.config_json_path, config_json)?;
     }
 
