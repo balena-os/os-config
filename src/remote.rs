@@ -7,15 +7,15 @@ use reqwest;
 use serde_json;
 
 use errors::*;
-use os_config::validate_schema_version;
+use schema::validate_schema_version;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub struct OsConfigApi {
+pub struct Configuration {
     pub services: HashMap<String, HashMap<String, String>>,
     pub schema_version: String,
 }
 
-impl OsConfigApi {
+impl Configuration {
     pub fn get_config_contents<'a>(
         &'a self,
         service_id: &str,
@@ -38,22 +38,22 @@ pub fn config_url(api_endpoint: &str, config_route: &str) -> String {
     format!("{}{}", api_endpoint, config_route)
 }
 
-pub fn get_os_config_api(config_url: &str, root_certificate: &Option<&str>) -> Result<OsConfigApi> {
-    get_os_config_api_impl(config_url, root_certificate).chain_err(|| ErrorKind::GetOSConfigApi)
+pub fn fetch_configuration(config_url: &str, root_certificate: &Option<&str>) -> Result<Configuration> {
+    fetch_configuration_impl(config_url, root_certificate).chain_err(|| ErrorKind::FetchConfiguration)
 }
 
-fn get_os_config_api_impl(
+fn fetch_configuration_impl(
     config_url: &str,
     root_certificate: &Option<&str>,
-) -> Result<OsConfigApi> {
-    let json_data = retry_get(config_url, root_certificate)?.text()?;
+) -> Result<Configuration> {
+    let json_data = retry_request_config(config_url, root_certificate)?.text()?;
 
     validate_schema_version(&json_data)?;
 
     Ok(serde_json::from_str(&json_data)?)
 }
 
-fn retry_get(url: &str, root_certificate: &Option<&str>) -> Result<reqwest::Response> {
+fn retry_request_config(url: &str, root_certificate: &Option<&str>) -> Result<reqwest::Response> {
     let mut sleeped = 0;
 
     info!("Fetching service configuration from {}...", url);
@@ -112,7 +112,7 @@ mod tests {
     use serde_json;
 
     use super::*;
-    use os_config::{validate_schema_version, SCHEMA_VERSION};
+    use schema::{validate_schema_version, SCHEMA_VERSION};
 
     const JSON_DATA: &str = r#"{
         "services": {
@@ -130,10 +130,10 @@ mod tests {
     }"#;
 
     #[test]
-    fn parse_os_config_api_v1() {
-        let parsed: OsConfigApi = serde_json::from_str(JSON_DATA).unwrap();
+    fn parse_configuration_v1() {
+        let parsed: Configuration = serde_json::from_str(JSON_DATA).unwrap();
 
-        let expected = OsConfigApi {
+        let expected = Configuration {
             services: hashmap!{
                 "openvpn".into() => hashmap!{
                     "config".into() => "main configuration here".into(),
@@ -152,7 +152,7 @@ mod tests {
     }
 
     #[test]
-    fn validate_os_config_api_v1_schema_version() {
+    fn validate_configuration_v1_schema_version() {
         assert_eq!(validate_schema_version(JSON_DATA).unwrap(), ());
     }
 }

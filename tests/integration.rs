@@ -66,7 +66,7 @@ fn join() {
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
 
-    let os_config = format!(
+    let schema = format!(
         r#"
         {{
             "services": [
@@ -115,9 +115,9 @@ fn join() {
         tmp_dir_path
     );
 
-    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
 
-    let os_config_api = unindent::unindent(
+    let configuration = unindent::unindent(
         r#"
         {
             "services": {
@@ -137,7 +137,7 @@ fn join() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(os_config_api, 5, false);
+    let (mut serve, thandle) = serve_config(configuration, 5, false);
 
     let json_config = format!(
         r#"
@@ -284,7 +284,7 @@ fn join_no_supervisor() {
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
 
-    let os_config = format!(
+    let schema = format!(
         r#"
         {{
             "services": [
@@ -306,9 +306,9 @@ fn join_no_supervisor() {
         tmp_dir_path
     );
 
-    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
 
-    let os_config_api = unindent::unindent(
+    let configuration = unindent::unindent(
         r#"
         {
             "services": {
@@ -321,7 +321,7 @@ fn join_no_supervisor() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(os_config_api, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false);
 
     let json_config = format!(
         r#"
@@ -436,7 +436,7 @@ fn join_flasher() {
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
 
-    let os_config = format!(
+    let schema = format!(
         r#"
         {{
             "services": [
@@ -458,9 +458,9 @@ fn join_flasher() {
         tmp_dir_path
     );
 
-    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
 
-    let os_config_api = unindent::unindent(
+    let configuration = unindent::unindent(
         r#"
         {
             "services": {
@@ -473,7 +473,7 @@ fn join_flasher() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(os_config_api, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false);
 
     let json_config = format!(
         r#"
@@ -591,7 +591,7 @@ fn join_with_root_certificate() {
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
 
-    let os_config = r#"
+    let schema = r#"
         {
             "services": [
             ],
@@ -600,9 +600,9 @@ fn join_with_root_certificate() {
         }
         "#;
 
-    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", os_config, None);
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", schema, None);
 
-    let os_config_api = unindent::unindent(
+    let configuration = unindent::unindent(
         r#"
         {
             "services": {
@@ -612,7 +612,7 @@ fn join_with_root_certificate() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(os_config_api, 0, true);
+    let (mut serve, thandle) = serve_config(configuration, 0, true);
 
     let json_config = format!(
         r#"
@@ -718,7 +718,7 @@ fn incompatible_device_types() {
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
 
-    let os_config = unindent::unindent(
+    let schema = unindent::unindent(
         r#"
         {
             "services": [
@@ -729,7 +729,7 @@ fn incompatible_device_types() {
         "#,
     );
 
-    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
 
     let json_config = format!(
         r#"
@@ -812,7 +812,7 @@ fn reconfigure() {
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
 
-    let os_config = unindent::unindent(
+    let schema = unindent::unindent(
         r#"
         {
             "services": [
@@ -823,9 +823,9 @@ fn reconfigure() {
         "#,
     );
 
-    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
 
-    let os_config_api = unindent::unindent(
+    let configuration = unindent::unindent(
         r#"
         {
             "services": {
@@ -835,7 +835,7 @@ fn reconfigure() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(os_config_api, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false);
 
     let json_config = format!(
         r#"
@@ -964,7 +964,7 @@ fn reconfigure_stored() {
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
 
-    let os_config = unindent::unindent(
+    let schema = unindent::unindent(
         r#"
         {
             "services": [
@@ -975,9 +975,9 @@ fn reconfigure_stored() {
         "#,
     );
 
-    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
 
-    let os_config_api = unindent::unindent(
+    let configuration = unindent::unindent(
         r#"
         {
             "services": {
@@ -987,7 +987,7 @@ fn reconfigure_stored() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(os_config_api, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false);
 
     let json_config = format!(
         r#"
@@ -1124,7 +1124,7 @@ fn update() {
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
 
-    let os_config = format!(
+    let schema = format!(
         r#"
         {{
             "services": [
@@ -1173,13 +1173,13 @@ fn update() {
         tmp_dir_path
     );
 
-    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
 
     create_tmp_file(&tmp_dir, "mock-2.conf", "MOCK-2-0000000000", None);
 
     create_tmp_file(&tmp_dir, "mock-3.conf", "MOCK-3-0000000000", None);
 
-    let os_config_api = unindent::unindent(
+    let configuration = unindent::unindent(
         r#"
         {
             "services": {
@@ -1199,7 +1199,7 @@ fn update() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(os_config_api, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false);
 
     let output = unindent::unindent(&format!(
         r#"
@@ -1312,7 +1312,7 @@ fn update_no_config_changes() {
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
 
-    let os_config = format!(
+    let schema = format!(
         r#"
         {{
             "services": [
@@ -1350,7 +1350,7 @@ fn update_no_config_changes() {
         tmp_dir_path
     );
 
-    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
 
     create_tmp_file(
         &tmp_dir,
@@ -1363,7 +1363,7 @@ fn update_no_config_changes() {
 
     create_tmp_file(&tmp_dir, "mock-3.conf", "MOCK-3-0123456789", None);
 
-    let os_config_api = unindent::unindent(
+    let configuration = unindent::unindent(
         r#"
         {
             "services": {
@@ -1380,7 +1380,7 @@ fn update_no_config_changes() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(os_config_api, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false);
 
     let output = unindent::unindent(
         r#"
@@ -1469,7 +1469,7 @@ fn update_with_root_certificate() {
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
 
-    let os_config = r#"
+    let schema = r#"
         {
             "services": [
             ],
@@ -1478,9 +1478,9 @@ fn update_with_root_certificate() {
         }
         "#;
 
-    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", os_config, None);
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", schema, None);
 
-    let os_config_api = unindent::unindent(
+    let configuration = unindent::unindent(
         r#"
         {
             "services": {
@@ -1490,7 +1490,7 @@ fn update_with_root_certificate() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(os_config_api, 0, true);
+    let (mut serve, thandle) = serve_config(configuration, 0, true);
 
     let output = unindent::unindent(
         r#"
@@ -1532,7 +1532,7 @@ fn update_unmanaged() {
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
 
-    let os_config = r#"
+    let schema = r#"
         {
             "services": [
             ],
@@ -1541,9 +1541,9 @@ fn update_unmanaged() {
         }
         "#;
 
-    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", os_config, None);
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", schema, None);
 
-    let os_config_api = unindent::unindent(
+    let configuration = unindent::unindent(
         r#"
         {
             "services": {
@@ -1553,7 +1553,7 @@ fn update_unmanaged() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(os_config_api, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false);
 
     let output = unindent::unindent(
         r#"
@@ -1615,7 +1615,7 @@ fn leave() {
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
 
-    let os_config = format!(
+    let schema = format!(
         r#"
         {{
             "services": [
@@ -1637,11 +1637,11 @@ fn leave() {
         tmp_dir_path
     );
 
-    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
 
     create_tmp_file(&tmp_dir, "mock-3.conf", "MOCK-3-0123456789", None);
 
-    let os_config_api = unindent::unindent(
+    let configuration = unindent::unindent(
         r#"
         {
             "services": {
@@ -1654,7 +1654,7 @@ fn leave() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(os_config_api, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false);
 
     let output = unindent::unindent(&format!(
         r#"
@@ -1731,7 +1731,7 @@ fn leave_unmanaged() {
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
 
-    let os_config = unindent::unindent(
+    let schema = unindent::unindent(
         r#"
         {
             "services": [
@@ -1742,9 +1742,9 @@ fn leave_unmanaged() {
         "#,
     );
 
-    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
 
-    let os_config_api = unindent::unindent(
+    let configuration = unindent::unindent(
         r#"
         {
             "services": {
@@ -1754,7 +1754,7 @@ fn leave_unmanaged() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(os_config_api, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false);
 
     let output = unindent::unindent(
         r#"
@@ -1788,7 +1788,7 @@ fn generate_api_key_unmanaged() {
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
 
-    let os_config = unindent::unindent(
+    let schema = unindent::unindent(
         r#"
         {
             "services": [
@@ -1799,7 +1799,7 @@ fn generate_api_key_unmanaged() {
         "#,
     );
 
-    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
 
     let output = unindent::unindent(
         r#"
@@ -1847,7 +1847,7 @@ fn generate_api_key_already_generated() {
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
 
-    let os_config = unindent::unindent(
+    let schema = unindent::unindent(
         r#"
         {
             "services": [
@@ -1858,7 +1858,7 @@ fn generate_api_key_already_generated() {
         "#,
     );
 
-    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
 
     let output = unindent::unindent(
         r#"
@@ -1906,7 +1906,7 @@ fn generate_api_key_reuse() {
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
 
-    let os_config = unindent::unindent(
+    let schema = unindent::unindent(
         r#"
         {
             "services": [
@@ -1917,7 +1917,7 @@ fn generate_api_key_reuse() {
         "#,
     );
 
-    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
 
     let output = unindent::unindent(&format!(
         r#"
@@ -1989,7 +1989,7 @@ fn generate_api_key_new() {
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
 
-    let os_config = unindent::unindent(
+    let schema = unindent::unindent(
         r#"
         {
             "services": [
@@ -2000,7 +2000,7 @@ fn generate_api_key_new() {
         "#,
     );
 
-    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &os_config, None);
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
 
     let output = unindent::unindent(&format!(
         r#"
