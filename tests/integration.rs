@@ -2207,7 +2207,7 @@ fn serve_config(
 
     if server_thread_sleep == 0 {
         // Give some time for the server thread to start
-        thread::sleep(Duration::from_secs(1));
+        thread::sleep(Duration::from_millis(200));
     }
 
     (Serve::new(rx), thandle)
