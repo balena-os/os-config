@@ -5,6 +5,7 @@ extern crate log;
 
 extern crate env_logger;
 
+extern crate base64;
 extern crate clap;
 extern crate dbus;
 extern crate hex;

@@ -9,6 +9,7 @@ error_chain! {
         DBus(::dbus::Error);
         DBusTypeMismatch(::dbus::arg::TypeMismatchError);
         OpenSSL(::openssl::error::ErrorStack);
+        Base64(::base64::DecodeError);
     }
 
     errors {

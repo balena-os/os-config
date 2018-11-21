@@ -1,6 +1,7 @@
 extern crate actix_net;
 extern crate actix_web;
 extern crate assert_cli;
+extern crate base64;
 extern crate env_logger;
 extern crate futures;
 extern crate openssl;
@@ -2518,5 +2519,5 @@ rXj1PV+HFXivKmGYbTPXAcY4jtrEKN4n+d2k8R7vYC4PD5xFdlsRdA==
 -----END RSA PRIVATE KEY-----";
 
 fn cert_for_json(cert: &str) -> String {
-    cert.replace("\n", "\\n")
+    base64::encode(cert)
 }

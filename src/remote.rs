@@ -121,7 +121,8 @@ fn build_reqwest_client(root_certificate: &Option<&str>) -> Result<reqwest::Clie
     let mut builder = reqwest::Client::builder();
 
     if let Some(root_certificate) = root_certificate {
-        let cert = reqwest::Certificate::from_pem(root_certificate.as_bytes())?;
+        let decoded = base64::decode(root_certificate)?;
+        let cert = reqwest::Certificate::from_pem(&decoded)?;
         builder = builder.add_root_certificate(cert);
     };
 

@@ -16,6 +16,7 @@ dbus = "0.6"
 openssl = "0.10"
 hex = "0.3"
 rand = "0.6"
+base64 = "0.10"
 
 [dependencies.clap]
 version = "2.32"
