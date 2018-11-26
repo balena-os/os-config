@@ -27,14 +27,14 @@ default-features = false
 version = "0.11"
 default-features = false
 
-[dev-dependencies]
-assert_cli = "0.6"
-maplit = "1.0"
-tempdir = "0.3"
-unindent = "0.1"
-actix-net = "0.2"
-futures = "0.1"
+#[dev-dependencies]
+#assert_cli = "0.6"
+#maplit = "1.0"
+#tempdir = "0.3"
+#unindent = "0.1"
+#actix-net = "0.2"
+#futures = "0.1"
 
-[dev-dependencies.actix-web]
-version = "0.7"
-features = ["ssl"]
+#[dev-dependencies.actix-web]
+#version = "0.7"
+#features = ["ssl"]
