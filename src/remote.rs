@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::thread;
 use std::time::Duration;
 
+use base64;
 use reqwest;
 
 use serde_json;
@@ -118,15 +119,17 @@ fn retry_request_config(url: &str, client: reqwest::Client) -> Result<reqwest::R
 }
 
 fn build_reqwest_client(root_certificate: &Option<&str>) -> Result<reqwest::Client> {
-    let mut builder = reqwest::Client::builder();
-
-    if let Some(root_certificate) = root_certificate {
+    let client = if let &Some(root_certificate) = root_certificate {
         let decoded = base64::decode(root_certificate)?;
         let cert = reqwest::Certificate::from_pem(&decoded)?;
-        builder = builder.add_root_certificate(cert);
+        reqwest::Client::builder()
+            .add_root_certificate(cert)
+            .build()?
+    } else {
+        reqwest::Client::new()
     };
 
-    Ok(builder.build()?)
+    Ok(client)
 }
 
 #[cfg(test)]

@@ -245,6 +245,6 @@ fn write_json_object_file(path: &Path, map: &ConfigMap) -> Result<()> {
 
 pub fn generate_random_key() -> String {
     let mut buf = [0u8; 16];
-    thread_rng().fill(&mut buf);
+    thread_rng().fill_bytes(&mut buf);
     hex::encode(buf)
 }
