@@ -53,7 +53,7 @@ pub fn get_cli_args() -> Args {
                 .arg(
                     Arg::with_name("JSON_CONFIG")
                         .help("Provisioning JSON configuration")
-                        .required(false)
+                        .required(true)
                         .index(1),
                 ),
         ).subcommand(SubCommand::with_name("leave").about("Deconfigure a device"))
