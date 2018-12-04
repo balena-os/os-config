@@ -9,6 +9,7 @@ error_chain! {
         DBus(::dbus::Error);
         DBusTypeMismatch(::dbus::arg::TypeMismatchError);
         OpenSSL(::openssl::error::ErrorStack);
+        Base64(::base64::DecodeError);
     }
 
     errors {
@@ -26,12 +27,12 @@ error_chain! {
             display("Writing {:?} failed", path)
         }
 
-        ReadOSConfig {
-            description("Reading `os-config.json` failed")
+        ReadOSConfigSchema {
+            description("Reading `os-config.json` schema failed")
         }
 
-        GetOSConfigApi {
-            description("Getting `os-config-api.json` failed")
+        FetchConfiguration {
+            description("Fetching configuration failed")
         }
 
         MissingSchemaVersionJSON {
@@ -79,6 +80,18 @@ error_chain! {
 
         DeviceTypeNotStringJSON {
             description("`deviceType` should be a string")
+        }
+
+        RootCANotStringJSON {
+            description("`balenaRootCA` should be a string")
+        }
+
+        RootCABase64Decode {
+            description("`balenaRootCA` base64 decoding failed")
+        }
+
+        RootCAInvalidPEM {
+            description("Not a valid PEM encoded certificate")
         }
 
         UnexpectedDeviceTypeJSON(expected: String, got: String) {
@@ -139,8 +152,8 @@ error_chain! {
 
 pub fn exit_code(e: &Error) -> i32 {
     match *e.kind() {
-        ErrorKind::ReadOSConfig => 3,
-        ErrorKind::GetOSConfigApi => 4,
+        ErrorKind::ReadOSConfigSchema => 3,
+        ErrorKind::FetchConfiguration => 4,
         ErrorKind::StartService(_) => 5,
         ErrorKind::StopService(_) => 6,
         ErrorKind::ReloadRestartService(_) => 7,

@@ -44,22 +44,19 @@ pub fn get_cli_args() -> Args {
         .subcommand(
             SubCommand::with_name("generate-api-key")
                 .about("Generates deviceApiKey for configured device"),
-        )
-        .subcommand(
+        ).subcommand(
             SubCommand::with_name("update")
                 .about("Apply available configuration updates on a configured device"),
-        )
-        .subcommand(
+        ).subcommand(
             SubCommand::with_name("join")
                 .about("Configure/reconfigure a device")
                 .arg(
                     Arg::with_name("JSON_CONFIG")
                         .help("Provisioning JSON configuration")
-                        .required(false)
+                        .required(true)
                         .index(1),
                 ),
-        )
-        .subcommand(SubCommand::with_name("leave").about("Deconfigure a device"))
+        ).subcommand(SubCommand::with_name("leave").about("Deconfigure a device"))
         .get_matches();
 
     let (subcommand, json_config) = match matches.subcommand() {

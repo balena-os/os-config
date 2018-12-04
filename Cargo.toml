@@ -1,6 +1,6 @@
 [package]
 name = "os-config"
-version = "0.0.14"
+version = "1.0.0"
 authors = ["Zahari Petkov <zahari@resin.io>", "Andrei Gherzan <andrei@resin.io>"]
 description = "resinOS configuration tool"
 repository = "https://github.com/resin-os/os-config"
@@ -17,6 +17,7 @@ dbus = "0.6"
 openssl = "0.10"
 hex = "0.3"
 rand = "0.4"
+base64 = "0.10"
 
 [dependencies.clap]
 version = "2.31"
@@ -26,10 +27,14 @@ default-features = false
 version = "0.11"
 default-features = false
 
-[dev-dependencies]
-assert_cli = "0.5"
-hyper = "0.11"
-futures = "0.1"
-maplit = "1.0"
-tempdir = "0.3"
-unindent = "0.1"
+#[dev-dependencies]
+#assert_cli = "0.6"
+#maplit = "1.0"
+#tempdir = "0.3"
+#unindent = "0.1"
+#actix-net = "0.2"
+#futures = "0.1"
+
+#[dev-dependencies.actix-web]
+#version = "0.7"
+#features = ["ssl"]

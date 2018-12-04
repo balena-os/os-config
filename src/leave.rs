@@ -2,9 +2,11 @@ use fs;
 use std::path::Path;
 
 use args::{Args, SUPERVISOR_SERVICE};
-use config_json::{get_api_endpoint, read_config_json, store_api_key, write_config_json, ConfigMap};
+use config_json::{
+    get_api_endpoint, read_config_json, store_api_key, write_config_json, ConfigMap,
+};
 use errors::*;
-use os_config::{read_os_config, OsConfig};
+use schema::{read_os_config_schema, OsConfigSchema};
 use systemd;
 
 pub fn leave(args: &Args) -> Result<()> {
@@ -15,7 +17,7 @@ pub fn leave(args: &Args) -> Result<()> {
         return Ok(());
     };
 
-    let os_config = read_os_config(&args.os_config_path)?;
+    let schema = read_os_config_schema(&args.os_config_path)?;
 
     if args.supervisor_exists {
         systemd::stop_service(SUPERVISOR_SERVICE)?;
@@ -23,7 +25,7 @@ pub fn leave(args: &Args) -> Result<()> {
         systemd::await_service_exit(SUPERVISOR_SERVICE)?;
     }
 
-    let result = deconfigure_core(&mut config_json, args, &os_config);
+    let result = deconfigure_core(&mut config_json, args, &schema);
 
     if args.supervisor_exists {
         systemd::start_service(SUPERVISOR_SERVICE)?;
@@ -32,16 +34,20 @@ pub fn leave(args: &Args) -> Result<()> {
     result
 }
 
-fn deconfigure_core(config_json: &mut ConfigMap, args: &Args, os_config: &OsConfig) -> Result<()> {
+fn deconfigure_core(
+    config_json: &mut ConfigMap,
+    args: &Args,
+    schema: &OsConfigSchema,
+) -> Result<()> {
     store_api_key(config_json)?;
 
-    delete_config_json_keys(config_json, args, os_config)?;
+    delete_config_json_keys(config_json, args, schema)?;
 
-    delete_configuration(os_config)
+    delete_configuration(schema)
 }
 
-fn delete_configuration(os_config: &OsConfig) -> Result<()> {
-    for service in &os_config.services {
+fn delete_configuration(schema: &OsConfigSchema) -> Result<()> {
+    for service in &schema.services {
         // Iterate through config files alphanumerically for integration testing consistency
         let mut names = service.files.keys().collect::<Vec<_>>();
         names.sort();
@@ -62,11 +68,11 @@ fn delete_configuration(os_config: &OsConfig) -> Result<()> {
 fn delete_config_json_keys(
     config_json: &mut ConfigMap,
     args: &Args,
-    os_config: &OsConfig,
+    schema: &OsConfigSchema,
 ) -> Result<()> {
     info!("Deleting config.json keys");
 
-    for key in &os_config.keys {
+    for key in &schema.keys {
         config_json.remove(key);
     }
 

@@ -6,6 +6,9 @@ use rand::{thread_rng, Rng};
 use serde_json;
 use serde_json::{Map, Value};
 
+use base64;
+use reqwest;
+
 use errors::*;
 use fs::{read_file, write_file};
 
@@ -62,6 +65,22 @@ fn get_device_type(config_json: &ConfigMap) -> Result<Option<String>> {
             Ok(Some(api_endpoint.to_string()))
         } else {
             bail!(ErrorKind::DeviceTypeNotStringJSON)
+        }
+    } else {
+        Ok(None)
+    }
+}
+
+pub fn get_root_certificate(config_json: &ConfigMap) -> Result<Option<reqwest::Certificate>> {
+    if let Some(value) = config_json.get("balenaRootCA") {
+        if let Some(root_certificate) = value.as_str() {
+            let decoded =
+                base64::decode(root_certificate).chain_err(|| ErrorKind::RootCABase64Decode)?;
+            let cert = reqwest::Certificate::from_pem(&decoded)
+                .chain_err(|| ErrorKind::RootCAInvalidPEM)?;
+            Ok(Some(cert))
+        } else {
+            bail!(ErrorKind::RootCANotStringJSON)
         }
     } else {
         Ok(None)
@@ -224,7 +243,7 @@ pub fn write_config_json(path: &Path, map: &ConfigMap) -> Result<()> {
 fn write_json_object_file(path: &Path, map: &ConfigMap) -> Result<()> {
     info!("Writing {}", path.to_string_lossy());
 
-    let contents = serde_json::to_string(map)?;
+    let contents = serde_json::to_string_pretty(map)?;
 
     write_file(path, &contents, None)?;
 

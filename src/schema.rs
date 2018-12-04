@@ -10,7 +10,7 @@ use fs::read_file;
 pub const SCHEMA_VERSION: &str = "1.0.0";
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub struct OsConfig {
+pub struct OsConfigSchema {
     pub services: Vec<Service>,
     pub keys: Vec<String>,
     pub schema_version: String,
@@ -29,11 +29,11 @@ pub struct ConfigFile {
     pub perm: String,
 }
 
-pub fn read_os_config(os_config_path: &Path) -> Result<OsConfig> {
-    read_os_config_impl(os_config_path).chain_err(|| ErrorKind::ReadOSConfig)
+pub fn read_os_config_schema(os_config_path: &Path) -> Result<OsConfigSchema> {
+    read_os_config_schema_impl(os_config_path).chain_err(|| ErrorKind::ReadOSConfigSchema)
 }
 
-fn read_os_config_impl(os_config_path: &Path) -> Result<OsConfig> {
+fn read_os_config_schema_impl(os_config_path: &Path) -> Result<OsConfigSchema> {
     let json_data = read_file(os_config_path)?;
 
     validate_schema_version(&json_data)?;
@@ -104,9 +104,9 @@ mod tests {
 
     #[test]
     fn parse_os_config_v1() {
-        let parsed: OsConfig = serde_json::from_str(JSON_DATA).unwrap();
+        let parsed: OsConfigSchema = serde_json::from_str(JSON_DATA).unwrap();
 
-        let expected = OsConfig {
+        let expected = OsConfigSchema {
             services: vec![
                 Service {
                     id: "openvpn".into(),

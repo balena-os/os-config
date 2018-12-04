@@ -5,6 +5,7 @@ extern crate log;
 
 extern crate env_logger;
 
+extern crate base64;
 extern crate clap;
 extern crate dbus;
 extern crate hex;
@@ -33,8 +34,8 @@ mod generate;
 mod join;
 mod leave;
 mod logger;
-mod os_config;
-mod os_config_api;
+mod remote;
+mod schema;
 mod systemd;
 mod update;
 

@@ -2,20 +2,22 @@ use fs;
 use std::path::Path;
 
 use args::{Args, SUPERVISOR_SERVICE};
-use config_json::{get_api_endpoint, merge_config_json, read_config_json, write_config_json,
-                  ConfigMap};
+use config_json::{
+    get_api_endpoint, get_root_certificate, merge_config_json, read_config_json, write_config_json,
+    ConfigMap,
+};
 use errors::*;
-use os_config::{read_os_config, OsConfig};
-use os_config_api::{config_url, get_os_config_api, OsConfigApi};
+use remote::{config_url, fetch_configuration, Configuration};
+use schema::{read_os_config_schema, OsConfigSchema};
 use systemd;
 
 pub fn join(args: &Args) -> Result<()> {
     let mut config_json = read_config_json(&args.config_json_path)?;
 
-    let os_config = read_os_config(&args.os_config_path)?;
+    let schema = read_os_config_schema(&args.os_config_path)?;
 
     if let Some(ref json_config) = args.json_config {
-        clean_config_json_keys(&mut config_json, &os_config);
+        clean_config_json_keys(&mut config_json, &schema);
 
         merge_config_json(&mut config_json, json_config)?;
     } else {
@@ -25,8 +27,8 @@ pub fn join(args: &Args) -> Result<()> {
     reconfigure(args, &config_json, true)
 }
 
-pub fn reconfigure(args: &Args, config_json: &ConfigMap, write_config_json: bool) -> Result<()> {
-    let os_config = read_os_config(&args.os_config_path)?;
+pub fn reconfigure(args: &Args, config_json: &ConfigMap, joining: bool) -> Result<()> {
+    let schema = read_os_config_schema(&args.os_config_path)?;
 
     let api_endpoint = if let Some(api_endpoint) = get_api_endpoint(config_json)? {
         api_endpoint
@@ -35,16 +37,22 @@ pub fn reconfigure(args: &Args, config_json: &ConfigMap, write_config_json: bool
         return Ok(());
     };
 
-    let os_config_api = get_os_config_api(&config_url(&api_endpoint, &args.config_route))?;
+    let root_certificate = get_root_certificate(config_json)?;
 
-    let has_config_changes = has_config_changes(&os_config, &os_config_api)?;
+    let configuration = fetch_configuration(
+        &config_url(&api_endpoint, &args.config_route),
+        root_certificate,
+        !joining,
+    )?;
+
+    let has_config_changes = has_config_changes(&schema, &configuration)?;
 
     if !has_config_changes {
         info!("No configuration changes");
-    }
 
-    if !(has_config_changes || write_config_json) {
-        return Ok(());
+        if !joining {
+            return Ok(());
+        }
     }
 
     if args.supervisor_exists {
@@ -56,10 +64,10 @@ pub fn reconfigure(args: &Args, config_json: &ConfigMap, write_config_json: bool
     let result = reconfigure_core(
         args,
         config_json,
-        &os_config,
-        &os_config_api,
+        &schema,
+        &configuration,
         has_config_changes,
-        write_config_json,
+        joining,
     );
 
     if args.supervisor_exists {
@@ -72,26 +80,26 @@ pub fn reconfigure(args: &Args, config_json: &ConfigMap, write_config_json: bool
 fn reconfigure_core(
     args: &Args,
     config_json: &ConfigMap,
-    os_config: &OsConfig,
-    os_config_api: &OsConfigApi,
+    schema: &OsConfigSchema,
+    configuration: &Configuration,
     has_config_changes: bool,
-    write: bool,
+    joining: bool,
 ) -> Result<()> {
-    if write {
+    if joining {
         write_config_json(&args.config_json_path, config_json)?;
     }
 
     if has_config_changes {
-        configure_services(os_config, os_config_api)?;
+        configure_services(schema, configuration)?;
     }
 
     Ok(())
 }
 
-fn has_config_changes(os_config: &OsConfig, os_config_api: &OsConfigApi) -> Result<bool> {
-    for service in &os_config.services {
+fn has_config_changes(schema: &OsConfigSchema, configuration: &Configuration) -> Result<bool> {
+    for service in &schema.services {
         for (name, config_file) in &service.files {
-            let future = os_config_api.get_config_contents(&service.id, name)?;
+            let future = configuration.get_config_contents(&service.id, name)?;
             let current = get_config_contents(&config_file.path);
 
             if future != current {
@@ -103,8 +111,8 @@ fn has_config_changes(os_config: &OsConfig, os_config_api: &OsConfigApi) -> Resu
     Ok(false)
 }
 
-fn configure_services(os_config: &OsConfig, os_config_api: &OsConfigApi) -> Result<()> {
-    for service in &os_config.services {
+fn configure_services(schema: &OsConfigSchema, configuration: &Configuration) -> Result<()> {
+    for service in &schema.services {
         for systemd_service in &service.systemd_services {
             systemd::stop_service(systemd_service)?;
         }
@@ -118,7 +126,7 @@ fn configure_services(os_config: &OsConfig, os_config_api: &OsConfigApi) -> Resu
         names.sort();
         for name in names {
             let config_file = &service.files[name as &str];
-            let contents = os_config_api.get_config_contents(&service.id, name)?;
+            let contents = configuration.get_config_contents(&service.id, name)?;
             let mode = fs::parse_mode(&config_file.perm)?;
             fs::write_file(Path::new(&config_file.path), contents, mode)?;
             info!("{} updated", &config_file.path);
@@ -140,8 +148,8 @@ fn get_config_contents(path: &str) -> String {
     }
 }
 
-fn clean_config_json_keys(config_json: &mut ConfigMap, os_config: &OsConfig) {
-    for key in &os_config.keys {
+fn clean_config_json_keys(config_json: &mut ConfigMap, schema: &OsConfigSchema) {
+    for key in &schema.keys {
         config_json.remove(key);
     }
 }
