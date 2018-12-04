@@ -243,7 +243,7 @@ pub fn write_config_json(path: &Path, map: &ConfigMap) -> Result<()> {
 fn write_json_object_file(path: &Path, map: &ConfigMap) -> Result<()> {
     info!("Writing {}", path.to_string_lossy());
 
-    let contents = serde_json::to_string(map)?;
+    let contents = serde_json::to_string_pretty(map)?;
 
     write_file(path, &contents, None)?;
 
