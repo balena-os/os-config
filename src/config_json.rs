@@ -6,6 +6,9 @@ use rand::{thread_rng, Rng};
 use serde_json;
 use serde_json::{Map, Value};
 
+use base64;
+use reqwest;
+
 use errors::*;
 use fs::{read_file, write_file};
 
@@ -68,10 +71,14 @@ fn get_device_type(config_json: &ConfigMap) -> Result<Option<String>> {
     }
 }
 
-pub fn get_root_certificate(config_json: &ConfigMap) -> Result<Option<String>> {
+pub fn get_root_certificate(config_json: &ConfigMap) -> Result<Option<reqwest::Certificate>> {
     if let Some(value) = config_json.get("balenaRootCA") {
-        if let Some(api_endpoint) = value.as_str() {
-            Ok(Some(api_endpoint.to_string()))
+        if let Some(root_certificate) = value.as_str() {
+            let decoded =
+                base64::decode(root_certificate).chain_err(|| ErrorKind::RootCABase64Decode)?;
+            let cert = reqwest::Certificate::from_pem(&decoded)
+                .chain_err(|| ErrorKind::RootCAInvalidPEM)?;
+            Ok(Some(cert))
         } else {
             bail!(ErrorKind::RootCANotStringJSON)
         }

@@ -86,6 +86,14 @@ error_chain! {
             description("`balenaRootCA` should be a string")
         }
 
+        RootCABase64Decode {
+            description("`balenaRootCA` base64 decoding failed")
+        }
+
+        RootCAInvalidPEM {
+            description("Not a valid PEM encoded certificate")
+        }
+
         UnexpectedDeviceTypeJSON(expected: String, got: String) {
             description("Unexpected `deviceType`")
             display("Expected `deviceType` {}, got {}", expected, got)

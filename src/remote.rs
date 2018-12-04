@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::thread;
 use std::time::Duration;
 
-use base64;
 use reqwest;
 
 use serde_json;
@@ -41,7 +40,7 @@ pub fn config_url(api_endpoint: &str, config_route: &str) -> String {
 
 pub fn fetch_configuration(
     config_url: &str,
-    root_certificate: &Option<&str>,
+    root_certificate: Option<reqwest::Certificate>,
     retry: bool,
 ) -> Result<Configuration> {
     fetch_configuration_impl(config_url, root_certificate, retry)
@@ -50,7 +49,7 @@ pub fn fetch_configuration(
 
 fn fetch_configuration_impl(
     config_url: &str,
-    root_certificate: &Option<&str>,
+    root_certificate: Option<reqwest::Certificate>,
     retry: bool,
 ) -> Result<Configuration> {
     let client = build_reqwest_client(root_certificate)?;
@@ -118,12 +117,10 @@ fn retry_request_config(url: &str, client: reqwest::Client) -> Result<reqwest::R
     }
 }
 
-fn build_reqwest_client(root_certificate: &Option<&str>) -> Result<reqwest::Client> {
-    let client = if let &Some(root_certificate) = root_certificate {
-        let decoded = base64::decode(root_certificate)?;
-        let cert = reqwest::Certificate::from_pem(&decoded)?;
+fn build_reqwest_client(root_certificate: Option<reqwest::Certificate>) -> Result<reqwest::Client> {
+    let client = if let Some(root_certificate) = root_certificate {
         reqwest::Client::builder()
-            .add_root_certificate(cert)
+            .add_root_certificate(root_certificate)
             .build()?
     } else {
         reqwest::Client::new()

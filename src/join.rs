@@ -41,7 +41,7 @@ pub fn reconfigure(args: &Args, config_json: &ConfigMap, joining: bool) -> Resul
 
     let configuration = fetch_configuration(
         &config_url(&api_endpoint, &args.config_route),
-        &root_certificate.as_ref().map(String::as_str),
+        root_certificate,
         !joining,
     )?;
 
