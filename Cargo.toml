@@ -1,40 +1,40 @@
 [package]
 name = "os-config"
 version = "1.0.0"
-authors = ["Zahari Petkov <zahari@resin.io>", "Andrei Gherzan <andrei@resin.io>"]
-description = "resinOS configuration tool"
-repository = "https://github.com/resin-os/os-config"
+authors = ["Zahari Petkov <zahari@balena.io>", "Andrei Gherzan <andrei@balena.io>"]
+description = "balenaOS configuration tool"
+repository = "https://github.com/balena-os/os-config"
 license = "Apache-2.0"
 
 [dependencies]
 log = "0.4"
-env_logger = "0.5"
-reqwest = "0.8"
+env_logger = "0.6"
+reqwest = "0.9"
 serde = "1.0"
 serde_json = "1.0"
 serde_derive = "1.0"
 dbus = "0.6"
 openssl = "0.10"
 hex = "0.3"
-rand = "0.4"
+rand = "0.6"
 base64 = "0.10"
 
 [dependencies.clap]
-version = "2.31"
+version = "2.32"
 default-features = false
 
 [dependencies.error-chain]
-version = "0.11"
+version = "0.12"
 default-features = false
 
-#[dev-dependencies]
-#assert_cli = "0.6"
-#maplit = "1.0"
-#tempdir = "0.3"
-#unindent = "0.1"
-#actix-net = "0.2"
-#futures = "0.1"
+[dev-dependencies]
+assert_cli = "0.6"
+maplit = "1.0"
+tempdir = "0.3"
+unindent = "0.1"
+actix-net = "0.2"
+futures = "0.1"
 
-#[dev-dependencies.actix-web]
-#version = "0.7"
-#features = ["ssl"]
+[dev-dependencies.actix-web]
+version = "0.7"
+features = ["ssl"]

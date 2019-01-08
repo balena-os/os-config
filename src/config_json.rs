@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use hex;
-use rand::{thread_rng, Rng};
+use rand::{thread_rng, RngCore};
 
 use serde_json;
 use serde_json::{Map, Value};
