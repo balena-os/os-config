@@ -110,7 +110,7 @@ mod tests {
             services: vec![
                 Service {
                     id: "openvpn".into(),
-                    files: hashmap!{
+                    files: hashmap! {
                         "config".into() => ConfigFile {
                             path: "/etc/openvpn/openvpn.conf".into(),
                             perm: "".into()
@@ -124,7 +124,7 @@ mod tests {
                 },
                 Service {
                     id: "ssh".into(),
-                    files: hashmap!{
+                    files: hashmap! {
                         "authorized_keys".into() => ConfigFile {
                             path: "/home/root/.ssh/authorized_keys".into(),
                             perm: "".into()

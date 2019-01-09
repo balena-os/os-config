@@ -62,7 +62,7 @@ fn fetch_configuration_impl(
 
     info!("Fetching service configuration from {}...", config_url);
 
-    let json_data = request_fn(config_url, client)?.text()?;
+    let json_data = request_fn(config_url, &client)?.text()?;
 
     info!("Service configuration retrieved");
 
@@ -71,11 +71,11 @@ fn fetch_configuration_impl(
     Ok(serde_json::from_str(&json_data)?)
 }
 
-fn request_config(url: &str, client: reqwest::Client) -> Result<reqwest::Response> {
+fn request_config(url: &str, client: &reqwest::Client) -> Result<reqwest::Response> {
     Ok(client.get(url).send()?)
 }
 
-fn retry_request_config(url: &str, client: reqwest::Client) -> Result<reqwest::Response> {
+fn retry_request_config(url: &str, client: &reqwest::Client) -> Result<reqwest::Response> {
     let mut sleeped = 0;
 
     let mut last_err = String::new();
@@ -156,7 +156,7 @@ mod tests {
         let parsed: Configuration = serde_json::from_str(JSON_DATA).unwrap();
 
         let expected = Configuration {
-            services: hashmap!{
+            services: hashmap! {
                 "openvpn".into() => hashmap!{
                     "config".into() => "main configuration here".into(),
                     "ca".into() => "certificate here".into(),

@@ -520,7 +520,8 @@ fn join_flasher() {
                 .insert(OS_CONFIG_PATH_REDEFINE, &os_config_path)
                 .insert(CONFIG_JSON_FLASHER_PATH_REDEFINE, &config_json_path)
                 .insert(FLASHER_FLAG_PATH_REDEFINE, &flasher_flag_path),
-        ).succeeds()
+        )
+        .succeeds()
         .stdout()
         .is(&output as &str)
         .unwrap();
@@ -2191,7 +2192,8 @@ fn serve_config(
             server.bind_ssl(MOCK_JSON_SERVER_ADDRESS, acceptor)
         } else {
             server.bind(MOCK_JSON_SERVER_ADDRESS)
-        }.unwrap();
+        }
+        .unwrap();
 
         let addr = server
             .workers(1)
