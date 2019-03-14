@@ -1,7 +1,7 @@
 use std::fs::{rename, File, OpenOptions};
 use std::io::{Read, Write};
 use std::os::unix::fs::OpenOptionsExt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::u32;
 
 use errors::*;
@@ -67,6 +67,16 @@ pub fn parse_mode(mode: &str) -> Result<Option<u32>> {
     } else {
         Ok(None)
     }
+}
+
+pub fn add_extension(path: &Path, ext: &str) -> Result<PathBuf> {
+    let path_str = if let Some(s) = path.to_str() {
+        s
+    } else {
+        bail!(ErrorKind::NotAUnicodePath(path.as_os_str().to_os_string()));
+    };
+    let path_string: String = format!("{}.{}", path_str, ext);
+    Ok(PathBuf::from(&path_string))
 }
 
 pub fn remove_file(path: &Path) -> Result<()> {

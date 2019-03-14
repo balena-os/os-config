@@ -34,6 +34,7 @@ mod generate;
 mod join;
 mod leave;
 mod logger;
+mod network;
 mod remote;
 mod schema;
 mod systemd;
@@ -60,6 +61,7 @@ fn run() -> Result<()> {
     let args = get_cli_args();
 
     match args.subcommand {
+        OsConfigSubcommand::ConfigureNetwork => network::configure(&args),
         OsConfigSubcommand::GenerateApiKey => generate::generate_api_key(&args),
         OsConfigSubcommand::Update => update::update(&args),
         OsConfigSubcommand::Join => join::join(&args),

@@ -143,6 +143,11 @@ error_chain! {
             display("Expected Unicode file name: {:?}", file_name)
         }
 
+        NotAUnicodePath(path: OsString) {
+            description("Expected Unicode path")
+            display("Expected Unicode path: {:?}", path)
+        }
+
         ParsePermissionMode(mode: String) {
             description("Parsing permission mode failed")
             display("Parsing permission mode `{}` failed", mode)

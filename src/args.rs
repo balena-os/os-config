@@ -9,17 +9,20 @@ pub const SUPERVISOR_SERVICE: &str = "resin-supervisor.service";
 
 const CONFIG_ROUTE: &str = "/os/v1/config";
 const OS_CONFIG_PATH: &str = "/etc/os-config.json";
+const OS_BOOTPART_PATH: &str = "/mnt/boot";
 const CONFIG_JSON_PATH: &str = "/mnt/boot/config.json";
 const CONFIG_JSON_FLASHER_PATH: &str = "/tmp/config.json";
 const FLASHER_FLAG_PATH: &str = "/mnt/boot/resin-image-flasher";
 
 const CONFIG_ROUTE_REDEFINE: &str = "CONFIG_ROUTE_REDEFINE";
 const OS_CONFIG_PATH_REDEFINE: &str = "OS_CONFIG_PATH_REDEFINE";
+const OS_BOOTPATH_PATH_REDEFINE: &str = "OS_BOOTPART_PATH_REDEFINE";
 const CONFIG_JSON_PATH_REDEFINE: &str = "CONFIG_JSON_PATH_REDEFINE";
 const CONFIG_JSON_FLASHER_PATH_REDEFINE: &str = "CONFIG_JSON_FLASHER_PATH_REDEFINE";
 const FLASHER_FLAG_PATH_REDEFINE: &str = "FLASHER_FLAG_PATH_REDEFINE";
 
 pub enum OsConfigSubcommand {
+    ConfigureNetwork,
     GenerateApiKey,
     Update,
     Join,
@@ -29,6 +32,7 @@ pub enum OsConfigSubcommand {
 pub struct Args {
     pub subcommand: OsConfigSubcommand,
     pub config_route: String,
+    pub os_bootpart_path: PathBuf,
     pub os_config_path: PathBuf,
     pub config_json_path: PathBuf,
     pub json_config: Option<String>,
@@ -41,6 +45,10 @@ pub fn get_cli_args() -> Args {
         .author(env!("CARGO_PKG_AUTHORS"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .setting(AppSettings::SubcommandRequiredElseHelp)
+        .subcommand(
+            SubCommand::with_name("configure-network")
+                .about("Runs network related configuration."),
+        )
         .subcommand(
             SubCommand::with_name("generate-api-key")
                 .about("Generates deviceApiKey for configured device"),
@@ -63,6 +71,7 @@ pub fn get_cli_args() -> Args {
         .get_matches();
 
     let (subcommand, json_config) = match matches.subcommand() {
+        ("configure-network", _) => (OsConfigSubcommand::ConfigureNetwork, None),
         ("generate-api-key", _) => (OsConfigSubcommand::GenerateApiKey, None),
         ("update", _) => (OsConfigSubcommand::Update, None),
         ("join", Some(sub_m)) => (OsConfigSubcommand::Join, Some(get_json_config(sub_m))),
@@ -74,10 +83,12 @@ pub fn get_cli_args() -> Args {
     let os_config_path = get_os_config_path();
     let config_json_path = get_config_json_path();
     let supervisor_exists = service_exists(SUPERVISOR_SERVICE);
+    let os_bootpart_path = get_os_bootpart_path();
 
     Args {
         subcommand,
         config_route,
+        os_bootpart_path,
         os_config_path,
         config_json_path,
         json_config,
@@ -87,6 +98,10 @@ pub fn get_cli_args() -> Args {
 
 pub fn get_os_config_path() -> PathBuf {
     path_buf(&try_redefined(OS_CONFIG_PATH, OS_CONFIG_PATH_REDEFINE))
+}
+
+fn get_os_bootpart_path() -> PathBuf {
+    path_buf(&try_redefined(OS_BOOTPART_PATH, OS_BOOTPATH_PATH_REDEFINE))
 }
 
 fn get_config_json_path() -> PathBuf {
