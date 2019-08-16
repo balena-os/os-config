@@ -1,0 +1,22 @@
+{
+  "apiEndpoint": "https://api.balena-staging.com",
+  "apiKey": "aQgo90gGsb5c70BP0SMGWCdjd6wrsi7p",
+  "appUpdatePollInterval": 600000,
+  "applicationId": 84823,
+  "applicationName": "aspnetcore-amd64",
+  "deltaEndpoint": "https://delta.balena-staging.com",
+  "deviceApiKey": "dfab652b827c4d86b9650d0888d4706f",
+  "deviceApiKeys": {
+    "api.balena-staging.com": "dfab652b827c4d86b9650d0888d4706f"
+  },
+  "deviceType": "intel-nuc",
+  "listenPort": 48484,
+  "mixpanelToken": "cb974f32bab01ecc1171937026774b18",
+  "pubnubPublishKey": "",
+  "pubnubSubscribeKey": "",
+  "registryEndpoint": "registry2.balena-staging.com",
+  "userId": 1376,
+  "username": "gh_richbayliss",
+  "vpnEndpoint": "vpn.balena-staging.com",
+  "vpnPort": 443
+}
