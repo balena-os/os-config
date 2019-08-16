@@ -1,0 +1,27 @@
+{
+    "services": [
+        {
+            "id": "ssh",
+            "files": {
+                "authorized_keys": {
+                    "path": "/mnt/boot/authorized_keys",
+                    "perm": "600"
+                }
+            },
+            "systemd_services": [
+                "openssh.service"
+            ],
+            "systemd_policies": {
+                "openssh.service": {
+                    "do_restart": "Delayed"
+                }
+            }
+        }
+    ],
+    "keys": [
+        "apiKey",
+        "apiEndpoint",
+        "vpnEndpoint"
+    ],
+    "schema_version": "1.0.0"
+}
