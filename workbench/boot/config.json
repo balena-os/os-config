@@ -1,6 +1,6 @@
 {
   "apiEndpoint": "https://api.balena-staging.com",
-  "apiKey": "aQgo90gGsb5c70BP0SMGWCdjd6wrsi7p",
+  "apiKey": "3qSRFP0PS7dp8CICnE4aREyg2HKY7OFC",
   "appUpdatePollInterval": 600000,
   "applicationId": 84823,
   "applicationName": "aspnetcore-amd64",

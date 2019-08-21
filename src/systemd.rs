@@ -1,3 +1,4 @@
+use std::process::Command;
 use std::thread;
 use std::time::Duration;
 
@@ -89,6 +90,22 @@ pub fn service_exists(name: &str) -> bool {
     match service_exists_impl(name) {
         Ok(result) => result,
         Err(_) => false,
+    }
+}
+
+pub fn restart_service_later(name: &str, delay_sec: u64) -> std::result::Result<i32, &'static str> {
+    let status = Command::new("/usr/bin/systemd-run")
+        .arg(format!("--on-active={}", delay_sec))
+        .arg("--timer-property=AccuracySec=100ms")
+        .arg("systemctl")
+        .arg("restart")
+        .arg(name)
+        .status()
+        .expect("Error calling systemd-run");
+    
+    match status.code() {
+        Some(code) => Ok(code),
+        None => Err("systemd-run was terminated by signal")
     }
 }
 

@@ -12,7 +12,13 @@ RUN chmod +x /start
 RUN mkdir -p /run/lock
 RUN mkdir -p /mnt/boot
 
-VOLUME [ "/sys/fs/cgroup", "/etc/os-config.json", "/mnt/boot/config.json" ]
+COPY workbench/resin-supervisor.service /etc/systemd/system/resin-supervisor.service
+RUN systemctl enable resin-supervisor
+
+COPY workbench/openvpn.service /etc/systemd/system/openvpn.service
+RUN systemctl enable openvpn
+
+VOLUME [ "/sys/fs/cgroup", "/etc/os-config.json", "/mnt/boot", "/etc/openvpn" ]
 
 ENTRYPOINT [ "/start" ]
 CMD [ "/sbin/init" ]

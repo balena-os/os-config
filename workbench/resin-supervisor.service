@@ -1,0 +1,11 @@
+[Unit]
+Description=Dummy Supervisor Service
+After=syslog.target network.target
+
+[Service]
+ExecStart=/bin/bash -c "touch /var/run/supervisor; while [ -f /var/run/supervisor ]; do /bin/echo Dummy Supervisor running...; sleep 5; done;"
+ExecReload=/bin/touch /var/run/supervisor
+ExecStop=/bin/rm -f /var/run/supervisor
+
+[Install]
+WantedBy=multi-user.target

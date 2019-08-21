@@ -1,14 +1,15 @@
 use fs;
 use std::path::Path;
+use std::collections::HashMap;
 
-use args::{Args, SUPERVISOR_SERVICE};
+use args::{Args};
 use config_json::{
     get_api_endpoint, get_root_certificate, merge_config_json, read_config_json, write_config_json,
     ConfigMap,
 };
 use errors::*;
 use remote::{config_url, fetch_configuration, Configuration};
-use schema::{read_os_config_schema, OsConfigSchema};
+use schema::{read_os_config_schema, OsConfigSchema, SystemdPolicy, SystemdRestartPolicy};
 use systemd;
 
 pub fn join(args: &Args) -> Result<()> {
@@ -55,11 +56,11 @@ pub fn reconfigure(args: &Args, config_json: &ConfigMap, joining: bool) -> Resul
         }
     }
 
-    if args.supervisor_exists {
-        systemd::stop_service(SUPERVISOR_SERVICE)?;
+    // if args.supervisor_exists {
+    //     systemd::stop_service(SUPERVISOR_SERVICE)?;
 
-        systemd::await_service_exit(SUPERVISOR_SERVICE)?;
-    }
+    //     systemd::await_service_exit(SUPERVISOR_SERVICE)?;
+    // }
 
     let result = reconfigure_core(
         args,
@@ -70,9 +71,9 @@ pub fn reconfigure(args: &Args, config_json: &ConfigMap, joining: bool) -> Resul
         joining,
     );
 
-    if args.supervisor_exists {
-        systemd::start_service(SUPERVISOR_SERVICE)?;
-    }
+    // if args.supervisor_exists {
+    //     systemd::start_service(SUPERVISOR_SERVICE)?;
+    // }
 
     result
 }
@@ -111,15 +112,49 @@ fn has_config_changes(schema: &OsConfigSchema, configuration: &Configuration) ->
     Ok(false)
 }
 
-fn configure_services(schema: &OsConfigSchema, configuration: &Configuration) -> Result<()> {
-    for service in &schema.services {
-        for systemd_service in &service.systemd_services {
-            systemd::stop_service(systemd_service)?;
+macro_rules! if_restart_policy {
+    ( $s:expr, $e:expr, $a:expr ) => {
+        if $s.1.do_restart == $e {
+            $a($s.0)
+        } else {
+            Ok(())
         }
+    }
+}
 
-        for systemd_service in &service.systemd_services {
-            systemd::await_service_exit(systemd_service)?;
-        }
+fn configure_services(schema: &OsConfigSchema, configuration: &Configuration) -> Result<()> {
+
+    let service_order: HashMap<String, SystemdPolicy> = schema.services
+        .iter()
+        .fold(HashMap::new(), |mut agg, service| {
+            for systemd_service in &service.systemd_services {
+                match &service.systemd_policies.get(systemd_service) {
+                    Some(policy) => {
+                        if systemd::service_exists(&systemd_service) {
+                            agg.insert(systemd_service.to_string(), SystemdPolicy {
+                                do_restart: policy.do_restart.clone(),
+                                priority: Some(policy.priority.unwrap_or(255)),
+                            });
+                        }
+                    },
+                    None => {}
+                };
+            }
+            agg
+        });
+    
+    let mut service_order: Vec<(&String, &SystemdPolicy)> = service_order.iter().collect();
+    service_order.sort_by_key(|k| k.1.priority);
+
+    for systemd_service in &service_order {
+        if_restart_policy!(systemd_service, SystemdRestartPolicy::Immediate, systemd::stop_service);
+    }
+
+    for systemd_service in &service_order {
+        if_restart_policy!(systemd_service, SystemdRestartPolicy::Immediate, systemd::await_service_exit);
+    }
+
+    for service in &schema.services {
 
         // Iterate through config files alphanumerically for integration testing consistency
         let mut names = service.files.keys().collect::<Vec<_>>();
@@ -131,9 +166,14 @@ fn configure_services(schema: &OsConfigSchema, configuration: &Configuration) ->
             fs::write_file(Path::new(&config_file.path), contents, mode)?;
             info!("{} updated", &config_file.path);
         }
+    }
 
-        for systemd_service in &service.systemd_services {
-            systemd::start_service(systemd_service)?;
+    service_order.reverse();
+    for systemd_service in &service_order {
+        if systemd_service.1.do_restart == SystemdRestartPolicy::Immediate {
+            systemd::reload_or_restart_service(systemd_service.0)?;
+        } else {
+            systemd::restart_service_later(systemd_service.0, 10)?;
         }
     }
 

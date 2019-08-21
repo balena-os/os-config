@@ -1,27 +1,61 @@
 {
     "services": [
         {
-            "id": "ssh",
+            "id": "supervisor",
+            "files": {},
+            "systemd_services": [
+                "resin-supervisor.service"
+            ],
+            "systemd_policies": {
+                "resin-supervisor.service": {
+                    "priority": 1
+                }
+            }
+        },
+        {
+            "id": "openvpn",
             "files": {
-                "authorized_keys": {
-                    "path": "/mnt/boot/authorized_keys",
-                    "perm": "600"
+                "config": {
+                    "path": "/etc/openvpn/openvpn.conf",
+                    "perm": ""
+                },
+                "ca": {
+                    "path": "/etc/openvpn/ca.crt",
+                    "perm": ""
                 }
             },
             "systemd_services": [
-                "openssh.service"
+                "openvpn.service"
             ],
             "systemd_policies": {
-                "openssh.service": {
+                "openvpn.service": {
                     "do_restart": "Delayed"
                 }
             }
         }
     ],
     "keys": [
-        "apiKey",
+        "applicationName",
+        "applicationId",
+        "deviceType",
+        "userId",
+        "username",
+        "appUpdatePollInterval",
+        "listenPort",
+        "vpnPort",
         "apiEndpoint",
-        "vpnEndpoint"
+        "vpnEndpoint",
+        "registryEndpoint",
+        "deltaEndpoint",
+        "pubnubSubscribeKey",
+        "pubnubPublishKey",
+        "mixpanelToken",
+        "apiKey",
+        "version",
+        "deviceApiKey",
+        "registered_at",
+        "deviceId",
+        "balenaRootCA"
     ],
     "schema_version": "1.0.0"
 }

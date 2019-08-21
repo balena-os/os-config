@@ -1,0 +1,11 @@
+[Unit]
+Description=Dummy OpenVPN Service
+After=syslog.target network.target
+
+[Service]
+ExecStart=/bin/bash -c "touch /var/run/openvpn; while [ -f /var/run/openvpn ]; do /bin/echo Dummy OpenVPN running...; sleep 5; done;"
+ExecReload=/bin/touch /var/run/openvpn
+ExecStop=/bin/rm -f /var/run/openvpn
+
+[Install]
+WantedBy=multi-user.target

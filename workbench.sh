@@ -15,6 +15,7 @@ if [ -z "${CONTAINER_ID}" ]; then
         --tmpfs /run/lock \
         -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
         -v "$(PWD)/workbench/boot:/mnt/boot" \
+        -v "$(PWD)/workbench/openvpn:/etc/openvpn" \
         -v "$(PWD)/workbench/os-config.json:/etc/os-config.json" \
         -v "$(PWD):/build" \
         --name "${NAME}" "${IMAGE_NAME}"
