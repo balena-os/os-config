@@ -21,7 +21,7 @@ RUN apt-get update \
     && apt-get -y install git procps lsb-release \
     #
     # Install other dependencies
-    && apt-get install -y lldb-3.9 libdbus-1-dev pkg-config \
+    && apt-get install -y lldb-3.9 libdbus-1-dev pkg-config systemd systemd-sysv \
     #
     # Install Rust components
     && rustup update \
@@ -31,14 +31,18 @@ RUN apt-get update \
     && groupadd --gid $USER_GID $USERNAME \
     && useradd -s /bin/bash --uid $USER_UID --gid $USER_GID -m $USERNAME \
     # [Optional] Uncomment the next three lines to add sudo support
-    # && apt-get install -y sudo \
-    # && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
-    # && chmod 0440 /etc/sudoers.d/$USERNAME \
+    && apt-get install -y sudo \
+    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
+    && chmod 0440 /etc/sudoers.d/$USERNAME \
     #
     # Clean up
     && apt-get autoremove -y \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
 
+RUN mkdir -p /mnt/boot
+
 # Switch back to dialog for any ad-hoc use of apt-get
 ENV DEBIAN_FRONTEND=
+
+CMD [ "/sbin/init" ]

@@ -6,7 +6,7 @@ pub fn init_logger() {
     let mut builder = Builder::new();
 
     if let Ok(log_level) = env::var("OS_CONFIG_LOG_LEVEL") {
-        builder.parse(&log_level);
+        builder.parse_filters(&log_level);
     } else {
         builder.filter(None, LevelFilter::Info);
     }

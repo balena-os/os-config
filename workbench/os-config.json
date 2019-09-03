@@ -10,9 +10,16 @@
             },
             "systemd_services": [
                 "openssh.service"
+            ]
+        },
+        {
+            "id": "resin-supervisor",
+            "files": {},
+            "systemd_services": [
+                "resin-supervisor.service"
             ],
             "systemd_policies": {
-                "openssh.service": {
+                "resin-supervisor.service": {
                     "do_restart": "Delayed"
                 }
             }

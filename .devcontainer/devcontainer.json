@@ -6,17 +6,20 @@
 	"runArgs": [
 		// Uncomment the next line to use a non-root user. See https://aka.ms/vscode-remote/containers/non-root-user.
 		// "-u", "1000",
-
-		"--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined"
+		"--privileged",
+		"--cap-add=SYS_PTRACE",
+		"--cap-add=SYS_ADMIN",
+		"--tmpfs=/run",
+		"--tmpfs=/run/lock",
+		"--security-opt",
+		"seccomp=unconfined",
+		"-v=/sys/fs/cgroup:/sys/fs/cgroup:ro"
 	],
-
-
+	"overrideCommand": false,
 	// Uncomment the next line if you want to publish any ports.
 	// "appPort": [],
-
 	// Uncomment the next line to run commands after the container is created.
 	// "postCreateCommand": "rustc --version"
-
 	"extensions": [
 		"rust-lang.rust",
 		"bungcip.better-toml",

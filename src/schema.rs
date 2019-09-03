@@ -16,17 +16,38 @@ pub struct OsConfigSchema {
     pub schema_version: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)] //, Eq, Ord, PartialOrd)]
 pub struct Service {
     pub id: String,
     pub files: HashMap<String, ConfigFile>,
     pub systemd_services: Vec<String>,
+    #[serde(default)]
+    pub systemd_policies: HashMap<String, SystemdPolicy>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct ConfigFile {
     pub path: String,
     pub perm: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct SystemdPolicy {
+    #[serde(default = "SystemdRestartPolicy::default")]
+    pub do_restart: SystemdRestartPolicy,
+    #[serde(default)]
+    pub priority: Option<u8>,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone)]
+pub enum SystemdRestartPolicy {
+    Immediate,
+    Delayed,
+}
+impl SystemdRestartPolicy {
+    fn default() -> Self {
+        SystemdRestartPolicy::Immediate
+    }
 }
 
 pub fn read_os_config_schema(os_config_path: &Path) -> Result<OsConfigSchema> {
@@ -121,6 +142,7 @@ mod tests {
                         }
                     },
                     systemd_services: vec!["openvpn.service".into()],
+                    systemd_policies: HashMap::new(),
                 },
                 Service {
                     id: "ssh".into(),
@@ -131,6 +153,7 @@ mod tests {
                         }
                     },
                     systemd_services: vec![],
+                    systemd_policies: HashMap::new(),
                 },
             ],
             keys: vec!["apiKey".into(), "apiEndpoint".into(), "vpnEndpoint".into()],
