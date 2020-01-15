@@ -16,7 +16,7 @@ serde_derive = "1.0"
 dbus = "0.6"
 openssl = "0.10"
 hex = "0.3"
-rand = "0.6"
+getrandom = "0.1"
 base64 = "0.10"
 
 [dependencies.clap]

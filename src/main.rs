@@ -8,9 +8,9 @@ extern crate env_logger;
 extern crate base64;
 extern crate clap;
 extern crate dbus;
+extern crate getrandom;
 extern crate hex;
 extern crate openssl;
-extern crate rand;
 extern crate reqwest;
 
 #[macro_use]
@@ -34,6 +34,7 @@ mod generate;
 mod join;
 mod leave;
 mod logger;
+mod random;
 mod remote;
 mod schema;
 mod systemd;
