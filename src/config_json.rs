@@ -1,7 +1,6 @@
 use std::path::Path;
 
 use hex;
-use rand::{thread_rng, RngCore};
 
 use serde_json;
 use serde_json::{Map, Value};
@@ -11,6 +10,7 @@ use reqwest;
 
 use errors::*;
 use fs::{read_file, write_file};
+use random::fill_random;
 
 pub type ConfigMap = Map<String, Value>;
 
@@ -251,7 +251,7 @@ fn write_json_object_file(path: &Path, map: &ConfigMap) -> Result<()> {
 }
 
 pub fn generate_random_key() -> String {
-    let mut buf = [0u8; 16];
-    thread_rng().fill_bytes(&mut buf);
+    let mut buf = [0; 16];
+    fill_random(&mut buf);
     hex::encode(buf)
 }
