@@ -1,196 +1,222 @@
+- commits:
+    - subject: 'versionbot: Add changelog yml file'
+      hash: 9b35f5e9cb6b27b92f7dc578a92532ade36c7a36
+      body: |
+        This file allows other components to uniquely parse the information that
+        is contained in the changelog. It will be automatically managed by
+        versionist by appending the new commits on top. This is needed to
+        provide nested-changelogs.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Alex Gonzalez <alexg@balena.io>
+        signed-off-by: Alex Gonzalez <alexg@balena.io>
+      author: Alex Gonzalez
+  version: 1.1.4
+  date: 2020-05-13T11:32:03.684Z
 - version: 1.1.3
-  date: 2020-03-24T17:32:02Z
+  date: 2020-03-24T17:32:02.000Z
   commits:
-  - hash: ae2daf2a2005c5706ac65e0c6dd67283d35b0f2b
-    author: Zahari Petkov
-    footers:
-      change-type: patch
-      signed-off-by: Zahari Petkov <zahari@balena.io>
-    subject: Reorder module dependencies
-    body:
-  - hash: b5947fea2b08a5daf87695b9347ad104e0e9160c
-    author: Zahari Petkov
-    footers:
-      change-type: patch
-      signed-off-by: Zahari Petkov <zahari@balena.io>
-    subject: Pin serde version to v1.0.94
-    body: |-
-      Needed since meta-rust is not configuring the i686-poky-linux
-      target correctly for 64-bit atomics support.
+    - hash: ae2daf2a2005c5706ac65e0c6dd67283d35b0f2b
+      author: Zahari Petkov
+      footers:
+        change-type: patch
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      subject: Reorder module dependencies
+      body: null
+    - hash: b5947fea2b08a5daf87695b9347ad104e0e9160c
+      author: Zahari Petkov
+      footers:
+        change-type: patch
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      subject: Pin serde version to v1.0.94
+      body: |-
+        Needed since meta-rust is not configuring the i686-poky-linux
+        target correctly for 64-bit atomics support.
 - version: 1.1.2
-  date: 2020-02-04T12:37:15Z
+  date: 2020-02-04T12:37:15.000Z
   commits:
-  - hash: 73593533237275c346987d6f70b776445e901829
-    author: Zahari Petkov
-    footers:
-      change-type: patch
-      signed-off-by: Zahari Petkov <zahari@balena.io>
-    subject: Block on random until success
-    body: |-
-      On Raspberry Pi Zero W sometimes getrandom is not ready yet at the moment of
-      os-config launch:
-      ```
-      could not initialize thread_rng: All entropy sources failed (permanently unavailable);
-      cause: getrandom not ready (not ready yet);
-      cause: Resource temporarily unavailable;
-      ```
-      This change makes sure we are cycling until a random sequence is populated successfully.
-  - hash: 14a19bf24e258c01a294bd7adfa808fddee59096
-    author: Zubair Lutfullah Kakakhel
-    footers:
-      signed-off-by: Zubair Lutfullah Kakakhel <zubair@balena.io>
-    subject: Use parse_filters instead of parse
-    body: parse_filters is deprecated
+    - hash: 73593533237275c346987d6f70b776445e901829
+      author: Zahari Petkov
+      footers:
+        change-type: patch
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      subject: Block on random until success
+      body: >-
+        On Raspberry Pi Zero W sometimes getrandom is not ready yet at the
+        moment of
+
+        os-config launch:
+
+        ```
+
+        could not initialize thread_rng: All entropy sources failed (permanently
+        unavailable);
+
+        cause: getrandom not ready (not ready yet);
+
+        cause: Resource temporarily unavailable;
+
+        ```
+
+        This change makes sure we are cycling until a random sequence is
+        populated successfully.
+    - hash: 14a19bf24e258c01a294bd7adfa808fddee59096
+      author: Zubair Lutfullah Kakakhel
+      footers:
+        signed-off-by: Zubair Lutfullah Kakakhel <zubair@balena.io>
+      subject: Use parse_filters instead of parse
+      body: parse_filters is deprecated
 - version: 1.1.1
-  date: 2019-05-28T14:36:56Z
+  date: 2019-05-28T14:36:56.000Z
   commits:
-  - hash: 54a25238bad1b60c7d370c2dcf27cfde5cb33afc
-    author: Andrei Gherzan
-    footers:
-      change-type: patch
-      signed-off-by: Andrei Gherzan <andrei@balena.io>
-    subject: 'Cargo.lock: Update to fix mdns in reqwest'
-    body: |-
-      This is mainly done because 0.9.6 introduced Replaced DNS threadpool
-      using getaddrinfo with a non-blocking DNS resolver while 0.9.8 reverted
-      this feature (hides it behind feature gate). This in turn broke mdns
-      which was fixed in 0.9.8.
+    - hash: 54a25238bad1b60c7d370c2dcf27cfde5cb33afc
+      author: Andrei Gherzan
+      footers:
+        change-type: patch
+        signed-off-by: Andrei Gherzan <andrei@balena.io>
+      subject: 'Cargo.lock: Update to fix mdns in reqwest'
+      body: |-
+        This is mainly done because 0.9.6 introduced Replaced DNS threadpool
+        using getaddrinfo with a non-blocking DNS resolver while 0.9.8 reverted
+        this feature (hides it behind feature gate). This in turn broke mdns
+        which was fixed in 0.9.8.
 - version: 1.1.0
-  date: 2019-01-09T15:04:05Z
+  date: 2019-01-09T15:04:05.000Z
   commits:
-  - hash: 201b6ccc46d60004d5a2a99f736e1c7601274337
-    author: Zahari Petkov
-    footers:
-      change-type: minor
-      signed-off-by: Zahari Petkov <zahari@balena.io>
-    subject: Rust 1.31.1 compatibility
-    body:
+    - hash: 201b6ccc46d60004d5a2a99f736e1c7601274337
+      author: Zahari Petkov
+      footers:
+        change-type: minor
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      subject: Rust 1.31.1 compatibility
+      body: null
 - version: 1.0.0
-  date: 2018-12-04T16:55:35Z
+  date: 2018-12-04T16:55:35.000Z
   commits:
-  - hash: 6da3277cf1e504ab8eadc373ab943469e75db18c
-    author: Zahari Petkov
-    footers:
-      change-type: major
-      signed-off-by: Zahari Petkov <zahari@balena.io>
-    subject: Officially release v1.0.0
-    body:
+    - hash: 6da3277cf1e504ab8eadc373ab943469e75db18c
+      author: Zahari Petkov
+      footers:
+        change-type: major
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      subject: Officially release v1.0.0
+      body: null
 - version: 0.0.2
-  date: 2018-12-04T15:22:33Z
+  date: 2018-12-04T15:22:33.000Z
   commits:
-  - hash: 163ba3a7ebdfb37f291533ee83067611ccd7ffd0
-    author: Zahari Petkov
-    footers:
-      signed-off-by: Zahari Petkov <zahari@balena.io>
-    subject: Update dependencies
-    body:
-  - hash: 314c38981afd7c609647d079ec49fa19697f6738
-    author: Zahari Petkov
-    footers:
-      signed-off-by: Zahari Petkov <zahari@balena.io>
-    subject: Using actix instead of hyper for the mock web server
-    body:
-  - hash: 2216099c6b85d3344bd831f9720ca33de7ba5651
-    author: Zahari Petkov
-    footers:
-      signed-off-by: Zahari Petkov <zahari@balena.io>
-    subject: Custom root certificate support
-    body:
-  - hash: baa2d59d651bc56415977c86c69903e2d8177316
-    author: Zahari Petkov
-    footers:
-      signed-off-by: Zahari Petkov <zahari@balena.io>
-    subject: Report configuration endpoint request errors
-    body:
-  - hash: f9096d24911d28499aaf89a6cf209e1a9e62952a
-    author: Zahari Petkov
-    footers:
-      signed-off-by: Zahari Petkov <zahari@balena.io>
-    subject: Rename os_config/os_config_api modules, functions and vars
-    body:
-  - hash: 2897893626063ba20d90d76ef373aed254719145
-    author: Zahari Petkov
-    footers:
-      signed-off-by: Zahari Petkov <zahari@balena.io>
-    subject: Do not retry fetching the config endpoint on join
-    body:
-  - hash: 2f35c3725d20e01c3c516ac46fd75625afb365ef
-    author: Zahari Petkov
-    footers:
-      signed-off-by: Zahari Petkov <zahari@balena.io>
-    subject: Base64 decode balenaRootCA
-    body:
-  - hash: d884686c53234d8d5eba1e5d44dc5ed31ff7a9f4
-    author: Zahari Petkov
-    footers:
-      signed-off-by: Zahari Petkov <zahari@balena.io>
-    subject: Lower test sleep time
-    body:
-  - hash: a2a305f92a515f98d0686831099b768956e48995
-    author: Zahari Petkov
-    footers:
-      signed-off-by: Zahari Petkov <zahari@balena.io>
-    subject: Revert dependency versions
-    body:
-  - hash: c46f91c1e98020bed2b53482220b4836c3635160
-    author: Zahari Petkov
-    footers:
-      signed-off-by: Zahari Petkov <zahari@balena.io>
-    subject: Comment out dev dependencies
-    body:
-  - hash: c9bbc980344d1596a9587a5baddf8410949fd8e1
-    author: Zahari Petkov
-    footers:
-      signed-off-by: Zahari Petkov <zahari@balena.io>
-    subject: Fix compilation errors for older Rust versions
-    body:
-  - hash: c882446118223bd820b8f62144afa5c6dfe55380
-    author: Zahari Petkov
-    footers:
-      signed-off-by: Zahari Petkov <zahari@balena.io>
-    subject: Better error reporting of the root certificate initialization
-    body:
-  - hash: 01b8f29cfc4f2484bd9c424fb431099c7b7db82e
-    author: Zahari Petkov
-    footers:
-      signed-off-by: Zahari Petkov <zahari@balena.io>
-    subject: Mark join argument as required
-    body:
-  - hash: 115c9f87822b3ceba2cff688a6b5ae3163f454ba
-    author: Zahari Petkov
-    footers:
-      signed-off-by: Zahari Petkov <zahari@balena.io>
-    subject: Pretty print config.json
-    body:
-  - hash: d18352faca25362df286fef25f1046bff4469f0f
-    author: Zahari Petkov
-    footers:
-      signed-off-by: Zahari Petkov <zahari@balena.io>
-    subject: Release v1.0.0
-    body:
-  - hash: cbbb7dec8435daed5fe59510ef135e6dae500c95
-    author: Andrei Gherzan
-    footers:
-      signed-off-by: Andrei Gherzan <andrei@resin.io>
-    subject: Changes for bitbake cargo integration
-    body:
-  - hash: befe917a02eb3a2540d336dd10fce3f5a3cebc6e
-    author: Andrei Gherzan
-    footers:
-      signed-off-by: Andrei Gherzan <andrei@resin.io>
-    subject: Release 0.0.2
-    body:
-  - hash: 7e66577763eb72a084887f8924d0a1d4974a7be2
-    author: majorz
-    footers:
-      connects-to: '#3'
-      change-type: patch
-    subject: Mock test server based on `hyper`
-    body:
-  - hash: 30d8f4bbd205a800c6e144dff4f4ee793d8a114f
-    author: majorz
-    footers:
-      change-type: patch
-      connects-to: '#1'
-    subject: VersionBot integration
-    body:
+    - hash: 163ba3a7ebdfb37f291533ee83067611ccd7ffd0
+      author: Zahari Petkov
+      footers:
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      subject: Update dependencies
+      body: null
+    - hash: 314c38981afd7c609647d079ec49fa19697f6738
+      author: Zahari Petkov
+      footers:
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      subject: Using actix instead of hyper for the mock web server
+      body: null
+    - hash: 2216099c6b85d3344bd831f9720ca33de7ba5651
+      author: Zahari Petkov
+      footers:
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      subject: Custom root certificate support
+      body: null
+    - hash: baa2d59d651bc56415977c86c69903e2d8177316
+      author: Zahari Petkov
+      footers:
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      subject: Report configuration endpoint request errors
+      body: null
+    - hash: f9096d24911d28499aaf89a6cf209e1a9e62952a
+      author: Zahari Petkov
+      footers:
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      subject: 'Rename os_config/os_config_api modules, functions and vars'
+      body: null
+    - hash: 2897893626063ba20d90d76ef373aed254719145
+      author: Zahari Petkov
+      footers:
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      subject: Do not retry fetching the config endpoint on join
+      body: null
+    - hash: 2f35c3725d20e01c3c516ac46fd75625afb365ef
+      author: Zahari Petkov
+      footers:
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      subject: Base64 decode balenaRootCA
+      body: null
+    - hash: d884686c53234d8d5eba1e5d44dc5ed31ff7a9f4
+      author: Zahari Petkov
+      footers:
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      subject: Lower test sleep time
+      body: null
+    - hash: a2a305f92a515f98d0686831099b768956e48995
+      author: Zahari Petkov
+      footers:
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      subject: Revert dependency versions
+      body: null
+    - hash: c46f91c1e98020bed2b53482220b4836c3635160
+      author: Zahari Petkov
+      footers:
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      subject: Comment out dev dependencies
+      body: null
+    - hash: c9bbc980344d1596a9587a5baddf8410949fd8e1
+      author: Zahari Petkov
+      footers:
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      subject: Fix compilation errors for older Rust versions
+      body: null
+    - hash: c882446118223bd820b8f62144afa5c6dfe55380
+      author: Zahari Petkov
+      footers:
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      subject: Better error reporting of the root certificate initialization
+      body: null
+    - hash: 01b8f29cfc4f2484bd9c424fb431099c7b7db82e
+      author: Zahari Petkov
+      footers:
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      subject: Mark join argument as required
+      body: null
+    - hash: 115c9f87822b3ceba2cff688a6b5ae3163f454ba
+      author: Zahari Petkov
+      footers:
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      subject: Pretty print config.json
+      body: null
+    - hash: d18352faca25362df286fef25f1046bff4469f0f
+      author: Zahari Petkov
+      footers:
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      subject: Release v1.0.0
+      body: null
+    - hash: cbbb7dec8435daed5fe59510ef135e6dae500c95
+      author: Andrei Gherzan
+      footers:
+        signed-off-by: Andrei Gherzan <andrei@resin.io>
+      subject: Changes for bitbake cargo integration
+      body: null
+    - hash: befe917a02eb3a2540d336dd10fce3f5a3cebc6e
+      author: Andrei Gherzan
+      footers:
+        signed-off-by: Andrei Gherzan <andrei@resin.io>
+      subject: Release 0.0.2
+      body: null
+    - hash: 7e66577763eb72a084887f8924d0a1d4974a7be2
+      author: majorz
+      footers:
+        connects-to: '#3'
+        change-type: patch
+      subject: Mock test server based on `hyper`
+      body: null
+    - hash: 30d8f4bbd205a800c6e144dff4f4ee793d8a114f
+      author: majorz
+      footers:
+        change-type: patch
+        connects-to: '#1'
+      subject: VersionBot integration
+      body: null
