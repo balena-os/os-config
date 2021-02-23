@@ -11,7 +11,7 @@ const CONFIG_ROUTE: &str = "/os/v1/config";
 const OS_CONFIG_PATH: &str = "/etc/os-config.json";
 const CONFIG_JSON_PATH: &str = "/mnt/boot/config.json";
 const CONFIG_JSON_FLASHER_PATH: &str = "/tmp/config.json";
-const FLASHER_FLAG_PATH: &str = "/mnt/boot/resin-image-flasher";
+const FLASHER_FLAG_PATH: &str = "/mnt/boot/balena-image-flasher";
 
 const CONFIG_ROUTE_REDEFINE: &str = "CONFIG_ROUTE_REDEFINE";
 const OS_CONFIG_PATH_REDEFINE: &str = "OS_CONFIG_PATH_REDEFINE";
