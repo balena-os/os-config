@@ -60,7 +60,7 @@ fn join() {
     let config_json = r#"
         {
             "deviceType": "raspberrypi3",
-            "hostname": "resin",
+            "hostname": "balena",
             "persistentLogging": false
         }
         "#;
@@ -228,7 +228,7 @@ fn join() {
             r#"
             {{
                 "deviceType": "raspberrypi3",
-                "hostname": "resin",
+                "hostname": "balena",
                 "persistentLogging": false,
                 "applicationName": "aaaaaa",
                 "applicationId": 123456,
@@ -277,7 +277,7 @@ fn join_no_supervisor() {
     let config_json = r#"
         {
             "deviceType": "raspberrypi3",
-            "hostname": "resin",
+            "hostname": "balena",
             "persistentLogging": false
         }
         "#;
@@ -381,7 +381,7 @@ fn join_no_supervisor() {
             r#"
             {{
                 "deviceType": "raspberrypi3",
-                "hostname": "resin",
+                "hostname": "balena",
                 "persistentLogging": false,
                 "applicationName": "aaaaaa",
                 "applicationId": 123456,
@@ -424,12 +424,12 @@ fn join_flasher() {
 
     let service_1 = MockService::new(unit_name(1), &script_path);
 
-    let flasher_flag_path = create_tmp_file(&tmp_dir, "resin-image-flasher", "", None);
+    let flasher_flag_path = create_tmp_file(&tmp_dir, "balena-image-flasher", "", None);
 
     let config_json = r#"
         {
             "deviceType": "raspberrypi3",
-            "hostname": "resin",
+            "hostname": "balena",
             "persistentLogging": false
         }
         "#;
@@ -538,7 +538,7 @@ fn join_flasher() {
             r#"
             {{
                 "deviceType": "raspberrypi3",
-                "hostname": "resin",
+                "hostname": "balena",
                 "persistentLogging": false,
                 "applicationName": "aaaaaa",
                 "applicationId": 123456,
@@ -585,7 +585,7 @@ fn join_with_root_certificate() {
     let config_json = r#"
         {
             "deviceType": "raspberrypi3",
-            "hostname": "resin",
+            "hostname": "balena",
             "persistentLogging": false
         }
         "#;
@@ -669,7 +669,7 @@ fn join_with_root_certificate() {
             r#"
             {{
                 "deviceType": "raspberrypi3",
-                "hostname": "resin",
+                "hostname": "balena",
                 "persistentLogging": false,
                 "applicationName": "aaaaaa",
                 "applicationId": 123456,
@@ -713,7 +713,7 @@ fn join_no_endpoint() {
     let config_json = r#"
         {
             "deviceType": "raspberrypi3",
-            "hostname": "resin",
+            "hostname": "balena",
             "persistentLogging": false
         }
         "#;
@@ -812,7 +812,7 @@ fn incompatible_device_types() {
     let config_json = r#"
         {
             "deviceType": "raspberrypi3",
-            "hostname": "resin",
+            "hostname": "balena",
             "persistentLogging": false
         }
         "#;
@@ -887,7 +887,7 @@ fn reconfigure() {
         {
             "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
             "deviceType": "raspberrypi3",
-            "hostname": "resin",
+            "hostname": "balena",
             "persistentLogging": false,
             "applicationName": "aaaaaa",
             "applicationId": 123456,
@@ -990,7 +990,7 @@ fn reconfigure() {
             r#"
             {{
                 "deviceType": "raspberrypi3",
-                "hostname": "resin",
+                "hostname": "balena",
                 "persistentLogging": false,
                 "applicationName": "aaaaaa",
                 "applicationId": 123456,
@@ -1040,7 +1040,7 @@ fn reconfigure_stored() {
         r#"
         {{
             "deviceType": "raspberrypi3",
-            "hostname": "resin",
+            "hostname": "balena",
             "persistentLogging": false,
             "applicationName": "aaaaaa",
             "applicationId": 123456,
@@ -1143,7 +1143,7 @@ fn reconfigure_stored() {
             {{
                 "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
                 "deviceType": "raspberrypi3",
-                "hostname": "resin",
+                "hostname": "balena",
                 "persistentLogging": false,
                 "applicationName": "aaaaaa",
                 "applicationId": 123456,
@@ -1200,7 +1200,7 @@ fn update() {
         {{
             "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
             "deviceType": "raspberrypi3",
-            "hostname": "resin",
+            "hostname": "balena",
             "persistentLogging": false,
             "applicationName": "aaaaaa",
             "applicationId": 123456,
@@ -1389,7 +1389,7 @@ fn update_no_config_changes() {
         {{
             "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
             "deviceType": "raspberrypi3",
-            "hostname": "resin",
+            "hostname": "balena",
             "persistentLogging": false,
             "applicationName": "aaaaaa",
             "applicationId": 123456,
@@ -1544,7 +1544,7 @@ fn update_with_root_certificate() {
         {{
             "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
             "deviceType": "raspberrypi3",
-            "hostname": "resin",
+            "hostname": "balena",
             "persistentLogging": false,
             "applicationName": "aaaaaa",
             "applicationId": 123456,
@@ -1627,7 +1627,7 @@ fn update_unmanaged() {
     let config_json = r#"
         {
             "deviceType": "raspberrypi3",
-            "hostname": "resin",
+            "hostname": "balena",
             "persistentLogging": false
         }
         "#;
@@ -1692,7 +1692,7 @@ fn leave() {
         {{
             "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
             "deviceType": "raspberrypi3",
-            "hostname": "resin",
+            "hostname": "balena",
             "persistentLogging": false,
             "applicationName": "aaaaaa",
             "applicationId": 123456,
@@ -1788,7 +1788,7 @@ fn leave() {
             {{
                 "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
                 "deviceType": "raspberrypi3",
-                "hostname": "resin",
+                "hostname": "balena",
                 "persistentLogging": false,
                 "applicationName": "aaaaaa",
                 "applicationId": 123456,
@@ -1826,7 +1826,7 @@ fn leave_unmanaged() {
     let config_json = r#"
         {
             "deviceType": "raspberrypi3",
-            "hostname": "resin",
+            "hostname": "balena",
             "persistentLogging": false
         }
         "#;
@@ -1883,7 +1883,7 @@ fn generate_api_key_unmanaged() {
     let config_json = r#"
         {
             "deviceType": "raspberrypi3",
-            "hostname": "resin",
+            "hostname": "balena",
             "persistentLogging": false
         }
         "#;
@@ -1928,7 +1928,7 @@ fn generate_api_key_already_generated() {
         {
             "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
             "deviceType": "raspberrypi3",
-            "hostname": "resin",
+            "hostname": "balena",
             "persistentLogging": false,
             "applicationName": "aaaaaa",
             "applicationId": 123456,
@@ -1987,7 +1987,7 @@ fn generate_api_key_reuse() {
     let config_json = r#"
         {
             "deviceType": "raspberrypi3",
-            "hostname": "resin",
+            "hostname": "balena",
             "persistentLogging": false,
             "applicationName": "aaaaaa",
             "applicationId": 123456,
@@ -2043,7 +2043,7 @@ fn generate_api_key_reuse() {
         {
             "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
             "deviceType": "raspberrypi3",
-            "hostname": "resin",
+            "hostname": "balena",
             "persistentLogging": false,
             "applicationName": "aaaaaa",
             "applicationId": 123456,
@@ -2073,7 +2073,7 @@ fn generate_api_key_new() {
     let config_json = r#"
         {
             "deviceType": "raspberrypi3",
-            "hostname": "resin",
+            "hostname": "balena",
             "persistentLogging": false,
             "applicationName": "aaaaaa",
             "applicationId": 123456,
@@ -2125,7 +2125,7 @@ fn generate_api_key_new() {
         r#"
             {
                 "deviceType": "raspberrypi3",
-                "hostname": "resin",
+                "hostname": "balena",
                 "persistentLogging": false,
                 "applicationName": "aaaaaa",
                 "applicationId": 123456,
