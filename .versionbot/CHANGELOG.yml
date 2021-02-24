@@ -1,4 +1,23 @@
 - commits:
+    - subject: 'os-config: rename flasher flag path'
+      hash: 3622cc8cdf38f42c1f38fb6d5c67dde16631d6f0
+      body: |
+        As part of a full rename away from legacy resin namespaces the
+        following os-config compatibility changes are required to align
+        with meta-balena changes.
+
+        - rename resin-image-flasher to balena-image-flasher
+      footer:
+        Change-type: minor
+        change-type: minor
+        Connects-to: 'https://github.com/balena-os/meta-balena/pull/2118'
+        connects-to: 'https://github.com/balena-os/meta-balena/pull/2118'
+        Signed-off-by: Kyle Harding <kyle@balena.io>
+        signed-off-by: Kyle Harding <kyle@balena.io>
+      author: Kyle Harding
+  version: 1.2.0
+  date: 2021-02-23T20:19:36.114Z
+- commits:
     - subject: 'versionbot: Add changelog yml file'
       hash: 9b35f5e9cb6b27b92f7dc578a92532ade36c7a36
       body: |
