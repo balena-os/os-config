@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use systemd::service_exists;
 
-pub const SUPERVISOR_SERVICE: &str = "resin-supervisor.service";
+pub const SUPERVISOR_SERVICE: &str = "balena-supervisor.service";
 
 const CONFIG_ROUTE: &str = "/os/v1/config";
 const OS_CONFIG_PATH: &str = "/etc/os-config.json";
