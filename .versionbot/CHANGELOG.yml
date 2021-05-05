@@ -1,4 +1,16 @@
 - commits:
+    - subject: 'os-config: rename resin-supervisor to balena-supervisor'
+      hash: ee6f45fdb4d1934af2ca3f4202ed24f7ff352637
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Kyle Harding <kyle@balena.io>
+        signed-off-by: Kyle Harding <kyle@balena.io>
+      author: Kyle Harding
+  version: 1.2.1
+  date: 2021-05-04T16:36:12.302Z
+- commits:
     - subject: 'os-config: rename flasher flag path'
       hash: 3622cc8cdf38f42c1f38fb6d5c67dde16631d6f0
       body: |

@@ -1034,7 +1034,7 @@ dependencies = [
 
 [[package]]
 name = "os-config"
-version = "1.2.0"
+version = "1.2.1"
 dependencies = [
  "actix-net 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix-web 0.7.19 (registry+https://github.com/rust-lang/crates.io-index)",
