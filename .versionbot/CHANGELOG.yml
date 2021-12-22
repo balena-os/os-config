@@ -1,4 +1,14 @@
 - commits:
+    - subject: Fix misnamed variable
+      hash: 9ad73854cf198898c8fe59e7315b2f8ef97984f1
+      body: ''
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: dfunckt
+  version: 1.2.2
+  date: 2021-12-22T14:52:31.746Z
+- commits:
     - subject: 'os-config: rename resin-supervisor to balena-supervisor'
       hash: ee6f45fdb4d1934af2ca3f4202ed24f7ff352637
       body: ''
