@@ -61,8 +61,8 @@ fn validate_device_type(config_json: &ConfigMap, json_config: &ConfigMap) -> Res
 
 fn get_device_type(config_json: &ConfigMap) -> Result<Option<String>> {
     if let Some(value) = config_json.get("deviceType") {
-        if let Some(api_endpoint) = value.as_str() {
-            Ok(Some(api_endpoint.to_string()))
+        if let Some(device_type) = value.as_str() {
+            Ok(Some(device_type.to_string()))
         } else {
             bail!(ErrorKind::DeviceTypeNotStringJSON)
         }
