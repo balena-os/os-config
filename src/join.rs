@@ -1,12 +1,12 @@
 use fs;
 use std::path::Path;
 
+use anyhow::Result;
 use args::{Args, SUPERVISOR_SERVICE};
 use config_json::{
     get_api_endpoint, get_root_certificate, merge_config_json, read_config_json, write_config_json,
     ConfigMap,
 };
-use errors::*;
 use remote::{config_url, fetch_configuration, Configuration};
 use schema::{read_os_config_schema, OsConfigSchema};
 use systemd;

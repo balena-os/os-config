@@ -13,8 +13,7 @@ extern crate hex;
 extern crate openssl;
 extern crate reqwest;
 
-#[macro_use]
-extern crate error_chain;
+extern crate anyhow;
 
 #[macro_use]
 extern crate serde_derive;
@@ -26,9 +25,10 @@ extern crate serde_json;
 #[macro_use]
 extern crate maplit;
 
+extern crate fatrw;
+
 mod args;
 mod config_json;
-mod errors;
 mod fs;
 mod generate;
 mod join;
@@ -40,22 +40,11 @@ mod schema;
 mod systemd;
 mod update;
 
+use anyhow::Result;
+
 use args::{get_cli_args, OsConfigSubcommand};
-use errors::*;
 
-fn main() {
-    if let Err(ref e) = run() {
-        error!("\x1B[1;31mError: {}\x1B[0m", e);
-
-        for inner in e.iter().skip(1) {
-            error!("  caused by: {}", inner);
-        }
-
-        ::std::process::exit(exit_code(e));
-    }
-}
-
-fn run() -> Result<()> {
+fn main() -> Result<()> {
     logger::init_logger();
 
     let args = get_cli_args();

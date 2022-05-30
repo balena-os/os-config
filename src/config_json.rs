@@ -8,9 +8,10 @@ use serde_json::{Map, Value};
 use base64;
 use reqwest;
 
-use errors::*;
 use fs::{read_file, write_file};
 use random::fill_random;
+
+use anyhow::{bail, Context, Result};
 
 pub type ConfigMap = Map<String, Value>;
 
@@ -19,7 +20,7 @@ pub fn get_api_endpoint(config_json: &ConfigMap) -> Result<Option<String>> {
         if let Some(api_endpoint) = value.as_str() {
             Ok(Some(api_endpoint.to_string()))
         } else {
-            bail!(ErrorKind::ApiEndpointNotStringJSON)
+            bail!("`apiEndpoint` should be a string")
         }
     } else {
         Ok(None)
@@ -27,7 +28,7 @@ pub fn get_api_endpoint(config_json: &ConfigMap) -> Result<Option<String>> {
 }
 
 pub fn merge_config_json(config_json: &mut ConfigMap, json_config: &str) -> Result<()> {
-    merge_config_json_impl(config_json, json_config).chain_err(|| ErrorKind::MergeConfigJSON)
+    merge_config_json_impl(config_json, json_config).context("Merging `config.json` failed")
 }
 
 fn merge_config_json_impl(config_json: &mut ConfigMap, json_config: &str) -> Result<()> {
@@ -48,10 +49,11 @@ fn validate_device_type(config_json: &ConfigMap, json_config: &ConfigMap) -> Res
     if let Some(old_device_type) = get_device_type(config_json)? {
         if let Some(new_device_type) = get_device_type(json_config)? {
             if old_device_type != new_device_type {
-                bail!(ErrorKind::UnexpectedDeviceTypeJSON(
+                bail!(
+                    "Expected `deviceType` {}, got {}",
                     old_device_type,
                     new_device_type
-                ));
+                );
             }
         }
     }
@@ -64,7 +66,7 @@ fn get_device_type(config_json: &ConfigMap) -> Result<Option<String>> {
         if let Some(device_type) = value.as_str() {
             Ok(Some(device_type.to_string()))
         } else {
-            bail!(ErrorKind::DeviceTypeNotStringJSON)
+            bail!("`deviceType` should be a string")
         }
     } else {
         Ok(None)
@@ -74,13 +76,13 @@ fn get_device_type(config_json: &ConfigMap) -> Result<Option<String>> {
 pub fn get_root_certificate(config_json: &ConfigMap) -> Result<Option<reqwest::Certificate>> {
     if let Some(value) = config_json.get("balenaRootCA") {
         if let Some(root_certificate) = value.as_str() {
-            let decoded =
-                base64::decode(root_certificate).chain_err(|| ErrorKind::RootCABase64Decode)?;
+            let decoded = base64::decode(root_certificate)
+                .context("`balenaRootCA` base64 decoding failed")?;
             let cert = reqwest::Certificate::from_pem(&decoded)
-                .chain_err(|| ErrorKind::RootCAInvalidPEM)?;
+                .context("Not a valid PEM encoded certificate")?;
             Ok(Some(cert))
         } else {
-            bail!(ErrorKind::RootCANotStringJSON)
+            bail!("`balenaRootCA` should be a string")
         }
     } else {
         Ok(None)
@@ -93,7 +95,7 @@ fn define_api_key(config_json: &mut ConfigMap, json_config: &ConfigMap) -> Resul
     let new_api_endpoint = if let Some(new_api_endpoint) = get_api_endpoint(json_config)? {
         new_api_endpoint
     } else {
-        bail!(ErrorKind::ApiEndpointNotFoundJSON)
+        bail!("`apiEndpoint` not found")
     };
 
     let new_api_key =
@@ -124,7 +126,7 @@ fn insert_api_key(config_json: &mut ConfigMap, api_key: &str, api_endpoint: &str
                 Value::String(api_key.into()),
             );
         } else {
-            bail!(ErrorKind::DeviceApiKeysNotMapJSON)
+            bail!("`deviceApiKeys` should be a map")
         }
 
         return Ok(());
@@ -168,6 +170,7 @@ pub fn first_time_generate_api_key(config_json: &mut ConfigMap) -> Result<Genera
     Ok(result)
 }
 
+#[allow(clippy::manual_strip)]
 fn strip_api_endpoint(api_endpoint: &str) -> String {
     if api_endpoint.starts_with("https://") {
         api_endpoint[8..].into()
@@ -183,7 +186,7 @@ fn get_api_key(config_json: &ConfigMap) -> Result<Option<String>> {
         if let Some(api_key) = value.as_str() {
             Ok(Some(api_key.to_string()))
         } else {
-            bail!(ErrorKind::DeviceApiKeyNotStringJSON)
+            bail!("`deviceApiKey` should be a string")
         }
     } else {
         Ok(None)
@@ -203,13 +206,13 @@ fn get_api_key_for_endpoint(config_json: &ConfigMap, api_endpoint: &str) -> Resu
                 if let Some(api_key) = value.as_str() {
                     Ok(Some(api_key.to_string()))
                 } else {
-                    bail!(ErrorKind::DeviceApiKeyNotStringJSON)
+                    bail!("`deviceApiKey` should be a string")
                 }
             } else {
                 Ok(None)
             }
         } else {
-            bail!(ErrorKind::DeviceApiKeysNotMapJSON)
+            bail!("`deviceApiKeys` should be a map")
         }
     } else {
         Ok(None)
@@ -217,7 +220,7 @@ fn get_api_key_for_endpoint(config_json: &ConfigMap, api_endpoint: &str) -> Resu
 }
 
 pub fn read_config_json(path: &Path) -> Result<ConfigMap> {
-    read_json_object_file(path).chain_err(|| ErrorKind::ReadConfigJSON(path.into()))
+    read_json_object_file(path).context(format!("Reading {:?} failed", path))
 }
 
 fn read_json_object_file(path: &Path) -> Result<ConfigMap> {
@@ -232,12 +235,12 @@ fn json_object_from_string(contents: &str) -> Result<ConfigMap> {
     if let Value::Object(map) = value {
         Ok(map)
     } else {
-        bail!(ErrorKind::NotAnObjectJSON)
+        bail!("Expected JSON object")
     }
 }
 
 pub fn write_config_json(path: &Path, map: &ConfigMap) -> Result<()> {
-    write_json_object_file(path, map).chain_err(|| ErrorKind::WriteConfigJSON(path.into()))
+    write_json_object_file(path, map).context(format!("Writing {:?} failed", path))
 }
 
 fn write_json_object_file(path: &Path, map: &ConfigMap) -> Result<()> {
