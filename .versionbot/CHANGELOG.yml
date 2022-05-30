@@ -1,7 +1,23 @@
 - commits:
+    - subject: Incorporating fatrw for safe fat fs operations
+      hash: 409bf9d1115155164420a0842e0906abe276a84e
+      body: |
+        Converted error handling to anyhow instead of error-chain as well.
+
+        Compatible with Rust v1.33.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Zahari Petkov <zahari@balena.io>
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      author: Zahari Petkov
+  version: 1.2.3
+  title: "'Incorporating fatrw for safe fat fs operations'"
+  date: 2022-05-30T15:32:03.426Z
+- commits:
     - subject: Fix misnamed variable
       hash: 9ad73854cf198898c8fe59e7315b2f8ef97984f1
-      body: ''
+      body: ""
       footer:
         Change-type: patch
         change-type: patch
@@ -9,9 +25,9 @@
   version: 1.2.2
   date: 2021-12-22T14:52:31.746Z
 - commits:
-    - subject: 'os-config: rename resin-supervisor to balena-supervisor'
+    - subject: "os-config: rename resin-supervisor to balena-supervisor"
       hash: ee6f45fdb4d1934af2ca3f4202ed24f7ff352637
-      body: ''
+      body: ""
       footer:
         Change-type: patch
         change-type: patch
@@ -21,7 +37,7 @@
   version: 1.2.1
   date: 2021-05-04T16:36:12.302Z
 - commits:
-    - subject: 'os-config: rename flasher flag path'
+    - subject: "os-config: rename flasher flag path"
       hash: 3622cc8cdf38f42c1f38fb6d5c67dde16631d6f0
       body: |
         As part of a full rename away from legacy resin namespaces the
@@ -32,15 +48,15 @@
       footer:
         Change-type: minor
         change-type: minor
-        Connects-to: 'https://github.com/balena-os/meta-balena/pull/2118'
-        connects-to: 'https://github.com/balena-os/meta-balena/pull/2118'
+        Connects-to: https://github.com/balena-os/meta-balena/pull/2118
+        connects-to: https://github.com/balena-os/meta-balena/pull/2118
         Signed-off-by: Kyle Harding <kyle@balena.io>
         signed-off-by: Kyle Harding <kyle@balena.io>
       author: Kyle Harding
   version: 1.2.0
   date: 2021-02-23T20:19:36.114Z
 - commits:
-    - subject: 'versionbot: Add changelog yml file'
+    - subject: "versionbot: Add changelog yml file"
       hash: 9b35f5e9cb6b27b92f7dc578a92532ade36c7a36
       body: |
         This file allows other components to uniquely parse the information that
@@ -91,8 +107,7 @@
 
         ```
 
-        could not initialize thread_rng: All entropy sources failed (permanently
-        unavailable);
+        could not initialize thread_rng: All entropy sources failed (permanently unavailable);
 
         cause: getrandom not ready (not ready yet);
 
@@ -100,8 +115,7 @@
 
         ```
 
-        This change makes sure we are cycling until a random sequence is
-        populated successfully.
+        This change makes sure we are cycling until a random sequence is populated successfully.
     - hash: 14a19bf24e258c01a294bd7adfa808fddee59096
       author: Zubair Lutfullah Kakakhel
       footers:
@@ -116,7 +130,7 @@
       footers:
         change-type: patch
         signed-off-by: Andrei Gherzan <andrei@balena.io>
-      subject: 'Cargo.lock: Update to fix mdns in reqwest'
+      subject: "Cargo.lock: Update to fix mdns in reqwest"
       body: |-
         This is mainly done because 0.9.6 introduced Replaced DNS threadpool
         using getaddrinfo with a non-blocking DNS resolver while 0.9.8 reverted
@@ -173,7 +187,7 @@
       author: Zahari Petkov
       footers:
         signed-off-by: Zahari Petkov <zahari@balena.io>
-      subject: 'Rename os_config/os_config_api modules, functions and vars'
+      subject: Rename os_config/os_config_api modules, functions and vars
       body: null
     - hash: 2897893626063ba20d90d76ef373aed254719145
       author: Zahari Petkov
@@ -250,7 +264,7 @@
     - hash: 7e66577763eb72a084887f8924d0a1d4974a7be2
       author: majorz
       footers:
-        connects-to: '#3'
+        connects-to: "#3"
         change-type: patch
       subject: Mock test server based on `hyper`
       body: null
@@ -258,6 +272,6 @@
       author: majorz
       footers:
         change-type: patch
-        connects-to: '#1'
+        connects-to: "#1"
       subject: VersionBot integration
       body: null
