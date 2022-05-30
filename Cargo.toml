@@ -7,8 +7,9 @@ repository = "https://github.com/balena-os/os-config"
 license = "Apache-2.0"
 
 [dependencies]
+anyhow = "=1.0.2"
 log = "0.4"
-env_logger = "0.6"
+env_logger = "=0.6"
 serde = "= 1.0.94"
 serde_derive = "= 1.0.94"
 serde_json = "1.0"
@@ -18,13 +19,12 @@ openssl = "0.10"
 hex = "0.3"
 getrandom = "0.1"
 base64 = "0.10"
+unicode-normalization = "=0.1.9"
+flate2 = "=1.0.8"
+miniz_oxide_c_api = "=0.2.0"
 
 [dependencies.clap]
-version = "2.32"
-default-features = false
-
-[dependencies.error-chain]
-version = "0.12"
+version = "=2.33"
 default-features = false
 
 [dev-dependencies]
@@ -38,3 +38,6 @@ futures = "0.1"
 [dev-dependencies.actix-web]
 version = "0.7"
 features = ["ssl"]
+
+[dependencies.fatrw]
+git = "https://github.com/balena-os/fatrw"

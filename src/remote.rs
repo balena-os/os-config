@@ -6,7 +6,7 @@ use reqwest;
 
 use serde_json;
 
-use errors::*;
+use anyhow::{anyhow, Context, Result};
 use schema::validate_schema_version;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -24,11 +24,15 @@ impl Configuration {
         let contents_map = self
             .services
             .get(service_id)
-            .chain_err(|| ErrorKind::ServiceNotFoundJSON(service_id.into()))?;
+            .ok_or_else(|| anyhow!("Service `{}` not found in `os-config-api.json`", service_id))?;
 
-        let contents = contents_map
-            .get(config_name)
-            .chain_err(|| ErrorKind::ConfigNotFoundJSON(service_id.into(), config_name.into()))?;
+        let contents = contents_map.get(config_name).ok_or_else(|| {
+            anyhow!(
+                "Service `{}` config `{}` not found in `os-config-api.json`",
+                service_id,
+                config_name
+            )
+        })?;
 
         Ok(contents as &str)
     }
@@ -44,7 +48,7 @@ pub fn fetch_configuration(
     retry: bool,
 ) -> Result<Configuration> {
     fetch_configuration_impl(config_url, root_certificate, retry)
-        .chain_err(|| ErrorKind::FetchConfiguration)
+        .context("Fetching configuration failed")
 }
 
 fn fetch_configuration_impl(
@@ -134,7 +138,7 @@ mod tests {
     use serde_json;
 
     use super::*;
-    use schema::{validate_schema_version, SCHEMA_VERSION};
+    use schema::SCHEMA_VERSION;
 
     const JSON_DATA: &str = r#"{
         "services": {
@@ -171,10 +175,5 @@ mod tests {
         };
 
         assert_eq!(parsed, expected);
-    }
-
-    #[test]
-    fn validate_configuration_v1_schema_version() {
-        assert_eq!(validate_schema_version(JSON_DATA).unwrap(), ());
     }
 }

@@ -784,21 +784,30 @@ fn join_no_endpoint() {
         MOCK_JSON_SERVER_ADDRESS
     );
 
-    let output = unindent::unindent(
+    let stdout = unindent::unindent(
         "
         Fetching service configuration from http://localhost:54673/os/v1/config...
-        \x1B[1;31mError: Fetching configuration failed\x1B[0m
-          caused by: http://localhost:54673/os/v1/config: an error occurred trying to connect: Connection refused (os error 111)
-          caused by: Connection refused (os error 111)
+        ",
+    );
+
+    let stderr = unindent::unindent(
+        "
+        Error: Fetching configuration failed
+
+        Caused by:
+            0: http://localhost:54673/os/v1/config: error trying to connect: Connection refused (os error 111)
+            1: Connection refused (os error 111)
         ",
     );
 
     assert_cli::Assert::main_binary()
         .with_args(&["join", &json_config])
         .with_env(os_config_env(&os_config_path, &config_json_path))
-        .fails()
         .stdout()
-        .is(&output as &str)
+        .is(&stdout as &str)
+        .fails()
+        .stderr()
+        .is(&stderr as &str)
         .unwrap();
 
     serve.stop();
@@ -859,8 +868,10 @@ fn incompatible_device_types() {
 
     let output = unindent::unindent(
         "
-        \x1B[1;31mError: Merging `config.json` failed\x1B[0m
-          caused by: Expected `deviceType` raspberrypi3, got incompatible-device-type
+        Error: Merging `config.json` failed
+
+        Caused by:
+            Expected `deviceType` raspberrypi3, got incompatible-device-type
         ",
     );
 
@@ -868,7 +879,7 @@ fn incompatible_device_types() {
         .with_args(&["join", &json_config])
         .with_env(os_config_env(&os_config_path, &config_json_path))
         .fails()
-        .stdout()
+        .stderr()
         .is(&output as &str)
         .unwrap();
 }
@@ -1305,7 +1316,7 @@ fn update() {
     let output = unindent::unindent(&format!(
         r#"
         Fetching service configuration from http://localhost:54673/os/v1/config...
-        http://localhost:54673/os/v1/config: an error occurred trying to connect: Connection refused (os error 111)
+        http://localhost:54673/os/v1/config: error trying to connect: Connection refused (os error 111)
         Service configuration retrieved
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
@@ -1454,12 +1465,7 @@ fn update_no_config_changes() {
 
     let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
 
-    create_tmp_file(
-        &tmp_dir,
-        "mock-1.conf",
-        "MOCK-1-АБВГДЕЖЗИЙ",
-        Some(0o600),
-    );
+    create_tmp_file(&tmp_dir, "mock-1.conf", "MOCK-1-АБВГДЕЖЗИЙ", Some(0o600));
 
     create_tmp_file(&tmp_dir, "mock-2.conf", "MOCK-2-0123456789", Some(0o755));
 
@@ -2466,7 +2472,7 @@ fn validate_json_file(path: &str, expected: &str, erase_api_key: bool) {
 }
 
 fn validate_does_not_exist(path: &str) {
-    assert_eq!(Path::new(path).exists(), false);
+    assert!(!Path::new(path).exists());
 }
 
 /*******************************************************************************

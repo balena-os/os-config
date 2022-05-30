@@ -1,11 +1,11 @@
 use fs;
 use std::path::Path;
 
+use anyhow::Result;
 use args::{Args, SUPERVISOR_SERVICE};
 use config_json::{
     get_api_endpoint, read_config_json, store_api_key, write_config_json, ConfigMap,
 };
-use errors::*;
 use schema::{read_os_config_schema, OsConfigSchema};
 use systemd;
 

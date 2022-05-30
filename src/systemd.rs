@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use dbus;
 
-use errors::*;
+use anyhow::{bail, Context, Result};
 
 const SYSTEMD: &str = "org.freedesktop.systemd1";
 const SYSTEMD_MANAGER: &str = "org.freedesktop.systemd1.Manager";
@@ -12,7 +12,7 @@ const SYSTEMD_PATH: &str = "/org/freedesktop/systemd1";
 const DEFAULT_MODE: &str = "replace";
 
 pub fn start_service(name: &str) -> Result<()> {
-    start_service_impl(name).chain_err(|| ErrorKind::StartService(name.into()))
+    start_service_impl(name).context(format!("Starting {} failed", name))
 }
 
 fn start_service_impl(name: &str) -> Result<()> {
@@ -28,7 +28,7 @@ fn start_service_impl(name: &str) -> Result<()> {
 }
 
 pub fn stop_service(name: &str) -> Result<()> {
-    stop_service_impl(name).chain_err(|| ErrorKind::StopService(name.into()))
+    stop_service_impl(name).context(format!("Stopping {} failed", name))
 }
 
 fn stop_service_impl(name: &str) -> Result<()> {
@@ -44,7 +44,7 @@ fn stop_service_impl(name: &str) -> Result<()> {
 }
 
 pub fn reload_or_restart_service(name: &str) -> Result<()> {
-    reload_or_restart_service_impl(name).chain_err(|| ErrorKind::ReloadRestartService(name.into()))
+    reload_or_restart_service_impl(name).context(format!("Reloading or restarting {} failed", name))
 }
 
 fn reload_or_restart_service_impl(name: &str) -> Result<()> {
@@ -60,7 +60,7 @@ fn reload_or_restart_service_impl(name: &str) -> Result<()> {
 }
 
 pub fn await_service_exit(name: &str) -> Result<()> {
-    await_service_exit_impl(name).chain_err(|| ErrorKind::AwaitServiceExit(name.into()))
+    await_service_exit_impl(name).context(format!("Awaiting {} to exit failed", name))
 }
 
 pub fn await_service_exit_impl(name: &str) -> Result<()> {
@@ -82,14 +82,11 @@ pub fn await_service_exit_impl(name: &str) -> Result<()> {
         thread::sleep(Duration::from_secs(1));
     }
 
-    bail!(ErrorKind::AwaitServiceExitTimeout)
+    bail!("Timed out awaiting service to exit")
 }
 
 pub fn service_exists(name: &str) -> bool {
-    match service_exists_impl(name) {
-        Ok(result) => result,
-        Err(_) => false,
-    }
+    service_exists_impl(name).unwrap_or(false)
 }
 
 fn service_exists_impl(name: &str) -> Result<bool> {

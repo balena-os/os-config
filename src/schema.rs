@@ -4,7 +4,7 @@ use std::path::Path;
 use serde_json;
 use serde_json::Value;
 
-use errors::*;
+use anyhow::{bail, Context, Result};
 use fs::read_file;
 
 pub const SCHEMA_VERSION: &str = "1.0.0";
@@ -30,7 +30,7 @@ pub struct ConfigFile {
 }
 
 pub fn read_os_config_schema(os_config_path: &Path) -> Result<OsConfigSchema> {
-    read_os_config_schema_impl(os_config_path).chain_err(|| ErrorKind::ReadOSConfigSchema)
+    read_os_config_schema_impl(os_config_path).context("Reading `os-config.json` schema failed")
 }
 
 fn read_os_config_schema_impl(os_config_path: &Path) -> Result<OsConfigSchema> {
@@ -50,15 +50,16 @@ pub fn validate_schema_version(json_data: &str) -> Result<()> {
                 if schema_version == SCHEMA_VERSION {
                     Ok(())
                 } else {
-                    bail!(ErrorKind::UnexpectedShemaVersionJSON(
+                    bail!(
+                        "Expected schema version {}, got {}",
                         SCHEMA_VERSION,
-                        schema_version.into()
-                    ))
+                        schema_version
+                    )
                 }
             }
-            _ => bail!(ErrorKind::SchemaVersionNotStringJSON),
+            _ => bail!("`schema_version` should be a string"),
         },
-        _ => bail!(ErrorKind::MissingSchemaVersionJSON),
+        _ => bail!("Missing `schema_version`"),
     }
 }
 
@@ -138,10 +139,5 @@ mod tests {
         };
 
         assert_eq!(parsed, expected);
-    }
-
-    #[test]
-    fn validate_os_config_v1_schema_version() {
-        assert_eq!(validate_schema_version(JSON_DATA).unwrap(), ());
     }
 }
