@@ -41,3 +41,9 @@ features = ["ssl"]
 
 [dependencies.fatrw]
 git = "https://github.com/balena-os/fatrw"
+
+[profile.release]
+opt-level = "z"
+lto = true
+panic = "abort"
+codegen-units = 1
