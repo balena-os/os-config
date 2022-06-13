@@ -1,4 +1,17 @@
 - commits:
+    - subject: Optimize binary size in release builds
+      hash: b8a9b2ac171c214803ad65574d8d00fa1bccf587
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Zahari Petkov <zahari@balena.io>
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      author: Zahari Petkov
+  version: 1.2.4
+  title: "'Optimize binary size in release builds'"
+  date: 2022-06-13T09:27:51.386Z
+- commits:
     - subject: Incorporating fatrw for safe fat fs operations
       hash: 409bf9d1115155164420a0842e0906abe276a84e
       body: |

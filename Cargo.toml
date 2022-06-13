@@ -1,6 +1,6 @@
 [package]
 name = "os-config"
-version = "1.2.3"
+version = "1.2.4"
 authors = ["Zahari Petkov <zahari@balena.io>", "Andrei Gherzan <andrei@balena.io>"]
 description = "balenaOS configuration tool"
 repository = "https://github.com/balena-os/os-config"
