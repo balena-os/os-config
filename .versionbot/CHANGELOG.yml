@@ -1,4 +1,17 @@
 - commits:
+    - subject: Remove panic="abort" as it breaks meta-rust
+      hash: f4bbb91bbfe9f31a290612e522a0a2d340bdf5b6
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Zahari Petkov <zahari@balena.io>
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      author: Zahari Petkov
+  version: 1.2.5
+  title: "'Remove panic=\"abort\" as it breaks meta-rust'"
+  date: 2022-06-20T16:26:47.941Z
+- commits:
     - subject: Optimize binary size in release builds
       hash: b8a9b2ac171c214803ad65574d8d00fa1bccf587
       body: ""
