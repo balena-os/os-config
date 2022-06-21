@@ -44,5 +44,4 @@ git = "https://github.com/balena-os/fatrw"
 
 [profile.release]
 opt-level = "z"
-lto = true
 codegen-units = 1
