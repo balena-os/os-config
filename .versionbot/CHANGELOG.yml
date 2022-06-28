@@ -1,4 +1,17 @@
 - commits:
+    - subject: Pin fatrw to specific release
+      hash: 966609ff214889b9db6adf2e71c1acc1e1e20160
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Zahari Petkov <zahari@balena.io>
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      author: Zahari Petkov
+  version: 1.2.7
+  title: "'Pin fatrw to specific release'"
+  date: 2022-06-28T08:47:34.849Z
+- commits:
     - subject: Remote LTO optimization
       hash: 5217aed0e4df42c64ee10042e20ae1f3b98072e9
       body: ""
