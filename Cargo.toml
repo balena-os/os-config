@@ -41,7 +41,7 @@ features = ["ssl"]
 
 [dependencies.fatrw]
 git = "https://github.com/balena-os/fatrw"
-tag = "v0.1.9"
+rev = "2dfbf7b716f156ba6ec3a47181449de52df388b3"
 
 [profile.release]
 opt-level = "z"
