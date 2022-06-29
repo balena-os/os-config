@@ -1,4 +1,17 @@
 - commits:
+    - subject: Pin fatrw to rev instead of tag as yocto build rejects that
+      hash: 12481a66878236fcea652b69c4812e3ef6cb19ae
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Zahari Petkov <zahari@balena.io>
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      author: Zahari Petkov
+  version: 1.2.8
+  title: "'Pin fatrw to rev instead of tag as yocto build rejects that'"
+  date: 2022-06-28T21:20:10.442Z
+- commits:
     - subject: Pin fatrw to specific release
       hash: 966609ff214889b9db6adf2e71c1acc1e1e20160
       body: ""
