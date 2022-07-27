@@ -10,7 +10,6 @@ extern crate clap;
 extern crate dbus;
 extern crate getrandom;
 extern crate hex;
-extern crate openssl;
 extern crate reqwest;
 
 extern crate anyhow;
