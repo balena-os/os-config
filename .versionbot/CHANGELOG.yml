@@ -1,4 +1,18 @@
 - commits:
+    - subject: Pin fatrw to rev instead of tag as it is better supported by yocto
+      hash: 3dd82e6c415d057e3c29c87f122b4bbcc116c61d
+      body: |
+        Current fatrw tag remains v0.1.10.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Zahari Petkov <zahari@balena.io>
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      author: Zahari Petkov
+  version: 1.2.10
+  title: "'Pin fatrw to rev instead of tag as it is better supported by yocto'"
+  date: 2022-08-01T14:36:27.338Z
+- commits:
     - subject: Pin fatrw to v0.1.10
       hash: 06ba0f96e7a3a42c69d56238af65bf74a7bd151e
       body: ""
