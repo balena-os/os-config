@@ -1,4 +1,17 @@
 - commits:
+    - subject: "cargo: update dependencies to v1.62"
+      hash: 4800a001ec9e9be5d1923d8fdc4ebad81b01dd42
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Alex Gonzalez <alexg@balena.io>
+        signed-off-by: Alex Gonzalez <alexg@balena.io>
+      author: Alex Gonzalez
+  version: 1.2.11
+  title: "'cargo: update dependencies to v1.62'"
+  date: 2022-08-08T12:53:53.583Z
+- commits:
     - subject: Pin fatrw to rev instead of tag as it is better supported by yocto
       hash: 3dd82e6c415d057e3c29c87f122b4bbcc116c61d
       body: |
