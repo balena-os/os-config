@@ -250,6 +250,7 @@ fn write_json_object_file(path: &Path, map: &ConfigMap) -> Result<()> {
 
     write_file(path, &contents, None)?;
 
+    debug!("[write_json_object_file] End");
     Ok(())
 }
 

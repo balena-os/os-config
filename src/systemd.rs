@@ -24,6 +24,7 @@ fn start_service_impl(name: &str) -> Result<()> {
 
     path.start_unit(name, DEFAULT_MODE)?;
 
+    debug!("Started {}", name);
     Ok(())
 }
 
@@ -76,6 +77,7 @@ pub fn await_service_exit_impl(name: &str) -> Result<()> {
         let active_state = unit_path.get_active_state()?;
 
         if active_state == "inactive" || active_state == "failed" {
+            debug!("{} is in {} state", name, active_state);
             return Ok(());
         }
 

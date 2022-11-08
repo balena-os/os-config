@@ -30,6 +30,7 @@ pub fn join(args: &Args) -> Result<()> {
 pub fn reconfigure(args: &Args, config_json: &ConfigMap, joining: bool) -> Result<()> {
     let schema = read_os_config_schema(&args.os_config_path)?;
 
+    debug!("Reconfiguring...");
     let api_endpoint = if let Some(api_endpoint) = get_api_endpoint(config_json)? {
         api_endpoint
     } else {
@@ -55,12 +56,14 @@ pub fn reconfigure(args: &Args, config_json: &ConfigMap, joining: bool) -> Resul
         }
     }
 
+    debug!("Before stopping SV with exists: {}", args.supervisor_exists);
     if args.supervisor_exists {
         systemd::stop_service(SUPERVISOR_SERVICE)?;
 
         systemd::await_service_exit(SUPERVISOR_SERVICE)?;
     }
 
+    debug!("After stopping SV");
     let result = reconfigure_core(
         args,
         config_json,
@@ -70,10 +73,12 @@ pub fn reconfigure(args: &Args, config_json: &ConfigMap, joining: bool) -> Resul
         joining,
     );
 
+    debug!("Before starting SV with exists: {}", args.supervisor_exists);
     if args.supervisor_exists {
         systemd::start_service(SUPERVISOR_SERVICE)?;
     }
 
+    debug!("End of reconfiguration");
     result
 }
 
@@ -85,14 +90,18 @@ fn reconfigure_core(
     has_config_changes: bool,
     joining: bool,
 ) -> Result<()> {
+    debug!("[reconfigure_core]: start");
     if joining {
+        debug!("[reconfigure_core]: Before write_config_json");
         write_config_json(&args.config_json_path, config_json)?;
     }
 
     if has_config_changes {
+        debug!("[reconfigure_core]: Before configure_services");
         configure_services(schema, configuration)?;
     }
 
+    debug!("[reconfigure_core]: end");
     Ok(())
 }
 
@@ -112,12 +121,15 @@ fn has_config_changes(schema: &OsConfigSchema, configuration: &Configuration) ->
 }
 
 fn configure_services(schema: &OsConfigSchema, configuration: &Configuration) -> Result<()> {
+    debug!("configure_services: start");
     for service in &schema.services {
         for systemd_service in &service.systemd_services {
+            debug!("[configure_services]: stopping {}", systemd_service);
             systemd::stop_service(systemd_service)?;
         }
 
         for systemd_service in &service.systemd_services {
+            debug!("[configure_services]: Awaiting exit for {}", systemd_service);
             systemd::await_service_exit(systemd_service)?;
         }
 
@@ -133,10 +145,12 @@ fn configure_services(schema: &OsConfigSchema, configuration: &Configuration) ->
         }
 
         for systemd_service in &service.systemd_services {
+            debug!("[configure_services] Starting {}", systemd_service);
             systemd::start_service(systemd_service)?;
         }
     }
 
+    debug!("configure_services: end");
     Ok(())
 }
 
