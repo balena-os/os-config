@@ -30,7 +30,6 @@ pub fn join(args: &Args) -> Result<()> {
 pub fn reconfigure(args: &Args, config_json: &ConfigMap, joining: bool) -> Result<()> {
     let schema = read_os_config_schema(&args.os_config_path)?;
 
-    debug!("Reconfiguring...");
     let api_endpoint = if let Some(api_endpoint) = get_api_endpoint(config_json)? {
         api_endpoint
     } else {
@@ -56,14 +55,12 @@ pub fn reconfigure(args: &Args, config_json: &ConfigMap, joining: bool) -> Resul
         }
     }
 
-    debug!("Before stopping SV with exists: {}", args.supervisor_exists);
     if args.supervisor_exists {
         systemd::stop_service(SUPERVISOR_SERVICE)?;
 
         systemd::await_service_exit(SUPERVISOR_SERVICE)?;
     }
 
-    debug!("After stopping SV");
     let result = reconfigure_core(
         args,
         config_json,
@@ -124,12 +121,10 @@ fn configure_services(schema: &OsConfigSchema, configuration: &Configuration) ->
     debug!("configure_services: start");
     for service in &schema.services {
         for systemd_service in &service.systemd_services {
-            debug!("[configure_services]: stopping {}", systemd_service);
             systemd::stop_service(systemd_service)?;
         }
 
         for systemd_service in &service.systemd_services {
-            debug!("[configure_services]: Awaiting exit for {}", systemd_service);
             systemd::await_service_exit(systemd_service)?;
         }
 
