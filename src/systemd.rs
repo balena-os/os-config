@@ -15,12 +15,12 @@ const DEFAULT_MODE: &str = "replace";
 const MOCK_SYSTEMD: &str = "MOCK_SYSTEMD";
 
 pub fn start_service(name: &str) -> Result<()> {
-    info!("Starting {}...", name);
+    info!("Starting {name}...");
 
     if should_mock_systemd() {
         return Ok(());
     }
-    start_service_impl(name).context(format!("Starting {} failed", name))
+    start_service_impl(name).context(format!("Starting {name} failed"))
 }
 
 fn start_service_impl(name: &str) -> Result<()> {
@@ -34,12 +34,12 @@ fn start_service_impl(name: &str) -> Result<()> {
 }
 
 pub fn stop_service(name: &str) -> Result<()> {
-    info!("Stopping {}...", name);
+    info!("Stopping {name}...");
 
     if should_mock_systemd() {
         return Ok(());
     }
-    stop_service_impl(name).context(format!("Stopping {} failed", name))
+    stop_service_impl(name).context(format!("Stopping {name} failed"))
 }
 
 fn stop_service_impl(name: &str) -> Result<()> {
@@ -53,12 +53,12 @@ fn stop_service_impl(name: &str) -> Result<()> {
 }
 
 pub fn reload_or_restart_service(name: &str) -> Result<()> {
-    info!("Reloading or restarting {}...", name);
+    info!("Reloading or restarting {name}...");
 
     if should_mock_systemd() {
         return Ok(());
     }
-    reload_or_restart_service_impl(name).context(format!("Reloading or restarting {} failed", name))
+    reload_or_restart_service_impl(name).context(format!("Reloading or restarting {name} failed"))
 }
 
 fn reload_or_restart_service_impl(name: &str) -> Result<()> {
@@ -72,12 +72,12 @@ fn reload_or_restart_service_impl(name: &str) -> Result<()> {
 }
 
 pub fn await_service_exit(name: &str) -> Result<()> {
-    info!("Awaiting {} to exit...", name);
+    info!("Awaiting {name} to exit...");
 
     if should_mock_systemd() {
         return Ok(());
     }
-    await_service_exit_impl(name).context(format!("Awaiting {} to exit failed", name))
+    await_service_exit_impl(name).context(format!("Awaiting {name} to exit failed"))
 }
 
 fn await_service_exit_impl(name: &str) -> Result<()> {

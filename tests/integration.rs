@@ -69,7 +69,7 @@ fn join() {
                     "id": "not-a-service-1",
                     "files": {{
                         "main": {{
-                            "path": "{0}/not-a-service-1.conf",
+                            "path": "{tmp_dir_path}/not-a-service-1.conf",
                             "perm": "755"
                         }}
                     }},
@@ -80,11 +80,11 @@ fn join() {
                     "id": "mock-1-2",
                     "files": {{
                         "mock-1": {{
-                            "path": "{0}/mock-1.conf",
+                            "path": "{tmp_dir_path}/mock-1.conf",
                             "perm": "600"
                         }},
                         "mock-2": {{
-                            "path": "{0}/mock-2.conf",
+                            "path": "{tmp_dir_path}/mock-2.conf",
                             "perm": "755"
                         }}
                     }},
@@ -95,7 +95,7 @@ fn join() {
                     "id": "mock-3",
                     "files": {{
                         "mock-3": {{
-                            "path": "{0}/mock-3.conf",
+                            "path": "{tmp_dir_path}/mock-3.conf",
                             "perm": ""
                         }}
                     }},
@@ -106,8 +106,7 @@ fn join() {
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
             "schema_version": "1.0.0"
         }}
-        "#,
-        tmp_dir_path
+        "#
     );
 
     let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
@@ -165,23 +164,22 @@ fn join() {
         Service configuration retrieved
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
-        Writing {0}/config.json
-        {0}/not-a-service-1.conf updated
+        Writing {tmp_dir_path}/config.json
+        {tmp_dir_path}/not-a-service-1.conf updated
         Stopping mock-service-1.service...
         Stopping mock-service-2.service...
         Awaiting mock-service-1.service to exit...
         Awaiting mock-service-2.service to exit...
-        {0}/mock-1.conf updated
-        {0}/mock-2.conf updated
+        {tmp_dir_path}/mock-1.conf updated
+        {tmp_dir_path}/mock-2.conf updated
         Starting mock-service-1.service...
         Starting mock-service-2.service...
         Stopping mock-service-3.service...
         Awaiting mock-service-3.service to exit...
-        {0}/mock-3.conf updated
+        {tmp_dir_path}/mock-3.conf updated
         Starting mock-service-3.service...
         Starting balena-supervisor.service...
-        "#,
-        tmp_dir_path
+        "#
     ));
 
     get_base_command()
@@ -192,25 +190,25 @@ fn join() {
         .stdout(output);
 
     validate_file(
-        &format!("{}/not-a-service-1.conf", tmp_dir_path),
+        &format!("{tmp_dir_path}/not-a-service-1.conf"),
         "NO-SYSTEMD\n0123456789\n0123456789\n0123456789\n0123456789\n",
         Some(0o755),
     );
 
     validate_file(
-        &format!("{}/mock-1.conf", tmp_dir_path),
+        &format!("{tmp_dir_path}/mock-1.conf"),
         "MOCK-1-АБВГДЕЖЗИЙ",
         Some(0o600),
     );
 
     validate_file(
-        &format!("{}/mock-2.conf", tmp_dir_path),
+        &format!("{tmp_dir_path}/mock-2.conf"),
         "MOCK-2-0123456789",
         Some(0o755),
     );
 
     validate_file(
-        &format!("{}/mock-3.conf", tmp_dir_path),
+        &format!("{tmp_dir_path}/mock-3.conf"),
         "MOCK-3-0123456789",
         None,
     );
@@ -277,7 +275,7 @@ fn join_flasher() {
                     "id": "mock-1",
                     "files": {{
                         "mock-1": {{
-                            "path": "{0}/mock-1.conf",
+                            "path": "{tmp_dir_path}/mock-1.conf",
                             "perm": "600"
                         }}
                     }},
@@ -287,8 +285,7 @@ fn join_flasher() {
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
             "schema_version": "1.0.0"
         }}
-        "#,
-        tmp_dir_path
+        "#
     );
 
     let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
@@ -339,14 +336,13 @@ fn join_flasher() {
         Service configuration retrieved
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
-        Writing {0}/config.json
+        Writing {tmp_dir_path}/config.json
         Stopping mock-service-1.service...
         Awaiting mock-service-1.service to exit...
-        {0}/mock-1.conf updated
+        {tmp_dir_path}/mock-1.conf updated
         Starting mock-service-1.service...
         Starting balena-supervisor.service...
         "#,
-        tmp_dir_path
     ));
 
     get_base_command()
@@ -359,7 +355,7 @@ fn join_flasher() {
         .stdout(output);
 
     validate_file(
-        &format!("{}/mock-1.conf", tmp_dir_path),
+        &format!("{tmp_dir_path}/mock-1.conf"),
         "MOCK-1-АБВГДЕЖЗИЙ",
         Some(0o600),
     );
@@ -473,10 +469,9 @@ fn join_with_root_certificate() {
         No configuration changes
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
-        Writing {0}/config.json
+        Writing {tmp_dir_path}/config.json
         Starting balena-supervisor.service...
-        "#,
-        tmp_dir_path
+        "#
     ));
 
     get_base_command()
@@ -548,7 +543,7 @@ fn join_no_endpoint() {
                     "id": "mock-1",
                     "files": {{
                         "mock-1": {{
-                            "path": "{0}/mock-1.conf",
+                            "path": "{tmp_dir_path}/mock-1.conf",
                             "perm": "600"
                         }}
                     }},
@@ -558,8 +553,7 @@ fn join_no_endpoint() {
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
             "schema_version": "1.0.0"
         }}
-        "#,
-        tmp_dir_path
+        "#
     );
 
     let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
@@ -776,7 +770,7 @@ fn reconfigure() {
             "appUpdatePollInterval": 60000,
             "listenPort": 48484,
             "vpnPort": 443,
-            "apiEndpoint": "http://{}",
+            "apiEndpoint": "http://{0}",
             "vpnEndpoint": "vpn.resin.io",
             "registryEndpoint": "registry2.resin.io",
             "deltaEndpoint": "https://delta.resin.io",
@@ -797,10 +791,9 @@ fn reconfigure() {
         No configuration changes
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
-        Writing {0}/config.json
+        Writing {tmp_dir_path}/config.json
         Starting balena-supervisor.service...
-        "#,
-        tmp_dir_path
+        "#
     ));
 
     get_base_command()
@@ -940,10 +933,9 @@ fn reconfigure_stored() {
         No configuration changes
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
-        Writing {0}/config.json
+        Writing {tmp_dir_path}/config.json
         Starting balena-supervisor.service...
-        "#,
-        tmp_dir_path
+        "#
     ));
 
     get_base_command()
@@ -1038,7 +1030,7 @@ fn update() {
                     "id": "not-a-service-1",
                     "files": {{
                         "main": {{
-                            "path": "{0}/not-a-service-1.conf",
+                            "path": "{tmp_dir_path}/not-a-service-1.conf",
                             "perm": "755"
                         }}
                     }},
@@ -1049,11 +1041,11 @@ fn update() {
                     "id": "mock-1-2",
                     "files": {{
                         "mock-1": {{
-                            "path": "{0}/mock-1.conf",
+                            "path": "{tmp_dir_path}/mock-1.conf",
                             "perm": "600"
                         }},
                         "mock-2": {{
-                            "path": "{0}/mock-2.conf",
+                            "path": "{tmp_dir_path}/mock-2.conf",
                             "perm": "755"
                         }}
                     }},
@@ -1064,7 +1056,7 @@ fn update() {
                     "id": "mock-3",
                     "files": {{
                         "mock-3": {{
-                            "path": "{0}/mock-3.conf",
+                            "path": "{tmp_dir_path}/mock-3.conf",
                             "perm": ""
                         }}
                     }},
@@ -1075,8 +1067,7 @@ fn update() {
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
             "schema_version": "1.0.0"
         }}
-        "#,
-        tmp_dir_path
+        "#
     );
 
     let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
@@ -1114,22 +1105,21 @@ fn update() {
         Service configuration retrieved
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
-        {0}/not-a-service-1.conf updated
+        {tmp_dir_path}/not-a-service-1.conf updated
         Stopping mock-service-1.service...
         Stopping mock-service-2.service...
         Awaiting mock-service-1.service to exit...
         Awaiting mock-service-2.service to exit...
-        {0}/mock-1.conf updated
-        {0}/mock-2.conf updated
+        {tmp_dir_path}/mock-1.conf updated
+        {tmp_dir_path}/mock-2.conf updated
         Starting mock-service-1.service...
         Starting mock-service-2.service...
         Stopping mock-service-3.service...
         Awaiting mock-service-3.service to exit...
-        {0}/mock-3.conf updated
+        {tmp_dir_path}/mock-3.conf updated
         Starting mock-service-3.service...
         Starting balena-supervisor.service...
-        "#,
-        tmp_dir_path
+        "#
     ));
 
     get_base_command()
@@ -1140,25 +1130,25 @@ fn update() {
         .stdout(predicate::str::is_match(output).unwrap());
 
     validate_file(
-        &format!("{}/not-a-service-1.conf", tmp_dir_path),
+        &format!("{tmp_dir_path}/not-a-service-1.conf"),
         "NO-SYSTEMD\n0123456789\n0123456789\n0123456789\n0123456789\n",
         Some(0o755),
     );
 
     validate_file(
-        &format!("{}/mock-1.conf", tmp_dir_path),
+        &format!("{tmp_dir_path}/mock-1.conf"),
         "MOCK-1-АБВГДЕЖЗИЙ",
         Some(0o600),
     );
 
     validate_file(
-        &format!("{}/mock-2.conf", tmp_dir_path),
+        &format!("{tmp_dir_path}/mock-2.conf"),
         "MOCK-2-0123456789",
         Some(0o755),
     );
 
     validate_file(
-        &format!("{}/mock-3.conf", tmp_dir_path),
+        &format!("{tmp_dir_path}/mock-3.conf"),
         "MOCK-3-0123456789",
         None,
     );
@@ -1213,11 +1203,11 @@ fn update_no_config_changes() {
                     "id": "mock-1-2",
                     "files": {{
                         "mock-1": {{
-                            "path": "{0}/mock-1.conf",
+                            "path": "{tmp_dir_path}/mock-1.conf",
                             "perm": "600"
                         }},
                         "mock-2": {{
-                            "path": "{0}/mock-2.conf",
+                            "path": "{tmp_dir_path}/mock-2.conf",
                             "perm": "755"
                         }}
                     }},
@@ -1228,7 +1218,7 @@ fn update_no_config_changes() {
                     "id": "mock-3",
                     "files": {{
                         "mock-3": {{
-                            "path": "{0}/mock-3.conf",
+                            "path": "{tmp_dir_path}/mock-3.conf",
                             "perm": ""
                         }}
                     }},
@@ -1239,8 +1229,7 @@ fn update_no_config_changes() {
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
             "schema_version": "1.0.0"
         }}
-        "#,
-        tmp_dir_path
+        "#
     );
 
     let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
@@ -1286,19 +1275,19 @@ fn update_no_config_changes() {
         .stdout(output);
 
     validate_file(
-        &format!("{}/mock-1.conf", tmp_dir_path),
+        &format!("{tmp_dir_path}/mock-1.conf"),
         "MOCK-1-АБВГДЕЖЗИЙ",
         Some(0o600),
     );
 
     validate_file(
-        &format!("{}/mock-2.conf", tmp_dir_path),
+        &format!("{tmp_dir_path}/mock-2.conf"),
         "MOCK-2-0123456789",
         Some(0o755),
     );
 
     validate_file(
-        &format!("{}/mock-3.conf", tmp_dir_path),
+        &format!("{tmp_dir_path}/mock-3.conf"),
         "MOCK-3-0123456789",
         None,
     );
@@ -1491,7 +1480,7 @@ fn leave() {
                     "id": "mock-3",
                     "files": {{
                         "mock-3": {{
-                            "path": "{0}/mock-3.conf",
+                            "path": "{tmp_dir_path}/mock-3.conf",
                             "perm": ""
                         }}
                     }},
@@ -1501,8 +1490,7 @@ fn leave() {
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint", "vpnPort", "registryEndpoint", "deltaEndpoint"],
             "schema_version": "1.0.0"
         }}
-        "#,
-        tmp_dir_path
+        "#
     );
 
     let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
@@ -1529,12 +1517,11 @@ fn leave() {
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
         Deleting config.json keys
-        Writing {0}/config.json
-        {0}/mock-3.conf deleted
+        Writing {tmp_dir_path}/config.json
+        {tmp_dir_path}/mock-3.conf deleted
         Reloading or restarting mock-service-3.service...
         Starting balena-supervisor.service...
-        "#,
-        tmp_dir_path
+        "#
     ));
 
     get_base_command()
@@ -1544,7 +1531,7 @@ fn leave() {
         .success()
         .stdout(output);
 
-    validate_does_not_exist(&format!("{}/mock-3.conf", tmp_dir_path));
+    validate_does_not_exist(&format!("{tmp_dir_path}/mock-3.conf"));
 
     validate_json_file(
         &config_json_path,
@@ -1782,9 +1769,8 @@ fn generate_api_key_reuse() {
     let output = unindent::unindent(&format!(
         r#"
         Reusing stored `deviceApiKey`
-        Writing {0}/config.json
-        "#,
-        tmp_dir_path
+        Writing {tmp_dir_path}/config.json
+        "#
     ));
 
     get_base_command()
@@ -1864,9 +1850,8 @@ fn generate_api_key_new() {
     let output = unindent::unindent(&format!(
         r#"
         New `deviceApiKey` generated
-        Writing {0}/config.json
-        "#,
-        tmp_dir_path
+        Writing {tmp_dir_path}/config.json
+        "#
     ));
 
     get_base_command()
