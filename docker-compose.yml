@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  sut:
+    build: ./
+    stop_signal: SIGRTMIN+3
+    tty: true
+    privileged: true
+    # Specifying the tests run in a single thread isn't strictly necessary,
+    # but is useful for seeing which test is failing before the tests are fixed.
+    # This can be changed to `cargo test` in a future commit that fixes the tests.
+    command: cargo test -- --test-threads=1
