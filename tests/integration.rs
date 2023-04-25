@@ -350,9 +350,9 @@ fn join_flasher() {
         .with_args(&["join", &json_config])
         .with_env(
             assert_cli::Environment::inherit()
-                .insert(OS_CONFIG_PATH_REDEFINE, &os_config_path)
+                .insert(OS_CONFIG_PATH_REDEFINE, os_config_path)
                 .insert(CONFIG_JSON_FLASHER_PATH_REDEFINE, &config_json_path)
-                .insert(FLASHER_FLAG_PATH_REDEFINE, &flasher_flag_path)
+                .insert(FLASHER_FLAG_PATH_REDEFINE, flasher_flag_path)
                 .insert(MOCK_SYSTEMD, "1"),
         )
         .succeeds()
