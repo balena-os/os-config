@@ -1,5 +1,6 @@
 use std::thread;
 use std::time::Duration;
+use std::env;
 
 use dbus;
 
@@ -11,13 +12,18 @@ const SYSTEMD_PATH: &str = "/org/freedesktop/systemd1";
 
 const DEFAULT_MODE: &str = "replace";
 
+const MOCK_SYSTEMD: &str = "MOCK_SYSTEMD";
+
 pub fn start_service(name: &str) -> Result<()> {
+    info!("Starting {}...", name);
+
+    if should_mock_systemd() {
+        return Ok(());
+    }
     start_service_impl(name).context(format!("Starting {} failed", name))
 }
 
 fn start_service_impl(name: &str) -> Result<()> {
-    info!("Starting {}...", name);
-
     let connection = dbus::Connection::get_private(dbus::BusType::System)?;
 
     let path = connection.with_path(SYSTEMD, SYSTEMD_PATH, 5000);
@@ -28,12 +34,15 @@ fn start_service_impl(name: &str) -> Result<()> {
 }
 
 pub fn stop_service(name: &str) -> Result<()> {
+    info!("Stopping {}...", name);
+
+    if should_mock_systemd() {
+        return Ok(());
+    }
     stop_service_impl(name).context(format!("Stopping {} failed", name))
 }
 
 fn stop_service_impl(name: &str) -> Result<()> {
-    info!("Stopping {}...", name);
-
     let connection = dbus::Connection::get_private(dbus::BusType::System)?;
 
     let path = connection.with_path(SYSTEMD, SYSTEMD_PATH, 5000);
@@ -44,12 +53,15 @@ fn stop_service_impl(name: &str) -> Result<()> {
 }
 
 pub fn reload_or_restart_service(name: &str) -> Result<()> {
+    info!("Reloading or restarting {}...", name);
+
+    if should_mock_systemd() {
+        return Ok(());
+    }
     reload_or_restart_service_impl(name).context(format!("Reloading or restarting {} failed", name))
 }
 
 fn reload_or_restart_service_impl(name: &str) -> Result<()> {
-    info!("Reloading or restarting {}...", name);
-
     let connection = dbus::Connection::get_private(dbus::BusType::System)?;
 
     let path = connection.with_path(SYSTEMD, SYSTEMD_PATH, 5000);
@@ -60,12 +72,15 @@ fn reload_or_restart_service_impl(name: &str) -> Result<()> {
 }
 
 pub fn await_service_exit(name: &str) -> Result<()> {
+    info!("Awaiting {} to exit...", name);
+
+    if should_mock_systemd() {
+        return Ok(());
+    }
     await_service_exit_impl(name).context(format!("Awaiting {} to exit failed", name))
 }
 
-pub fn await_service_exit_impl(name: &str) -> Result<()> {
-    info!("Awaiting {} to exit...", name);
-
+fn await_service_exit_impl(name: &str) -> Result<()> {
     let connection = dbus::Connection::get_private(dbus::BusType::System)?;
 
     let path = connection.with_path(SYSTEMD, SYSTEMD_PATH, 5000);
@@ -86,6 +101,9 @@ pub fn await_service_exit_impl(name: &str) -> Result<()> {
 }
 
 pub fn service_exists(name: &str) -> bool {
+    if should_mock_systemd() {
+        return true;
+    }
     service_exists_impl(name).unwrap_or(false)
 }
 
@@ -179,5 +197,13 @@ impl<'a, C: ::std::ops::Deref<Target = dbus::Connection>> OrgFreedesktopSystemd1
             "ActiveState",
         )?;
         Ok(active_state)
+    }
+}
+
+fn should_mock_systemd() -> bool {
+    if let Ok(mock) = env::var(MOCK_SYSTEMD) {
+        mock == "1"
+    } else {
+        false
     }
 }

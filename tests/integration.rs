@@ -9,11 +9,10 @@ extern crate serde_json;
 extern crate tempdir;
 extern crate unindent;
 
-use std::fs::{remove_file, File, OpenOptions};
+use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::Path;
-use std::process::Command;
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
@@ -34,10 +33,10 @@ const CONFIG_JSON_PATH_REDEFINE: &str = "CONFIG_JSON_PATH_REDEFINE";
 const CONFIG_JSON_FLASHER_PATH_REDEFINE: &str = "CONFIG_JSON_FLASHER_PATH_REDEFINE";
 const FLASHER_FLAG_PATH_REDEFINE: &str = "FLASHER_FLAG_PATH_REDEFINE";
 
-const SUPERVISOR_SERVICE: &str = "balena-supervisor.service";
-
 const MOCK_JSON_SERVER_ADDRESS: &str = "localhost:54673";
 const CONFIG_ROUTE: &str = "/os/v1/config";
+
+const MOCK_SYSTEMD: &str = "MOCK_SYSTEMD";
 
 /*******************************************************************************
 *  Integration tests
@@ -47,15 +46,6 @@ const CONFIG_ROUTE: &str = "/os/v1/config";
 fn join() {
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
-
-    let script_path = create_service_script(&tmp_dir);
-
-    let supervisor = MockService::new_supervisor(&script_path);
-    start_service(SUPERVISOR_SERVICE);
-
-    let service_1 = MockService::new(unit_name(1), &script_path);
-    let service_2 = MockService::new(unit_name(2), &script_path);
-    let service_3 = MockService::new(unit_name(3), &script_path);
 
     let config_json = r#"
         {
@@ -254,163 +244,6 @@ fn join() {
         true,
     );
 
-    wait_for_systemctl_jobs();
-
-    supervisor.ensure_restarted();
-    service_1.ensure_restarted();
-    service_2.ensure_restarted();
-    service_3.ensure_restarted();
-
-    serve.stop();
-    thandle.join().unwrap();
-}
-
-#[test]
-fn join_no_supervisor() {
-    let tmp_dir = TempDir::new("os-config").unwrap();
-    let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
-
-    let script_path = create_service_script(&tmp_dir);
-
-    let service_1 = MockService::new(unit_name(1), &script_path);
-
-    let config_json = r#"
-        {
-            "deviceType": "raspberrypi3",
-            "hostname": "balena",
-            "persistentLogging": false
-        }
-        "#;
-
-    let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
-
-    let schema = format!(
-        r#"
-        {{
-            "services": [
-                {{
-                    "id": "mock-1",
-                    "files": {{
-                        "mock-1": {{
-                            "path": "{0}/mock-1.conf",
-                            "perm": "600"
-                        }}
-                    }},
-                    "systemd_services": ["mock-service-1.service"]
-                }}
-            ],
-            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
-        }}
-        "#,
-        tmp_dir_path
-    );
-
-    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
-
-    let configuration = unindent::unindent(
-        r#"
-        {
-            "services": {
-                "mock-1": {
-                    "mock-1": "MOCK-1-АБВГДЕЖЗИЙ"
-                }
-            },
-            "schema_version": "1.0.0"
-        }
-        "#,
-    );
-
-    let (mut serve, thandle) = serve_config(configuration, 0, false);
-
-    let json_config = format!(
-        r#"
-        {{
-            "applicationName": "aaaaaa",
-            "applicationId": 123456,
-            "deviceType": "raspberrypi3",
-            "userId": 654321,
-            "username": "username",
-            "appUpdatePollInterval": 60000,
-            "listenPort": 48484,
-            "vpnPort": 443,
-            "apiEndpoint": "http://{}",
-            "vpnEndpoint": "vpn.resin.io",
-            "registryEndpoint": "registry2.resin.io",
-            "deltaEndpoint": "https://delta.resin.io",
-            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
-            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
-            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
-            "apiKey": "12345678abcd1234efgh1234567890ab",
-            "version": "9.99.9+rev1.prod"
-        }}
-        "#,
-        MOCK_JSON_SERVER_ADDRESS
-    );
-
-    let output = unindent::unindent(&format!(
-        r#"
-        Fetching service configuration from http://localhost:54673/os/v1/config...
-        Service configuration retrieved
-        Writing {0}/config.json
-        Stopping mock-service-1.service...
-        Awaiting mock-service-1.service to exit...
-        {0}/mock-1.conf updated
-        Starting mock-service-1.service...
-        "#,
-        tmp_dir_path
-    ));
-
-    assert_cli::Assert::main_binary()
-        .with_args(&["join", &json_config])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
-
-    validate_file(
-        &format!("{}/mock-1.conf", tmp_dir_path),
-        "MOCK-1-АБВГДЕЖЗИЙ",
-        Some(0o600),
-    );
-
-    validate_json_file(
-        &config_json_path,
-        &format!(
-            r#"
-            {{
-                "deviceType": "raspberrypi3",
-                "hostname": "balena",
-                "persistentLogging": false,
-                "applicationName": "aaaaaa",
-                "applicationId": 123456,
-                "userId": 654321,
-                "username": "username",
-                "appUpdatePollInterval": 60000,
-                "listenPort": 48484,
-                "vpnPort": 443,
-                "apiEndpoint": "http://{}",
-                "vpnEndpoint": "vpn.resin.io",
-                "registryEndpoint": "registry2.resin.io",
-                "deltaEndpoint": "https://delta.resin.io",
-                "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
-                "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
-                "mixpanelToken": "12345678abcd1234efgh1234567890ab",
-                "apiKey": "12345678abcd1234efgh1234567890ab",
-                "version": "9.99.9+rev1.prod",
-                "deviceApiKeys": {{}}
-            }}
-            "#,
-            MOCK_JSON_SERVER_ADDRESS
-        ),
-        true,
-    );
-
-    wait_for_systemctl_jobs();
-
-    service_1.ensure_restarted();
-
     serve.stop();
     thandle.join().unwrap();
 }
@@ -419,10 +252,6 @@ fn join_no_supervisor() {
 fn join_flasher() {
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
-
-    let script_path = create_service_script(&tmp_dir);
-
-    let service_1 = MockService::new(unit_name(1), &script_path);
 
     let flasher_flag_path = create_tmp_file(&tmp_dir, "balena-image-flasher", "", None);
 
@@ -504,11 +333,14 @@ fn join_flasher() {
         r#"
         Fetching service configuration from http://localhost:54673/os/v1/config...
         Service configuration retrieved
+        Stopping balena-supervisor.service...
+        Awaiting balena-supervisor.service to exit...
         Writing {0}/config.json
         Stopping mock-service-1.service...
         Awaiting mock-service-1.service to exit...
         {0}/mock-1.conf updated
         Starting mock-service-1.service...
+        Starting balena-supervisor.service...
         "#,
         tmp_dir_path
     ));
@@ -519,8 +351,9 @@ fn join_flasher() {
             assert_cli::Environment::inherit()
                 .insert(OS_CONFIG_PATH_REDEFINE, &os_config_path)
                 .insert(CONFIG_JSON_FLASHER_PATH_REDEFINE, &config_json_path)
-                .insert(FLASHER_FLAG_PATH_REDEFINE, &flasher_flag_path),
-        )
+                .insert(FLASHER_FLAG_PATH_REDEFINE, &flasher_flag_path)
+                .insert(MOCK_SYSTEMD, "1"),
+            )
         .succeeds()
         .stdout()
         .is(&output as &str)
@@ -564,10 +397,6 @@ fn join_flasher() {
         true,
     );
 
-    wait_for_systemctl_jobs();
-
-    service_1.ensure_restarted();
-
     serve.stop();
     thandle.join().unwrap();
 }
@@ -576,11 +405,6 @@ fn join_flasher() {
 fn join_with_root_certificate() {
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
-
-    let script_path = create_service_script(&tmp_dir);
-
-    let supervisor = MockService::new_supervisor(&script_path);
-    start_service(SUPERVISOR_SERVICE);
 
     let config_json = r#"
         {
@@ -696,10 +520,6 @@ fn join_with_root_certificate() {
         ),
         true,
     );
-
-    wait_for_systemctl_jobs();
-
-    supervisor.ensure_restarted();
 
     serve.stop();
     thandle.join().unwrap();
@@ -889,11 +709,6 @@ fn reconfigure() {
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
-    let script_path = create_service_script(&tmp_dir);
-
-    let supervisor = MockService::new_supervisor(&script_path);
-    start_service(SUPERVISOR_SERVICE);
-
     let config_json = r#"
         {
             "deviceApiKey": "f0f0236b70be9a5983d3fd49ac9719b9",
@@ -1029,10 +844,6 @@ fn reconfigure() {
         true,
     );
 
-    wait_for_systemctl_jobs();
-
-    supervisor.ensure_restarted();
-
     serve.stop();
     thandle.join().unwrap();
 }
@@ -1041,11 +852,6 @@ fn reconfigure() {
 fn reconfigure_stored() {
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
-
-    let script_path = create_service_script(&tmp_dir);
-
-    let supervisor = MockService::new_supervisor(&script_path);
-    start_service(SUPERVISOR_SERVICE);
 
     let config_json = unindent::unindent(&format!(
         r#"
@@ -1184,10 +990,6 @@ fn reconfigure_stored() {
         false,
     );
 
-    wait_for_systemctl_jobs();
-
-    supervisor.ensure_restarted();
-
     serve.stop();
     thandle.join().unwrap();
 }
@@ -1196,15 +998,6 @@ fn reconfigure_stored() {
 fn update() {
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
-
-    let script_path = create_service_script(&tmp_dir);
-
-    let supervisor = MockService::new_supervisor(&script_path);
-    start_service(SUPERVISOR_SERVICE);
-
-    let service_1 = MockService::new(unit_name(1), &script_path);
-    let service_2 = MockService::new(unit_name(2), &script_path);
-    let service_3 = MockService::new(unit_name(3), &script_path);
 
     let config_json = format!(
         r#"
@@ -1372,13 +1165,6 @@ fn update() {
 
     validate_json_file(&config_json_path, &config_json, false);
 
-    wait_for_systemctl_jobs();
-
-    supervisor.ensure_restarted();
-    service_1.ensure_restarted();
-    service_2.ensure_restarted();
-    service_3.ensure_restarted();
-
     serve.stop();
     thandle.join().unwrap();
 }
@@ -1387,13 +1173,6 @@ fn update() {
 fn update_no_config_changes() {
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
-
-    let script_path = create_service_script(&tmp_dir);
-
-    let supervisor = MockService::new_supervisor(&script_path);
-    let service_1 = MockService::new(unit_name(1), &script_path);
-    let service_2 = MockService::new(unit_name(2), &script_path);
-    let service_3 = MockService::new(unit_name(3), &script_path);
 
     let config_json = format!(
         r#"
@@ -1526,13 +1305,6 @@ fn update_no_config_changes() {
 
     validate_json_file(&config_json_path, &config_json, false);
 
-    wait_for_systemctl_jobs();
-
-    supervisor.ensure_not_restarted();
-    service_1.ensure_not_restarted();
-    service_2.ensure_not_restarted();
-    service_3.ensure_not_restarted();
-
     serve.stop();
     thandle.join().unwrap();
 }
@@ -1540,10 +1312,6 @@ fn update_no_config_changes() {
 #[test]
 fn update_with_root_certificate() {
     let tmp_dir = TempDir::new("os-config").unwrap();
-
-    let script_path = create_service_script(&tmp_dir);
-
-    let supervisor = MockService::new_supervisor(&script_path);
 
     let config_json = format!(
         r#"
@@ -1618,10 +1386,6 @@ fn update_with_root_certificate() {
 
     validate_json_file(&config_json_path, &config_json, false);
 
-    wait_for_systemctl_jobs();
-
-    supervisor.ensure_not_restarted();
-
     serve.stop();
     thandle.join().unwrap();
 }
@@ -1687,11 +1451,6 @@ fn update_unmanaged() {
 fn leave() {
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
-
-    let script_path = create_service_script(&tmp_dir);
-
-    let supervisor = MockService::new_supervisor(&script_path);
-    let service_3 = MockService::new(unit_name(3), &script_path);
 
     let config_json = format!(
         r#"
@@ -1815,11 +1574,6 @@ fn leave() {
         ),
         false,
     );
-
-    wait_for_systemctl_jobs();
-
-    supervisor.ensure_restarted();
-    service_3.ensure_restarted();
 
     serve.stop();
     thandle.join().unwrap();
@@ -2159,6 +1913,7 @@ fn os_config_env(os_config_path: &str, config_json_path: &str) -> assert_cli::En
     assert_cli::Environment::inherit()
         .insert(OS_CONFIG_PATH_REDEFINE, os_config_path)
         .insert(CONFIG_JSON_PATH_REDEFINE, config_json_path)
+        .insert(MOCK_SYSTEMD, "1")
 }
 
 /*******************************************************************************
@@ -2244,149 +1999,6 @@ impl Drop for Serve {
             self.stop();
         }
     }
-}
-
-/*******************************************************************************
-*  Mock services
-*/
-
-struct MockService {
-    name: String,
-    activated: u64,
-}
-
-impl MockService {
-    fn new(name: String, script_path: &str) -> Self {
-        create_mock_service(&name, script_path);
-
-        wait_for_systemctl_jobs();
-
-        let activated = service_active_enter_time(&name);
-
-        MockService { name, activated }
-    }
-
-    fn new_supervisor(script_path: &str) -> Self {
-        Self::new(SUPERVISOR_SERVICE.into(), script_path)
-    }
-
-    fn ensure_restarted(&self) {
-        assert_ne!(self.activated, service_active_enter_time(&self.name));
-    }
-
-    fn ensure_not_restarted(&self) {
-        assert_eq!(self.activated, service_active_enter_time(&self.name));
-    }
-}
-
-impl Drop for MockService {
-    fn drop(&mut self) {
-        remove_mock_service(&self.name);
-    }
-}
-
-fn create_service_script(tmp_dir: &TempDir) -> String {
-    let contents = r#"
-        #!/usr/bin/env bash
-
-        sleep infinity
-        "#;
-    create_tmp_file(tmp_dir, "mock-service.sh", contents, Some(0o755))
-}
-
-fn create_mock_service(name: &str, exec_path: &str) {
-    create_unit(name, exec_path);
-    enable_service(name);
-}
-
-fn remove_mock_service(name: &str) {
-    stop_service(name);
-    disable_service(name);
-    remove_file(unit_path(name)).unwrap();
-}
-
-fn create_unit(name: &str, exec_path: &str) {
-    let unit = format!(
-        r#"
-            [Unit]
-            Description={}
-
-            [Service]
-            Type=simple
-            ExecStart={}
-
-            [Install]
-            WantedBy=multi-user.target
-        "#,
-        name, exec_path
-    );
-
-    let path = unit_path(name);
-
-    create_file(&path, &unit, None);
-}
-
-fn enable_service(name: &str) {
-    systemctl(&format!("--system enable {}", name));
-}
-
-fn start_service(name: &str) {
-    systemctl(&format!("--system start {}", name));
-}
-
-fn stop_service(name: &str) {
-    systemctl(&format!("--system stop {}", name));
-}
-
-fn disable_service(name: &str) {
-    systemctl(&format!("--system disable {}", name));
-}
-
-fn unit_path(name: &str) -> String {
-    format!("/etc/systemd/system/{}", name)
-}
-
-fn unit_name(index: usize) -> String {
-    format!("mock-service-{}.service", index)
-}
-
-fn wait_for_systemctl_jobs() {
-    let mut count = 0;
-
-    loop {
-        let output = systemctl("list-jobs");
-
-        if output == "No jobs running.\n" {
-            break;
-        }
-
-        if count == 50 {
-            panic!("Uncompleted systemd jobs");
-        }
-
-        count += 1;
-
-        thread::sleep(Duration::from_millis(100));
-    }
-}
-
-fn service_active_enter_time(name: &str) -> u64 {
-    let output = systemctl(&format!(
-        "show {} --property=ActiveEnterTimestampMonotonic",
-        name
-    ));
-    let timestamp = &output[30..output.len() - 1];
-    timestamp.parse::<u64>().unwrap()
-}
-
-fn systemctl(args: &str) -> String {
-    let args_vec = args.split_whitespace().collect::<Vec<_>>();
-
-    let output = Command::new("systemctl").args(&args_vec).output().unwrap();
-
-    assert!(output.status.success());
-
-    String::from(String::from_utf8_lossy(&output.stdout))
 }
 
 /*******************************************************************************
