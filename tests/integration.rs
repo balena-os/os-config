@@ -354,7 +354,7 @@ fn join_flasher() {
                 .insert(CONFIG_JSON_FLASHER_PATH_REDEFINE, &config_json_path)
                 .insert(FLASHER_FLAG_PATH_REDEFINE, &flasher_flag_path)
                 .insert(MOCK_SYSTEMD, "1"),
-            )
+        )
         .succeeds()
         .stdout()
         .is(&output as &str)
