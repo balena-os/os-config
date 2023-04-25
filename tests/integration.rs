@@ -33,7 +33,6 @@ const CONFIG_JSON_PATH_REDEFINE: &str = "CONFIG_JSON_PATH_REDEFINE";
 const CONFIG_JSON_FLASHER_PATH_REDEFINE: &str = "CONFIG_JSON_FLASHER_PATH_REDEFINE";
 const FLASHER_FLAG_PATH_REDEFINE: &str = "FLASHER_FLAG_PATH_REDEFINE";
 
-const MOCK_JSON_SERVER_ADDRESS: &str = "localhost:54673";
 const CONFIG_ROUTE: &str = "/os/v1/config";
 
 const MOCK_SYSTEMD: &str = "MOCK_SYSTEMD";
@@ -44,6 +43,7 @@ const MOCK_SYSTEMD: &str = "MOCK_SYSTEMD";
 
 #[test]
 fn join() {
+    let port = 31001;
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
@@ -128,7 +128,7 @@ fn join() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
 
     let json_config = format!(
         r#"
@@ -152,12 +152,12 @@ fn join() {
             "version": "9.99.9+rev1.prod"
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS
+        server_address(port)
     );
 
     let output = unindent::unindent(&format!(
         r#"
-        Fetching service configuration from http://localhost:54673/os/v1/config...
+        Fetching service configuration from http://localhost:{port}/os/v1/config...
         Service configuration retrieved
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
@@ -239,7 +239,7 @@ fn join() {
                 "deviceApiKeys": {{}}
             }}
             "#,
-            MOCK_JSON_SERVER_ADDRESS
+            server_address(port)
         ),
         true,
     );
@@ -250,6 +250,7 @@ fn join() {
 
 #[test]
 fn join_flasher() {
+    let port = 31002;
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
@@ -302,7 +303,7 @@ fn join_flasher() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
 
     let json_config = format!(
         r#"
@@ -326,12 +327,12 @@ fn join_flasher() {
             "version": "9.99.9+rev1.prod"
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS
+        server_address(port)
     );
 
     let output = unindent::unindent(&format!(
         r#"
-        Fetching service configuration from http://localhost:54673/os/v1/config...
+        Fetching service configuration from http://localhost:{port}/os/v1/config...
         Service configuration retrieved
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
@@ -392,7 +393,7 @@ fn join_flasher() {
                 "deviceApiKeys": {{}}
             }}
             "#,
-            MOCK_JSON_SERVER_ADDRESS
+            server_address(port)
         ),
         true,
     );
@@ -403,6 +404,7 @@ fn join_flasher() {
 
 #[test]
 fn join_with_root_certificate() {
+    let port = 31003;
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
@@ -437,7 +439,7 @@ fn join_with_root_certificate() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, true);
+    let (mut serve, thandle) = serve_config(configuration, 0, true, port);
 
     let json_config = format!(
         r#"
@@ -462,13 +464,13 @@ fn join_with_root_certificate() {
             "balenaRootCA": "{}"
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS,
+        server_address(port),
         cert_for_json(CERTIFICATE)
     );
 
     let output = unindent::unindent(&format!(
         r#"
-        Fetching service configuration from https://localhost:54673/os/v1/config...
+        Fetching service configuration from https://localhost:{port}/os/v1/config...
         Service configuration retrieved
         No configuration changes
         Stopping balena-supervisor.service...
@@ -515,7 +517,7 @@ fn join_with_root_certificate() {
                 "balenaRootCA": "{}"
             }}
             "#,
-            MOCK_JSON_SERVER_ADDRESS,
+            server_address(port),
             cert_for_json(CERTIFICATE)
         ),
         true,
@@ -527,6 +529,7 @@ fn join_with_root_certificate() {
 
 #[test]
 fn join_no_endpoint() {
+    let port = 31004;
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
@@ -577,7 +580,7 @@ fn join_no_endpoint() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 3, false);
+    let (mut serve, thandle) = serve_config(configuration, 3, false, port);
 
     let json_config = format!(
         r#"
@@ -601,24 +604,24 @@ fn join_no_endpoint() {
             "version": "9.99.9+rev1.prod"
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS
+        server_address(port)
     );
 
-    let stdout = unindent::unindent(
+    let stdout = unindent::unindent(&format!(
         "
-        Fetching service configuration from http://localhost:54673/os/v1/config...
+        Fetching service configuration from http://localhost:{port}/os/v1/config...
         ",
-    );
+    ));
 
-    let stderr = unindent::unindent(
+    let stderr = unindent::unindent(&format!(
         "
         Error: Fetching configuration failed
 
         Caused by:
-            0: http://localhost:54673/os/v1/config: error trying to connect: Connection refused (os error 111)
+            0: http://localhost:{port}/os/v1/config: error trying to connect: Connection refused (os error 111)
             1: Connection refused (os error 111)
         ",
-    );
+    ));
 
     assert_cli::Assert::main_binary()
         .with_args(&["join", &json_config])
@@ -636,6 +639,7 @@ fn join_no_endpoint() {
 
 #[test]
 fn incompatible_device_types() {
+    let port = 31005;
     let tmp_dir = TempDir::new("os-config").unwrap();
 
     let config_json = r#"
@@ -683,7 +687,7 @@ fn incompatible_device_types() {
             "version": "9.99.9+rev1.prod"
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS
+        server_address(port)
     );
 
     let output = unindent::unindent(
@@ -706,6 +710,7 @@ fn incompatible_device_types() {
 
 #[test]
 fn reconfigure() {
+    let port = 31006;
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
@@ -762,7 +767,7 @@ fn reconfigure() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
 
     let json_config = format!(
         r#"
@@ -786,12 +791,12 @@ fn reconfigure() {
             "version": "9.99.9+rev1.prod"
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS
+        server_address(port)
     );
 
     let output = unindent::unindent(&format!(
         r#"
-        Fetching service configuration from http://localhost:54673/os/v1/config...
+        Fetching service configuration from http://localhost:{port}/os/v1/config...
         Service configuration retrieved
         No configuration changes
         Stopping balena-supervisor.service...
@@ -839,7 +844,7 @@ fn reconfigure() {
                 }}
             }}
             "#,
-            MOCK_JSON_SERVER_ADDRESS
+            server_address(port)
         ),
         true,
     );
@@ -850,6 +855,7 @@ fn reconfigure() {
 
 #[test]
 fn reconfigure_stored() {
+    let port = 31007;
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
@@ -877,7 +883,7 @@ fn reconfigure_stored() {
             }}
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS
+        server_address(port)
     ));
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
@@ -905,7 +911,7 @@ fn reconfigure_stored() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
 
     let json_config = format!(
         r#"
@@ -929,12 +935,12 @@ fn reconfigure_stored() {
             "version": "9.99.9+rev1.prod"
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS
+        server_address(port)
     );
 
     let output = unindent::unindent(&format!(
         r#"
-        Fetching service configuration from http://localhost:54673/os/v1/config...
+        Fetching service configuration from http://localhost:{port}/os/v1/config...
         Service configuration retrieved
         No configuration changes
         Stopping balena-supervisor.service...
@@ -985,7 +991,7 @@ fn reconfigure_stored() {
                 }}
             }}
             "#,
-            MOCK_JSON_SERVER_ADDRESS
+            server_address(port)
         ),
         false,
     );
@@ -996,6 +1002,7 @@ fn reconfigure_stored() {
 
 #[test]
 fn update() {
+    let port = 31008;
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
@@ -1024,7 +1031,7 @@ fn update() {
             "version": "9.99.9+rev1.prod"
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS
+        server_address(port)
     );
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
@@ -1104,12 +1111,12 @@ fn update() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 5, false);
+    let (mut serve, thandle) = serve_config(configuration, 5, false, port);
 
     let output = unindent::unindent(&format!(
         r#"
-        Fetching service configuration from http://localhost:54673/os/v1/config...
-        http://localhost:54673/os/v1/config: error trying to connect: Connection refused (os error 111)
+        Fetching service configuration from http://localhost:{port}/os/v1/config...
+        http://localhost:{port}/os/v1/config: error trying to connect: Connection refused (os error 111)
         Service configuration retrieved
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
@@ -1171,6 +1178,7 @@ fn update() {
 
 #[test]
 fn update_no_config_changes() {
+    let port = 31009;
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
@@ -1199,7 +1207,7 @@ fn update_no_config_changes() {
             "version": "9.99.9+rev1.prod"
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS
+        server_address(port)
     );
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
@@ -1267,15 +1275,15 @@ fn update_no_config_changes() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
 
-    let output = unindent::unindent(
+    let output = unindent::unindent(&format!(
         r#"
-        Fetching service configuration from http://localhost:54673/os/v1/config...
+        Fetching service configuration from http://localhost:{port}/os/v1/config...
         Service configuration retrieved
         No configuration changes
         "#,
-    );
+    ));
 
     assert_cli::Assert::main_binary()
         .with_args(&["update"])
@@ -1311,6 +1319,7 @@ fn update_no_config_changes() {
 
 #[test]
 fn update_with_root_certificate() {
+    let port = 31010;
     let tmp_dir = TempDir::new("os-config").unwrap();
 
     let config_json = format!(
@@ -1339,7 +1348,7 @@ fn update_with_root_certificate() {
             "balenaRootCA": "{}"
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS,
+        server_address(port),
         cert_for_json(CERTIFICATE)
     );
 
@@ -1366,15 +1375,15 @@ fn update_with_root_certificate() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, true);
+    let (mut serve, thandle) = serve_config(configuration, 0, true, port);
 
-    let output = unindent::unindent(
+    let output = unindent::unindent(&format!(
         r#"
-        Fetching service configuration from https://localhost:54673/os/v1/config...
+        Fetching service configuration from https://localhost:{port}/os/v1/config...
         Service configuration retrieved
         No configuration changes
         "#,
-    );
+    ));
 
     assert_cli::Assert::main_binary()
         .with_args(&["update"])
@@ -1392,6 +1401,7 @@ fn update_with_root_certificate() {
 
 #[test]
 fn update_unmanaged() {
+    let port = 31011;
     let tmp_dir = TempDir::new("os-config").unwrap();
 
     let config_json = r#"
@@ -1425,7 +1435,7 @@ fn update_unmanaged() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
 
     let output = unindent::unindent(
         r#"
@@ -1449,6 +1459,7 @@ fn update_unmanaged() {
 
 #[test]
 fn leave() {
+    let port = 31012;
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
@@ -1477,7 +1488,7 @@ fn leave() {
             "version": "9.99.9+rev1.prod"
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS
+        server_address(port)
     );
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
@@ -1521,7 +1532,7 @@ fn leave() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
 
     let output = unindent::unindent(&format!(
         r#"
@@ -1570,7 +1581,7 @@ fn leave() {
                 }}
             }}
             "#,
-            MOCK_JSON_SERVER_ADDRESS
+            server_address(port)
         ),
         false,
     );
@@ -1581,6 +1592,7 @@ fn leave() {
 
 #[test]
 fn leave_unmanaged() {
+    let port = 31013;
     let tmp_dir = TempDir::new("os-config").unwrap();
 
     let config_json = r#"
@@ -1616,7 +1628,7 @@ fn leave_unmanaged() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
 
     let output = unindent::unindent(
         r#"
@@ -1924,6 +1936,7 @@ fn serve_config(
     config: String,
     server_thread_sleep: u64,
     with_ssl: bool,
+    port: u16,
 ) -> (Serve, thread::JoinHandle<()>) {
     let (tx, rx) = mpsc::channel();
 
@@ -1950,9 +1963,9 @@ fn serve_config(
             acceptor.set_certificate(&x509).unwrap();
             acceptor.check_private_key().unwrap();
 
-            server.bind_ssl(MOCK_JSON_SERVER_ADDRESS, acceptor)
+            server.bind_ssl(server_address(port), acceptor)
         } else {
-            server.bind(MOCK_JSON_SERVER_ADDRESS)
+            server.bind(server_address(port))
         }
         .unwrap();
 
@@ -1999,6 +2012,10 @@ impl Drop for Serve {
             self.stop();
         }
     }
+}
+
+fn server_address(port: u16) -> String {
+    format!("localhost:{port}")
 }
 
 /*******************************************************************************
