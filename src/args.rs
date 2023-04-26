@@ -63,10 +63,10 @@ pub fn get_cli_args() -> Args {
         .get_matches();
 
     let (subcommand, json_config) = match matches.subcommand() {
-        ("generate-api-key", _) => (OsConfigSubcommand::GenerateApiKey, None),
-        ("update", _) => (OsConfigSubcommand::Update, None),
-        ("join", Some(sub_m)) => (OsConfigSubcommand::Join, Some(get_json_config(sub_m))),
-        ("leave", _) => (OsConfigSubcommand::Leave, None),
+        Some(("generate-api-key", _)) => (OsConfigSubcommand::GenerateApiKey, None),
+        Some(("update", _)) => (OsConfigSubcommand::Update, None),
+        Some(("join", sub_m)) => (OsConfigSubcommand::Join, Some(get_json_config(sub_m))),
+        Some(("leave", _)) => (OsConfigSubcommand::Leave, None),
         _ => unreachable!(),
     };
 
