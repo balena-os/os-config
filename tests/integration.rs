@@ -1,6 +1,6 @@
 extern crate actix_net;
 extern crate actix_web;
-extern crate assert_cli;
+extern crate assert_cmd;
 extern crate base64;
 extern crate env_logger;
 extern crate futures;
@@ -16,6 +16,8 @@ use std::path::Path;
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
+
+use assert_cmd::Command;
 
 use tempdir::TempDir;
 
@@ -180,13 +182,12 @@ fn join() {
         tmp_dir_path
     ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["join", &json_config])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["join", &json_config])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_file(
         &format!("{}/not-a-service-1.conf", tmp_dir_path),
@@ -346,19 +347,14 @@ fn join_flasher() {
         tmp_dir_path
     ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["join", &json_config])
-        .with_env(
-            assert_cli::Environment::inherit()
-                .insert(OS_CONFIG_PATH_REDEFINE, os_config_path)
-                .insert(CONFIG_JSON_FLASHER_PATH_REDEFINE, &config_json_path)
-                .insert(FLASHER_FLAG_PATH_REDEFINE, flasher_flag_path)
-                .insert(MOCK_SYSTEMD, "1"),
-        )
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["join", &json_config])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .env(CONFIG_JSON_FLASHER_PATH_REDEFINE, &config_json_path)
+        .env(FLASHER_FLAG_PATH_REDEFINE, flasher_flag_path)
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_file(
         &format!("{}/mock-1.conf", tmp_dir_path),
@@ -481,13 +477,12 @@ fn join_with_root_certificate() {
         tmp_dir_path
     ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["join", &json_config])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["join", &json_config])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_json_file(
         &config_json_path,
@@ -620,18 +615,17 @@ fn join_no_endpoint() {
         Caused by:
             0: http://localhost:{port}/os/v1/config: error trying to connect: Connection refused (os error 111)
             1: Connection refused (os error 111)
+
         ",
     ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["join", &json_config])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .stdout()
-        .is(&stdout as &str)
-        .fails()
-        .stderr()
-        .is(&stderr as &str)
-        .unwrap();
+    get_base_command()
+        .args(["join", &json_config])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .failure()
+        .stdout(stdout)
+        .stderr(stderr);
 
     serve.stop();
     thandle.join().unwrap();
@@ -696,16 +690,16 @@ fn incompatible_device_types() {
 
         Caused by:
             Expected `deviceType` raspberrypi3, got incompatible-device-type
+
         ",
     );
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["join", &json_config])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .fails()
-        .stderr()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["join", &json_config])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .failure()
+        .stderr(output);
 }
 
 #[test]
@@ -807,13 +801,12 @@ fn reconfigure() {
         tmp_dir_path
     ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["join", &json_config])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["join", &json_config])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_json_file(
         &config_json_path,
@@ -951,13 +944,12 @@ fn reconfigure_stored() {
         tmp_dir_path
     ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["join", &json_config])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["join", &json_config])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_json_file(
         &config_json_path,
@@ -1138,13 +1130,12 @@ fn update() {
         tmp_dir_path
     ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["update"])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["update"])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_file(
         &format!("{}/not-a-service-1.conf", tmp_dir_path),
@@ -1285,13 +1276,12 @@ fn update_no_config_changes() {
         "#,
     ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["update"])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["update"])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_file(
         &format!("{}/mock-1.conf", tmp_dir_path),
@@ -1385,13 +1375,12 @@ fn update_with_root_certificate() {
         "#,
     ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["update"])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["update"])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_json_file(&config_json_path, &config_json, false);
 
@@ -1443,13 +1432,12 @@ fn update_unmanaged() {
         "#,
     );
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["update"])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["update"])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_json_file(&config_json_path, config_json, false);
 
@@ -1547,13 +1535,12 @@ fn leave() {
         tmp_dir_path
     ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["leave"])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["leave"])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_does_not_exist(&format!("{}/mock-3.conf", tmp_dir_path));
 
@@ -1636,13 +1623,12 @@ fn leave_unmanaged() {
         "#,
     );
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["leave"])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["leave"])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     serve.stop();
     thandle.join().unwrap();
@@ -1681,13 +1667,12 @@ fn generate_api_key_unmanaged() {
         "#,
     );
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["generate-api-key"])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["generate-api-key"])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_json_file(&config_json_path, config_json, false);
 }
@@ -1740,13 +1725,12 @@ fn generate_api_key_already_generated() {
         "#,
     );
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["generate-api-key"])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["generate-api-key"])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_json_file(&config_json_path, config_json, false);
 }
@@ -1801,13 +1785,12 @@ fn generate_api_key_reuse() {
         tmp_dir_path
     ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["generate-api-key"])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["generate-api-key"])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_json_file(
         &config_json_path,
@@ -1884,13 +1867,12 @@ fn generate_api_key_new() {
         tmp_dir_path
     ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["generate-api-key"])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["generate-api-key"])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_json_file(
         &config_json_path,
@@ -1921,11 +1903,45 @@ fn generate_api_key_new() {
 *  os-config launch
 */
 
-fn os_config_env(os_config_path: &str, config_json_path: &str) -> assert_cli::Environment {
-    assert_cli::Environment::inherit()
-        .insert(OS_CONFIG_PATH_REDEFINE, os_config_path)
-        .insert(CONFIG_JSON_PATH_REDEFINE, config_json_path)
-        .insert(MOCK_SYSTEMD, "1")
+fn os_config_env<'a>(
+    os_config_path: &'a str,
+    config_json_path: &'a str,
+) -> Vec<(&'static str, &'a str)> {
+    vec![
+        (OS_CONFIG_PATH_REDEFINE, os_config_path),
+        (CONFIG_JSON_PATH_REDEFINE, config_json_path),
+        (MOCK_SYSTEMD, "1"),
+    ]
+}
+
+/*******************************************************************************
+*  Ability to run under `cross`. Borrowed from:
+*  https://github.com/assert-rs/assert_cmd/issues/139#issuecomment-1200146157
+*/
+
+fn find_runner() -> Option<String> {
+    for (key, value) in std::env::vars() {
+        if key.starts_with("CARGO_TARGET_") && key.ends_with("_RUNNER") && !value.is_empty() {
+            return Some(value);
+        }
+    }
+    None
+}
+
+fn get_base_command() -> Command {
+    let mut cmd;
+    let path = assert_cmd::cargo::cargo_bin("os-config");
+    if let Some(runner) = find_runner() {
+        let mut runner = runner.split_whitespace();
+        cmd = Command::new(runner.next().unwrap());
+        for arg in runner {
+            cmd.arg(arg);
+        }
+        cmd.arg(path);
+    } else {
+        cmd = Command::new(path);
+    }
+    cmd
 }
 
 /*******************************************************************************
