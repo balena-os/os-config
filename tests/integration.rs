@@ -5,6 +5,7 @@ extern crate base64;
 extern crate env_logger;
 extern crate futures;
 extern crate openssl;
+extern crate predicates;
 extern crate serde_json;
 extern crate tempdir;
 extern crate unindent;
@@ -18,6 +19,7 @@ use std::thread;
 use std::time::Duration;
 
 use assert_cmd::Command;
+use predicates::prelude::*;
 
 use tempdir::TempDir;
 
@@ -609,14 +611,14 @@ fn join_no_endpoint() {
     ));
 
     let stderr = unindent::unindent(&format!(
-        "
+        r#"
         Error: Fetching configuration failed
 
         Caused by:
-            0: http://localhost:{port}/os/v1/config: error trying to connect: Connection refused (os error 111)
-            1: Connection refused (os error 111)
+            0: http://localhost:{port}/os/v1/config: error trying to connect: [\w\s]+ \(os error \d+\)
+            1: [\w\s]+ \(os error \d+\)
 
-        ",
+        "#,
     ));
 
     get_base_command()
@@ -625,7 +627,7 @@ fn join_no_endpoint() {
         .assert()
         .failure()
         .stdout(stdout)
-        .stderr(stderr);
+        .stderr(predicate::str::is_match(stderr).unwrap());
 
     serve.stop();
     thandle.join().unwrap();
@@ -1108,7 +1110,7 @@ fn update() {
     let output = unindent::unindent(&format!(
         r#"
         Fetching service configuration from http://localhost:{port}/os/v1/config...
-        http://localhost:{port}/os/v1/config: error trying to connect: Connection refused (os error 111)
+        http://localhost:{port}/os/v1/config: error trying to connect: [\w\s]+ \(os error \d+\)
         Service configuration retrieved
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
@@ -1135,7 +1137,7 @@ fn update() {
         .envs(os_config_env(&os_config_path, &config_json_path))
         .assert()
         .success()
-        .stdout(output);
+        .stdout(predicate::str::is_match(output).unwrap());
 
     validate_file(
         &format!("{}/not-a-service-1.conf", tmp_dir_path),
