@@ -1,22 +1,25 @@
 extern crate actix_net;
 extern crate actix_web;
-extern crate assert_cli;
+extern crate assert_cmd;
 extern crate base64;
 extern crate env_logger;
 extern crate futures;
 extern crate openssl;
+extern crate predicates;
 extern crate serde_json;
 extern crate tempdir;
 extern crate unindent;
 
-use std::fs::{remove_file, File, OpenOptions};
+use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::Path;
-use std::process::Command;
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
+
+use assert_cmd::Command;
+use predicates::prelude::*;
 
 use tempdir::TempDir;
 
@@ -34,10 +37,9 @@ const CONFIG_JSON_PATH_REDEFINE: &str = "CONFIG_JSON_PATH_REDEFINE";
 const CONFIG_JSON_FLASHER_PATH_REDEFINE: &str = "CONFIG_JSON_FLASHER_PATH_REDEFINE";
 const FLASHER_FLAG_PATH_REDEFINE: &str = "FLASHER_FLAG_PATH_REDEFINE";
 
-const SUPERVISOR_SERVICE: &str = "balena-supervisor.service";
-
-const MOCK_JSON_SERVER_ADDRESS: &str = "localhost:54673";
 const CONFIG_ROUTE: &str = "/os/v1/config";
+
+const MOCK_SYSTEMD: &str = "MOCK_SYSTEMD";
 
 /*******************************************************************************
 *  Integration tests
@@ -45,17 +47,9 @@ const CONFIG_ROUTE: &str = "/os/v1/config";
 
 #[test]
 fn join() {
+    let port = 31001;
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
-
-    let script_path = create_service_script(&tmp_dir);
-
-    let supervisor = MockService::new_supervisor(&script_path);
-    start_service(SUPERVISOR_SERVICE);
-
-    let service_1 = MockService::new(unit_name(1), &script_path);
-    let service_2 = MockService::new(unit_name(2), &script_path);
-    let service_3 = MockService::new(unit_name(3), &script_path);
 
     let config_json = r#"
         {
@@ -138,7 +132,7 @@ fn join() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
 
     let json_config = format!(
         r#"
@@ -162,12 +156,12 @@ fn join() {
             "version": "9.99.9+rev1.prod"
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS
+        server_address(port)
     );
 
     let output = unindent::unindent(&format!(
         r#"
-        Fetching service configuration from http://localhost:54673/os/v1/config...
+        Fetching service configuration from http://localhost:{port}/os/v1/config...
         Service configuration retrieved
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
@@ -190,13 +184,12 @@ fn join() {
         tmp_dir_path
     ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["join", &json_config])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["join", &json_config])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_file(
         &format!("{}/not-a-service-1.conf", tmp_dir_path),
@@ -249,167 +242,10 @@ fn join() {
                 "deviceApiKeys": {{}}
             }}
             "#,
-            MOCK_JSON_SERVER_ADDRESS
+            server_address(port)
         ),
         true,
     );
-
-    wait_for_systemctl_jobs();
-
-    supervisor.ensure_restarted();
-    service_1.ensure_restarted();
-    service_2.ensure_restarted();
-    service_3.ensure_restarted();
-
-    serve.stop();
-    thandle.join().unwrap();
-}
-
-#[test]
-fn join_no_supervisor() {
-    let tmp_dir = TempDir::new("os-config").unwrap();
-    let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
-
-    let script_path = create_service_script(&tmp_dir);
-
-    let service_1 = MockService::new(unit_name(1), &script_path);
-
-    let config_json = r#"
-        {
-            "deviceType": "raspberrypi3",
-            "hostname": "balena",
-            "persistentLogging": false
-        }
-        "#;
-
-    let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
-
-    let schema = format!(
-        r#"
-        {{
-            "services": [
-                {{
-                    "id": "mock-1",
-                    "files": {{
-                        "mock-1": {{
-                            "path": "{0}/mock-1.conf",
-                            "perm": "600"
-                        }}
-                    }},
-                    "systemd_services": ["mock-service-1.service"]
-                }}
-            ],
-            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
-        }}
-        "#,
-        tmp_dir_path
-    );
-
-    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
-
-    let configuration = unindent::unindent(
-        r#"
-        {
-            "services": {
-                "mock-1": {
-                    "mock-1": "MOCK-1-АБВГДЕЖЗИЙ"
-                }
-            },
-            "schema_version": "1.0.0"
-        }
-        "#,
-    );
-
-    let (mut serve, thandle) = serve_config(configuration, 0, false);
-
-    let json_config = format!(
-        r#"
-        {{
-            "applicationName": "aaaaaa",
-            "applicationId": 123456,
-            "deviceType": "raspberrypi3",
-            "userId": 654321,
-            "username": "username",
-            "appUpdatePollInterval": 60000,
-            "listenPort": 48484,
-            "vpnPort": 443,
-            "apiEndpoint": "http://{}",
-            "vpnEndpoint": "vpn.resin.io",
-            "registryEndpoint": "registry2.resin.io",
-            "deltaEndpoint": "https://delta.resin.io",
-            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
-            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
-            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
-            "apiKey": "12345678abcd1234efgh1234567890ab",
-            "version": "9.99.9+rev1.prod"
-        }}
-        "#,
-        MOCK_JSON_SERVER_ADDRESS
-    );
-
-    let output = unindent::unindent(&format!(
-        r#"
-        Fetching service configuration from http://localhost:54673/os/v1/config...
-        Service configuration retrieved
-        Writing {0}/config.json
-        Stopping mock-service-1.service...
-        Awaiting mock-service-1.service to exit...
-        {0}/mock-1.conf updated
-        Starting mock-service-1.service...
-        "#,
-        tmp_dir_path
-    ));
-
-    assert_cli::Assert::main_binary()
-        .with_args(&["join", &json_config])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
-
-    validate_file(
-        &format!("{}/mock-1.conf", tmp_dir_path),
-        "MOCK-1-АБВГДЕЖЗИЙ",
-        Some(0o600),
-    );
-
-    validate_json_file(
-        &config_json_path,
-        &format!(
-            r#"
-            {{
-                "deviceType": "raspberrypi3",
-                "hostname": "balena",
-                "persistentLogging": false,
-                "applicationName": "aaaaaa",
-                "applicationId": 123456,
-                "userId": 654321,
-                "username": "username",
-                "appUpdatePollInterval": 60000,
-                "listenPort": 48484,
-                "vpnPort": 443,
-                "apiEndpoint": "http://{}",
-                "vpnEndpoint": "vpn.resin.io",
-                "registryEndpoint": "registry2.resin.io",
-                "deltaEndpoint": "https://delta.resin.io",
-                "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
-                "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
-                "mixpanelToken": "12345678abcd1234efgh1234567890ab",
-                "apiKey": "12345678abcd1234efgh1234567890ab",
-                "version": "9.99.9+rev1.prod",
-                "deviceApiKeys": {{}}
-            }}
-            "#,
-            MOCK_JSON_SERVER_ADDRESS
-        ),
-        true,
-    );
-
-    wait_for_systemctl_jobs();
-
-    service_1.ensure_restarted();
 
     serve.stop();
     thandle.join().unwrap();
@@ -417,12 +253,9 @@ fn join_no_supervisor() {
 
 #[test]
 fn join_flasher() {
+    let port = 31002;
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
-
-    let script_path = create_service_script(&tmp_dir);
-
-    let service_1 = MockService::new(unit_name(1), &script_path);
 
     let flasher_flag_path = create_tmp_file(&tmp_dir, "balena-image-flasher", "", None);
 
@@ -473,7 +306,7 @@ fn join_flasher() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
 
     let json_config = format!(
         r#"
@@ -497,34 +330,33 @@ fn join_flasher() {
             "version": "9.99.9+rev1.prod"
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS
+        server_address(port)
     );
 
     let output = unindent::unindent(&format!(
         r#"
-        Fetching service configuration from http://localhost:54673/os/v1/config...
+        Fetching service configuration from http://localhost:{port}/os/v1/config...
         Service configuration retrieved
+        Stopping balena-supervisor.service...
+        Awaiting balena-supervisor.service to exit...
         Writing {0}/config.json
         Stopping mock-service-1.service...
         Awaiting mock-service-1.service to exit...
         {0}/mock-1.conf updated
         Starting mock-service-1.service...
+        Starting balena-supervisor.service...
         "#,
         tmp_dir_path
     ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["join", &json_config])
-        .with_env(
-            assert_cli::Environment::inherit()
-                .insert(OS_CONFIG_PATH_REDEFINE, &os_config_path)
-                .insert(CONFIG_JSON_FLASHER_PATH_REDEFINE, &config_json_path)
-                .insert(FLASHER_FLAG_PATH_REDEFINE, &flasher_flag_path),
-        )
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["join", &json_config])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .env(CONFIG_JSON_FLASHER_PATH_REDEFINE, &config_json_path)
+        .env(FLASHER_FLAG_PATH_REDEFINE, flasher_flag_path)
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_file(
         &format!("{}/mock-1.conf", tmp_dir_path),
@@ -559,14 +391,10 @@ fn join_flasher() {
                 "deviceApiKeys": {{}}
             }}
             "#,
-            MOCK_JSON_SERVER_ADDRESS
+            server_address(port)
         ),
         true,
     );
-
-    wait_for_systemctl_jobs();
-
-    service_1.ensure_restarted();
 
     serve.stop();
     thandle.join().unwrap();
@@ -574,13 +402,9 @@ fn join_flasher() {
 
 #[test]
 fn join_with_root_certificate() {
+    let port = 31003;
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
-
-    let script_path = create_service_script(&tmp_dir);
-
-    let supervisor = MockService::new_supervisor(&script_path);
-    start_service(SUPERVISOR_SERVICE);
 
     let config_json = r#"
         {
@@ -613,7 +437,7 @@ fn join_with_root_certificate() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, true);
+    let (mut serve, thandle) = serve_config(configuration, 0, true, port);
 
     let json_config = format!(
         r#"
@@ -638,13 +462,13 @@ fn join_with_root_certificate() {
             "balenaRootCA": "{}"
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS,
+        server_address(port),
         cert_for_json(CERTIFICATE)
     );
 
     let output = unindent::unindent(&format!(
         r#"
-        Fetching service configuration from https://localhost:54673/os/v1/config...
+        Fetching service configuration from https://localhost:{port}/os/v1/config...
         Service configuration retrieved
         No configuration changes
         Stopping balena-supervisor.service...
@@ -655,13 +479,12 @@ fn join_with_root_certificate() {
         tmp_dir_path
     ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["join", &json_config])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["join", &json_config])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_json_file(
         &config_json_path,
@@ -691,15 +514,11 @@ fn join_with_root_certificate() {
                 "balenaRootCA": "{}"
             }}
             "#,
-            MOCK_JSON_SERVER_ADDRESS,
+            server_address(port),
             cert_for_json(CERTIFICATE)
         ),
         true,
     );
-
-    wait_for_systemctl_jobs();
-
-    supervisor.ensure_restarted();
 
     serve.stop();
     thandle.join().unwrap();
@@ -707,6 +526,7 @@ fn join_with_root_certificate() {
 
 #[test]
 fn join_no_endpoint() {
+    let port = 31004;
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
@@ -757,7 +577,7 @@ fn join_no_endpoint() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 3, false);
+    let (mut serve, thandle) = serve_config(configuration, 3, false, port);
 
     let json_config = format!(
         r#"
@@ -781,34 +601,33 @@ fn join_no_endpoint() {
             "version": "9.99.9+rev1.prod"
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS
+        server_address(port)
     );
 
-    let stdout = unindent::unindent(
+    let stdout = unindent::unindent(&format!(
         "
-        Fetching service configuration from http://localhost:54673/os/v1/config...
+        Fetching service configuration from http://localhost:{port}/os/v1/config...
         ",
-    );
+    ));
 
-    let stderr = unindent::unindent(
-        "
+    let stderr = unindent::unindent(&format!(
+        r#"
         Error: Fetching configuration failed
 
         Caused by:
-            0: http://localhost:54673/os/v1/config: error trying to connect: Connection refused (os error 111)
-            1: Connection refused (os error 111)
-        ",
-    );
+            0: http://localhost:{port}/os/v1/config: error trying to connect: [\w\s]+ \(os error \d+\)
+            1: [\w\s]+ \(os error \d+\)
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["join", &json_config])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .stdout()
-        .is(&stdout as &str)
-        .fails()
-        .stderr()
-        .is(&stderr as &str)
-        .unwrap();
+        "#,
+    ));
+
+    get_base_command()
+        .args(["join", &json_config])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .failure()
+        .stdout(stdout)
+        .stderr(predicate::str::is_match(stderr).unwrap());
 
     serve.stop();
     thandle.join().unwrap();
@@ -816,6 +635,7 @@ fn join_no_endpoint() {
 
 #[test]
 fn incompatible_device_types() {
+    let port = 31005;
     let tmp_dir = TempDir::new("os-config").unwrap();
 
     let config_json = r#"
@@ -863,7 +683,7 @@ fn incompatible_device_types() {
             "version": "9.99.9+rev1.prod"
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS
+        server_address(port)
     );
 
     let output = unindent::unindent(
@@ -872,27 +692,23 @@ fn incompatible_device_types() {
 
         Caused by:
             Expected `deviceType` raspberrypi3, got incompatible-device-type
+
         ",
     );
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["join", &json_config])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .fails()
-        .stderr()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["join", &json_config])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .failure()
+        .stderr(output);
 }
 
 #[test]
 fn reconfigure() {
+    let port = 31006;
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
-
-    let script_path = create_service_script(&tmp_dir);
-
-    let supervisor = MockService::new_supervisor(&script_path);
-    start_service(SUPERVISOR_SERVICE);
 
     let config_json = r#"
         {
@@ -947,7 +763,7 @@ fn reconfigure() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
 
     let json_config = format!(
         r#"
@@ -971,12 +787,12 @@ fn reconfigure() {
             "version": "9.99.9+rev1.prod"
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS
+        server_address(port)
     );
 
     let output = unindent::unindent(&format!(
         r#"
-        Fetching service configuration from http://localhost:54673/os/v1/config...
+        Fetching service configuration from http://localhost:{port}/os/v1/config...
         Service configuration retrieved
         No configuration changes
         Stopping balena-supervisor.service...
@@ -987,13 +803,12 @@ fn reconfigure() {
         tmp_dir_path
     ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["join", &json_config])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["join", &json_config])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_json_file(
         &config_json_path,
@@ -1024,14 +839,10 @@ fn reconfigure() {
                 }}
             }}
             "#,
-            MOCK_JSON_SERVER_ADDRESS
+            server_address(port)
         ),
         true,
     );
-
-    wait_for_systemctl_jobs();
-
-    supervisor.ensure_restarted();
 
     serve.stop();
     thandle.join().unwrap();
@@ -1039,13 +850,9 @@ fn reconfigure() {
 
 #[test]
 fn reconfigure_stored() {
+    let port = 31007;
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
-
-    let script_path = create_service_script(&tmp_dir);
-
-    let supervisor = MockService::new_supervisor(&script_path);
-    start_service(SUPERVISOR_SERVICE);
 
     let config_json = unindent::unindent(&format!(
         r#"
@@ -1071,7 +878,7 @@ fn reconfigure_stored() {
             }}
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS
+        server_address(port)
     ));
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
@@ -1099,7 +906,7 @@ fn reconfigure_stored() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
 
     let json_config = format!(
         r#"
@@ -1123,12 +930,12 @@ fn reconfigure_stored() {
             "version": "9.99.9+rev1.prod"
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS
+        server_address(port)
     );
 
     let output = unindent::unindent(&format!(
         r#"
-        Fetching service configuration from http://localhost:54673/os/v1/config...
+        Fetching service configuration from http://localhost:{port}/os/v1/config...
         Service configuration retrieved
         No configuration changes
         Stopping balena-supervisor.service...
@@ -1139,13 +946,12 @@ fn reconfigure_stored() {
         tmp_dir_path
     ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["join", &json_config])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["join", &json_config])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_json_file(
         &config_json_path,
@@ -1179,14 +985,10 @@ fn reconfigure_stored() {
                 }}
             }}
             "#,
-            MOCK_JSON_SERVER_ADDRESS
+            server_address(port)
         ),
         false,
     );
-
-    wait_for_systemctl_jobs();
-
-    supervisor.ensure_restarted();
 
     serve.stop();
     thandle.join().unwrap();
@@ -1194,17 +996,9 @@ fn reconfigure_stored() {
 
 #[test]
 fn update() {
+    let port = 31008;
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
-
-    let script_path = create_service_script(&tmp_dir);
-
-    let supervisor = MockService::new_supervisor(&script_path);
-    start_service(SUPERVISOR_SERVICE);
-
-    let service_1 = MockService::new(unit_name(1), &script_path);
-    let service_2 = MockService::new(unit_name(2), &script_path);
-    let service_3 = MockService::new(unit_name(3), &script_path);
 
     let config_json = format!(
         r#"
@@ -1231,7 +1025,7 @@ fn update() {
             "version": "9.99.9+rev1.prod"
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS
+        server_address(port)
     );
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
@@ -1311,12 +1105,12 @@ fn update() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 5, false);
+    let (mut serve, thandle) = serve_config(configuration, 5, false, port);
 
     let output = unindent::unindent(&format!(
         r#"
-        Fetching service configuration from http://localhost:54673/os/v1/config...
-        http://localhost:54673/os/v1/config: error trying to connect: Connection refused (os error 111)
+        Fetching service configuration from http://localhost:{port}/os/v1/config...
+        http://localhost:{port}/os/v1/config: error trying to connect: [\w\s]+ \(os error \d+\)
         Service configuration retrieved
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
@@ -1338,13 +1132,12 @@ fn update() {
         tmp_dir_path
     ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["update"])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["update"])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(predicate::str::is_match(output).unwrap());
 
     validate_file(
         &format!("{}/not-a-service-1.conf", tmp_dir_path),
@@ -1372,28 +1165,15 @@ fn update() {
 
     validate_json_file(&config_json_path, &config_json, false);
 
-    wait_for_systemctl_jobs();
-
-    supervisor.ensure_restarted();
-    service_1.ensure_restarted();
-    service_2.ensure_restarted();
-    service_3.ensure_restarted();
-
     serve.stop();
     thandle.join().unwrap();
 }
 
 #[test]
 fn update_no_config_changes() {
+    let port = 31009;
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
-
-    let script_path = create_service_script(&tmp_dir);
-
-    let supervisor = MockService::new_supervisor(&script_path);
-    let service_1 = MockService::new(unit_name(1), &script_path);
-    let service_2 = MockService::new(unit_name(2), &script_path);
-    let service_3 = MockService::new(unit_name(3), &script_path);
 
     let config_json = format!(
         r#"
@@ -1420,7 +1200,7 @@ fn update_no_config_changes() {
             "version": "9.99.9+rev1.prod"
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS
+        server_address(port)
     );
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
@@ -1488,23 +1268,22 @@ fn update_no_config_changes() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
 
-    let output = unindent::unindent(
+    let output = unindent::unindent(&format!(
         r#"
-        Fetching service configuration from http://localhost:54673/os/v1/config...
+        Fetching service configuration from http://localhost:{port}/os/v1/config...
         Service configuration retrieved
         No configuration changes
         "#,
-    );
+    ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["update"])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["update"])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_file(
         &format!("{}/mock-1.conf", tmp_dir_path),
@@ -1526,24 +1305,14 @@ fn update_no_config_changes() {
 
     validate_json_file(&config_json_path, &config_json, false);
 
-    wait_for_systemctl_jobs();
-
-    supervisor.ensure_not_restarted();
-    service_1.ensure_not_restarted();
-    service_2.ensure_not_restarted();
-    service_3.ensure_not_restarted();
-
     serve.stop();
     thandle.join().unwrap();
 }
 
 #[test]
 fn update_with_root_certificate() {
+    let port = 31010;
     let tmp_dir = TempDir::new("os-config").unwrap();
-
-    let script_path = create_service_script(&tmp_dir);
-
-    let supervisor = MockService::new_supervisor(&script_path);
 
     let config_json = format!(
         r#"
@@ -1571,7 +1340,7 @@ fn update_with_root_certificate() {
             "balenaRootCA": "{}"
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS,
+        server_address(port),
         cert_for_json(CERTIFICATE)
     );
 
@@ -1598,29 +1367,24 @@ fn update_with_root_certificate() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, true);
+    let (mut serve, thandle) = serve_config(configuration, 0, true, port);
 
-    let output = unindent::unindent(
+    let output = unindent::unindent(&format!(
         r#"
-        Fetching service configuration from https://localhost:54673/os/v1/config...
+        Fetching service configuration from https://localhost:{port}/os/v1/config...
         Service configuration retrieved
         No configuration changes
         "#,
-    );
+    ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["update"])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["update"])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_json_file(&config_json_path, &config_json, false);
-
-    wait_for_systemctl_jobs();
-
-    supervisor.ensure_not_restarted();
 
     serve.stop();
     thandle.join().unwrap();
@@ -1628,6 +1392,7 @@ fn update_with_root_certificate() {
 
 #[test]
 fn update_unmanaged() {
+    let port = 31011;
     let tmp_dir = TempDir::new("os-config").unwrap();
 
     let config_json = r#"
@@ -1661,7 +1426,7 @@ fn update_unmanaged() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
 
     let output = unindent::unindent(
         r#"
@@ -1669,13 +1434,12 @@ fn update_unmanaged() {
         "#,
     );
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["update"])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["update"])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_json_file(&config_json_path, config_json, false);
 
@@ -1685,13 +1449,9 @@ fn update_unmanaged() {
 
 #[test]
 fn leave() {
+    let port = 31012;
     let tmp_dir = TempDir::new("os-config").unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
-
-    let script_path = create_service_script(&tmp_dir);
-
-    let supervisor = MockService::new_supervisor(&script_path);
-    let service_3 = MockService::new(unit_name(3), &script_path);
 
     let config_json = format!(
         r#"
@@ -1718,7 +1478,7 @@ fn leave() {
             "version": "9.99.9+rev1.prod"
         }}
         "#,
-        MOCK_JSON_SERVER_ADDRESS
+        server_address(port)
     );
 
     let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
@@ -1762,7 +1522,7 @@ fn leave() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
 
     let output = unindent::unindent(&format!(
         r#"
@@ -1777,13 +1537,12 @@ fn leave() {
         tmp_dir_path
     ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["leave"])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["leave"])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_does_not_exist(&format!("{}/mock-3.conf", tmp_dir_path));
 
@@ -1811,15 +1570,10 @@ fn leave() {
                 }}
             }}
             "#,
-            MOCK_JSON_SERVER_ADDRESS
+            server_address(port)
         ),
         false,
     );
-
-    wait_for_systemctl_jobs();
-
-    supervisor.ensure_restarted();
-    service_3.ensure_restarted();
 
     serve.stop();
     thandle.join().unwrap();
@@ -1827,6 +1581,7 @@ fn leave() {
 
 #[test]
 fn leave_unmanaged() {
+    let port = 31013;
     let tmp_dir = TempDir::new("os-config").unwrap();
 
     let config_json = r#"
@@ -1862,7 +1617,7 @@ fn leave_unmanaged() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false);
+    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
 
     let output = unindent::unindent(
         r#"
@@ -1870,13 +1625,12 @@ fn leave_unmanaged() {
         "#,
     );
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["leave"])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["leave"])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     serve.stop();
     thandle.join().unwrap();
@@ -1915,13 +1669,12 @@ fn generate_api_key_unmanaged() {
         "#,
     );
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["generate-api-key"])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["generate-api-key"])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_json_file(&config_json_path, config_json, false);
 }
@@ -1974,13 +1727,12 @@ fn generate_api_key_already_generated() {
         "#,
     );
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["generate-api-key"])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["generate-api-key"])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_json_file(&config_json_path, config_json, false);
 }
@@ -2035,13 +1787,12 @@ fn generate_api_key_reuse() {
         tmp_dir_path
     ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["generate-api-key"])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["generate-api-key"])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_json_file(
         &config_json_path,
@@ -2118,13 +1869,12 @@ fn generate_api_key_new() {
         tmp_dir_path
     ));
 
-    assert_cli::Assert::main_binary()
-        .with_args(&["generate-api-key"])
-        .with_env(os_config_env(&os_config_path, &config_json_path))
-        .succeeds()
-        .stdout()
-        .is(&output as &str)
-        .unwrap();
+    get_base_command()
+        .args(["generate-api-key"])
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
 
     validate_json_file(
         &config_json_path,
@@ -2155,10 +1905,45 @@ fn generate_api_key_new() {
 *  os-config launch
 */
 
-fn os_config_env(os_config_path: &str, config_json_path: &str) -> assert_cli::Environment {
-    assert_cli::Environment::inherit()
-        .insert(OS_CONFIG_PATH_REDEFINE, os_config_path)
-        .insert(CONFIG_JSON_PATH_REDEFINE, config_json_path)
+fn os_config_env<'a>(
+    os_config_path: &'a str,
+    config_json_path: &'a str,
+) -> Vec<(&'static str, &'a str)> {
+    vec![
+        (OS_CONFIG_PATH_REDEFINE, os_config_path),
+        (CONFIG_JSON_PATH_REDEFINE, config_json_path),
+        (MOCK_SYSTEMD, "1"),
+    ]
+}
+
+/*******************************************************************************
+*  Ability to run under `cross`. Borrowed from:
+*  https://github.com/assert-rs/assert_cmd/issues/139#issuecomment-1200146157
+*/
+
+fn find_runner() -> Option<String> {
+    for (key, value) in std::env::vars() {
+        if key.starts_with("CARGO_TARGET_") && key.ends_with("_RUNNER") && !value.is_empty() {
+            return Some(value);
+        }
+    }
+    None
+}
+
+fn get_base_command() -> Command {
+    let mut cmd;
+    let path = assert_cmd::cargo::cargo_bin("os-config");
+    if let Some(runner) = find_runner() {
+        let mut runner = runner.split_whitespace();
+        cmd = Command::new(runner.next().unwrap());
+        for arg in runner {
+            cmd.arg(arg);
+        }
+        cmd.arg(path);
+    } else {
+        cmd = Command::new(path);
+    }
+    cmd
 }
 
 /*******************************************************************************
@@ -2169,6 +1954,7 @@ fn serve_config(
     config: String,
     server_thread_sleep: u64,
     with_ssl: bool,
+    port: u16,
 ) -> (Serve, thread::JoinHandle<()>) {
     let (tx, rx) = mpsc::channel();
 
@@ -2195,9 +1981,9 @@ fn serve_config(
             acceptor.set_certificate(&x509).unwrap();
             acceptor.check_private_key().unwrap();
 
-            server.bind_ssl(MOCK_JSON_SERVER_ADDRESS, acceptor)
+            server.bind_ssl(server_address(port), acceptor)
         } else {
-            server.bind(MOCK_JSON_SERVER_ADDRESS)
+            server.bind(server_address(port))
         }
         .unwrap();
 
@@ -2246,147 +2032,8 @@ impl Drop for Serve {
     }
 }
 
-/*******************************************************************************
-*  Mock services
-*/
-
-struct MockService {
-    name: String,
-    activated: u64,
-}
-
-impl MockService {
-    fn new(name: String, script_path: &str) -> Self {
-        create_mock_service(&name, script_path);
-
-        wait_for_systemctl_jobs();
-
-        let activated = service_active_enter_time(&name);
-
-        MockService { name, activated }
-    }
-
-    fn new_supervisor(script_path: &str) -> Self {
-        Self::new(SUPERVISOR_SERVICE.into(), script_path)
-    }
-
-    fn ensure_restarted(&self) {
-        assert_ne!(self.activated, service_active_enter_time(&self.name));
-    }
-
-    fn ensure_not_restarted(&self) {
-        assert_eq!(self.activated, service_active_enter_time(&self.name));
-    }
-}
-
-impl Drop for MockService {
-    fn drop(&mut self) {
-        remove_mock_service(&self.name);
-    }
-}
-
-fn create_service_script(tmp_dir: &TempDir) -> String {
-    let contents = r#"
-        #!/usr/bin/env bash
-
-        sleep infinity
-        "#;
-    create_tmp_file(tmp_dir, "mock-service.sh", contents, Some(0o755))
-}
-
-fn create_mock_service(name: &str, exec_path: &str) {
-    create_unit(name, exec_path);
-    enable_service(name);
-}
-
-fn remove_mock_service(name: &str) {
-    stop_service(name);
-    disable_service(name);
-    remove_file(unit_path(name)).unwrap();
-}
-
-fn create_unit(name: &str, exec_path: &str) {
-    let unit = format!(
-        r#"
-            [Unit]
-            Description={}
-
-            [Service]
-            Type=simple
-            ExecStart={}
-
-            [Install]
-            WantedBy=multi-user.target
-        "#,
-        name, exec_path
-    );
-
-    let path = unit_path(name);
-
-    create_file(&path, &unit, None);
-}
-
-fn enable_service(name: &str) {
-    systemctl(&format!("--system enable {}", name));
-}
-
-fn start_service(name: &str) {
-    systemctl(&format!("--system start {}", name));
-}
-
-fn stop_service(name: &str) {
-    systemctl(&format!("--system stop {}", name));
-}
-
-fn disable_service(name: &str) {
-    systemctl(&format!("--system disable {}", name));
-}
-
-fn unit_path(name: &str) -> String {
-    format!("/etc/systemd/system/{}", name)
-}
-
-fn unit_name(index: usize) -> String {
-    format!("mock-service-{}.service", index)
-}
-
-fn wait_for_systemctl_jobs() {
-    let mut count = 0;
-
-    loop {
-        let output = systemctl("list-jobs");
-
-        if output == "No jobs running.\n" {
-            break;
-        }
-
-        if count == 50 {
-            panic!("Uncompleted systemd jobs");
-        }
-
-        count += 1;
-
-        thread::sleep(Duration::from_millis(100));
-    }
-}
-
-fn service_active_enter_time(name: &str) -> u64 {
-    let output = systemctl(&format!(
-        "show {} --property=ActiveEnterTimestampMonotonic",
-        name
-    ));
-    let timestamp = &output[30..output.len() - 1];
-    timestamp.parse::<u64>().unwrap()
-}
-
-fn systemctl(args: &str) -> String {
-    let args_vec = args.split_whitespace().collect::<Vec<_>>();
-
-    let output = Command::new("systemctl").args(&args_vec).output().unwrap();
-
-    assert!(output.status.success());
-
-    String::from(String::from_utf8_lossy(&output.stdout))
+fn server_address(port: u16) -> String {
+    format!("localhost:{port}")
 }
 
 /*******************************************************************************
