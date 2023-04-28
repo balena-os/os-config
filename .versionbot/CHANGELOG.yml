@@ -1,4 +1,21 @@
 - commits:
+    - subject: Drop dependency of systemd when running tests
+      hash: 11f6fbe43ca5d62b1824c827691207ffd78b328a
+      body: |
+        Functions such as systemd::start_service are now returning immediately
+        when integration tests are run. This drops the dependency of systemd
+        when tests are run which complicates the testing setup tremendously.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Zahari Petkov <zahari@balena.io>
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      author: Zahari Petkov
+      nested: []
+  version: 1.2.12
+  title: ""
+  date: 2023-04-28T08:47:59.800Z
+- commits:
     - subject: "cargo: update dependencies to v1.62"
       hash: 4800a001ec9e9be5d1923d8fdc4ebad81b01dd42
       body: ""
