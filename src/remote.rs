@@ -39,7 +39,7 @@ impl Configuration {
 }
 
 pub fn config_url(api_endpoint: &str, config_route: &str) -> String {
-    format!("{}{}", api_endpoint, config_route)
+    format!("{api_endpoint}{config_route}")
 }
 
 pub fn fetch_configuration(
@@ -91,7 +91,7 @@ fn retry_request_config(url: &str, client: &reqwest::Client) -> Result<reqwest::
             }
             Err(err) => {
                 // Print the same error only once.
-                let curr_err = format!("{}", err);
+                let curr_err = format!("{err}");
                 if last_err != curr_err {
                     info!("{}", curr_err);
                     last_err = curr_err;

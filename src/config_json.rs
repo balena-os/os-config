@@ -220,7 +220,7 @@ fn get_api_key_for_endpoint(config_json: &ConfigMap, api_endpoint: &str) -> Resu
 }
 
 pub fn read_config_json(path: &Path) -> Result<ConfigMap> {
-    read_json_object_file(path).context(format!("Reading {:?} failed", path))
+    read_json_object_file(path).context(format!("Reading {path:?} failed"))
 }
 
 fn read_json_object_file(path: &Path) -> Result<ConfigMap> {
@@ -240,7 +240,7 @@ fn json_object_from_string(contents: &str) -> Result<ConfigMap> {
 }
 
 pub fn write_config_json(path: &Path, map: &ConfigMap) -> Result<()> {
-    write_json_object_file(path, map).context(format!("Writing {:?} failed", path))
+    write_json_object_file(path, map).context(format!("Writing {path:?} failed"))
 }
 
 fn write_json_object_file(path: &Path, map: &ConfigMap) -> Result<()> {

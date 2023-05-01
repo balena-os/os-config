@@ -20,8 +20,7 @@ pub fn write_file(path: &Path, contents: &str, mode: Option<u32>) -> Result<()> 
 pub fn parse_mode(mode: &str) -> Result<Option<u32>> {
     if !mode.is_empty() {
         Ok(Some(u32::from_str_radix(mode, 8).context(format!(
-            "Parsing permission mode `{}` failed",
-            mode
+            "Parsing permission mode `{mode}` failed"
         ))?))
     } else {
         Ok(None)
