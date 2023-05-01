@@ -1,4 +1,19 @@
 - commits:
+    - subject: Fix clippy warnings introduced in Rust 1.67
+      hash: 1e43e97312f86bc9397b5054cccb83303c6cc35e
+      body: |
+        Done automatically with `cargo clippy --fix`
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Zahari Petkov <zahari@balena.io>
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      author: Zahari Petkov
+      nested: []
+  version: 1.2.13
+  title: ""
+  date: 2023-05-01T09:34:03.221Z
+- commits:
     - subject: Drop dependency of systemd when running tests
       hash: 11f6fbe43ca5d62b1824c827691207ffd78b328a
       body: |
