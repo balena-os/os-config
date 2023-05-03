@@ -3,7 +3,7 @@ use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use std::env;
 use std::path::{Path, PathBuf};
 
-use systemd::service_exists;
+use crate::systemd::service_exists;
 
 pub const SUPERVISOR_SERVICE: &str = "balena-supervisor.service";
 

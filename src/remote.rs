@@ -2,12 +2,8 @@ use std::collections::HashMap;
 use std::thread;
 use std::time::Duration;
 
-use reqwest;
-
-use serde_json;
-
+use crate::schema::validate_schema_version;
 use anyhow::{anyhow, Context, Result};
-use schema::validate_schema_version;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Configuration {
@@ -135,10 +131,9 @@ fn build_reqwest_client(root_certificate: Option<reqwest::Certificate>) -> Resul
 
 #[cfg(test)]
 mod tests {
-    use serde_json;
 
     use super::*;
-    use schema::SCHEMA_VERSION;
+    use crate::schema::SCHEMA_VERSION;
 
     const JSON_DATA: &str = r#"{
         "services": {
