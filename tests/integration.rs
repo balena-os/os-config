@@ -609,7 +609,6 @@ fn join_no_endpoint() {
         Caused by:
             0: http://localhost:{port}/os/v1/config: error trying to connect: [\w\s]+ \(os error \d+\)
             1: [\w\s]+ \(os error \d+\)
-
         "#,
     ));
 
@@ -684,7 +683,6 @@ fn incompatible_device_types() {
 
         Caused by:
             Expected `deviceType` raspberrypi3, got incompatible-device-type
-
         ",
     );
 
