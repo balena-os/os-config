@@ -1497,7 +1497,7 @@ dependencies = [
 
 [[package]]
 name = "os-config"
-version = "1.2.15"
+version = "1.2.16"
 dependencies = [
  "actix-web",
  "anyhow",

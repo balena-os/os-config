@@ -1,4 +1,18 @@
 - commits:
+    - subject: Bump anyhow to v1.0.71
+      hash: f036665005e1185a81d8826b383d95c9420d23fd
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Zahari Petkov <zahari@balena.io>
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      author: Zahari Petkov
+      nested: []
+  version: 1.2.16
+  title: ""
+  date: 2023-05-03T16:29:36.650Z
+- commits:
     - subject: Upgrade actix-web to 4.2 and fatrw to latest
       hash: 9de4dfbf32f6c9b5c1cdf1983772ecb550e178b4
       body: ""
