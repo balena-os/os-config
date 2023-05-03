@@ -1,4 +1,19 @@
 - commits:
+    - subject: Remove redundant imports
+      hash: 8c289c9e85620be2e91b340f880b9891d926e9b9
+      body: |
+        Done automatically by `cargo clippy --fix`
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Zahari Petkov <zahari@balena.io>
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      author: Zahari Petkov
+      nested: []
+  version: 1.2.14
+  title: ""
+  date: 2023-05-03T14:48:32.044Z
+- commits:
     - subject: Fix clippy warnings introduced in Rust 1.67
       hash: 1e43e97312f86bc9397b5054cccb83303c6cc35e
       body: |
