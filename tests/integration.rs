@@ -1,9 +1,7 @@
-extern crate actix_net;
 extern crate actix_web;
 extern crate assert_cmd;
 extern crate base64;
 extern crate env_logger;
-extern crate futures;
 extern crate openssl;
 extern crate predicates;
 extern crate serde_json;
@@ -23,14 +21,14 @@ use predicates::prelude::*;
 
 use tempdir::TempDir;
 
-use actix_net::server::Server;
-use actix_web::{actix, http, server, App};
+use actix_web::dev::ServerHandle;
+use actix_web::rt::System;
+use actix_web::web::{resource, Data};
+use actix_web::{App, HttpResponse, HttpServer};
 
 use openssl::pkey::PKey;
 use openssl::ssl::{SslAcceptor, SslMethod};
 use openssl::x509::X509;
-
-use futures::Future;
 
 const OS_CONFIG_PATH_REDEFINE: &str = "OS_CONFIG_PATH_REDEFINE";
 const CONFIG_JSON_PATH_REDEFINE: &str = "CONFIG_JSON_PATH_REDEFINE";
@@ -1946,14 +1944,15 @@ fn serve_config(
     let thandle = thread::spawn(move || {
         thread::sleep(Duration::from_secs(server_thread_sleep));
 
-        let sys = actix::System::new("json-server");
-
-        let mut server = server::new(move || {
-            App::with_state(config.clone())
-                .middleware(actix_web::middleware::Logger::default())
-                .resource(CONFIG_ROUTE, |r| {
-                    r.method(http::Method::GET).f(|req| req.state().clone())
-                })
+        let mut server = HttpServer::new(move || {
+            App::new()
+                .app_data(Data::new(config.clone()))
+                .wrap(actix_web::middleware::Logger::default())
+                .service(resource(CONFIG_ROUTE).to(|c: Data<String>| async move {
+                    HttpResponse::Ok()
+                        .content_type("application/json")
+                        .message_body((**c).clone())
+                }))
         });
 
         server = if with_ssl {
@@ -1966,22 +1965,17 @@ fn serve_config(
             acceptor.set_certificate(&x509).unwrap();
             acceptor.check_private_key().unwrap();
 
-            server.bind_ssl(server_address(port), acceptor)
+            server.bind_openssl(server_address(port), acceptor)
         } else {
             server.bind(server_address(port))
         }
         .unwrap();
 
-        let addr = server
-            .workers(1)
-            .system_exit()
-            .shutdown_timeout(3)
-            .no_http2()
-            .start();
+        let server = server.workers(1).system_exit().shutdown_timeout(3).run();
 
-        tx.send(addr).unwrap();
+        tx.send(server.handle()).unwrap();
 
-        sys.run();
+        System::new().block_on(async move { server.await.unwrap() });
     });
 
     if server_thread_sleep == 0 {
@@ -1993,18 +1987,18 @@ fn serve_config(
 }
 
 struct Serve {
-    rx: mpsc::Receiver<actix::Addr<Server>>,
+    rx: mpsc::Receiver<ServerHandle>,
     stopped: bool,
 }
 
 impl Serve {
-    fn new(rx: mpsc::Receiver<actix::Addr<Server>>) -> Self {
+    fn new(rx: mpsc::Receiver<ServerHandle>) -> Self {
         Serve { rx, stopped: false }
     }
 
     fn stop(&mut self) {
-        let addr = self.rx.recv().unwrap();
-        let _ = addr.send(server::StopServer { graceful: true }).wait();
+        let handle = self.rx.recv().unwrap();
+        System::new().block_on(async { handle.stop(true).await });
         self.stopped = true;
     }
 }
