@@ -30,17 +30,15 @@ assert_cmd = "2.0"
 maplit = "1.0"
 tempdir = "0.3"
 unindent = "0.1"
-actix-net = "0.2"
-futures = "0.1"
 predicates = "3.0"
 
 [dev-dependencies.actix-web]
-version = "0.7"
-features = ["ssl"]
+version = "4.3"
+features = ["openssl"]
 
 [dependencies.fatrw]
 git = "https://github.com/balena-os/fatrw"
-rev = "04629a208b9035d642e51db54886f3d39d7ee029"
+rev = "228b66078678317ea28802369719b235cd10d56f"
 
 [profile.release]
 opt-level = "z"
