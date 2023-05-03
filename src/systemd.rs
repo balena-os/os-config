@@ -2,8 +2,6 @@ use std::env;
 use std::thread;
 use std::time::Duration;
 
-use dbus;
-
 use anyhow::{bail, Context, Result};
 
 const SYSTEMD: &str = "org.freedesktop.systemd1";

@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use serde_json;
 use serde_json::Value;
 
 use crate::fs::read_file;
@@ -65,7 +64,6 @@ pub fn validate_schema_version(json_data: &str) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use serde_json;
 
     use super::*;
 

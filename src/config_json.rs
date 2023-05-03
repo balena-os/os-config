@@ -1,12 +1,6 @@
 use std::path::Path;
 
-use hex;
-
-use serde_json;
 use serde_json::{Map, Value};
-
-use base64;
-use reqwest;
 
 use crate::fs::{read_file, write_file};
 use crate::random::fill_random;

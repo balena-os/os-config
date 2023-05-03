@@ -2,10 +2,6 @@ use std::collections::HashMap;
 use std::thread;
 use std::time::Duration;
 
-use reqwest;
-
-use serde_json;
-
 use crate::schema::validate_schema_version;
 use anyhow::{anyhow, Context, Result};
 
@@ -135,7 +131,6 @@ fn build_reqwest_client(root_certificate: Option<reqwest::Certificate>) -> Resul
 
 #[cfg(test)]
 mod tests {
-    use serde_json;
 
     use super::*;
     use crate::schema::SCHEMA_VERSION;
