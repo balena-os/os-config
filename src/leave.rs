@@ -1,13 +1,13 @@
-use fs;
+use crate::fs;
 use std::path::Path;
 
-use anyhow::Result;
-use args::{Args, SUPERVISOR_SERVICE};
-use config_json::{
+use crate::args::{Args, SUPERVISOR_SERVICE};
+use crate::config_json::{
     get_api_endpoint, read_config_json, store_api_key, write_config_json, ConfigMap,
 };
-use schema::{read_os_config_schema, OsConfigSchema};
-use systemd;
+use crate::schema::{read_os_config_schema, OsConfigSchema};
+use crate::systemd;
+use anyhow::Result;
 
 pub fn leave(args: &Args) -> Result<()> {
     let mut config_json = read_config_json(&args.config_json_path)?;

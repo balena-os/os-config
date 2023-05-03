@@ -42,7 +42,7 @@ mod update;
 
 use anyhow::Result;
 
-use args::{get_cli_args, OsConfigSubcommand};
+use crate::args::{get_cli_args, OsConfigSubcommand};
 
 fn main() -> Result<()> {
     logger::init_logger();

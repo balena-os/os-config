@@ -4,8 +4,8 @@ use std::path::Path;
 use serde_json;
 use serde_json::Value;
 
+use crate::fs::read_file;
 use anyhow::{bail, Context, Result};
-use fs::read_file;
 
 pub const SCHEMA_VERSION: &str = "1.0.0";
 

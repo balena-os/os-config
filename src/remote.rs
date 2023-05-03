@@ -6,8 +6,8 @@ use reqwest;
 
 use serde_json;
 
+use crate::schema::validate_schema_version;
 use anyhow::{anyhow, Context, Result};
-use schema::validate_schema_version;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Configuration {
@@ -138,7 +138,7 @@ mod tests {
     use serde_json;
 
     use super::*;
-    use schema::SCHEMA_VERSION;
+    use crate::schema::SCHEMA_VERSION;
 
     const JSON_DATA: &str = r#"{
         "services": {

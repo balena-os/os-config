@@ -5,6 +5,7 @@ authors = ["Zahari Petkov <zahari@balena.io>", "Andrei Gherzan <andrei@balena.io
 description = "balenaOS configuration tool"
 repository = "https://github.com/balena-os/os-config"
 license = "Apache-2.0"
+edition = "2021"
 
 [dependencies]
 anyhow = "1"

@@ -8,8 +8,8 @@ use serde_json::{Map, Value};
 use base64;
 use reqwest;
 
-use fs::{read_file, write_file};
-use random::fill_random;
+use crate::fs::{read_file, write_file};
+use crate::random::fill_random;
 
 use anyhow::{bail, Context, Result};
 
