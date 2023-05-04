@@ -607,8 +607,10 @@ fn join_no_endpoint() {
         Error: Fetching configuration failed
 
         Caused by:
-            0: http://localhost:{port}/os/v1/config: error trying to connect: [\w\s]+ \(os error \d+\)
-            1: [\w\s]+ \(os error \d+\)
+            0: error sending request for url \(http://localhost:{port}/os/v1/config\): error trying to connect: [\w\s:]+ \(os error \d+\)
+            1: error trying to connect: [\w\s:]+ \(os error \d+\)
+            2: [\w\s:]+ \(os error \d+\)
+            3: [\w\s:]+ \(os error \d+\)
         "#,
     ));
 
@@ -1097,7 +1099,7 @@ fn update() {
     let output = unindent::unindent(&format!(
         r#"
         Fetching service configuration from http://localhost:{port}/os/v1/config...
-        http://localhost:{port}/os/v1/config: error trying to connect: [\w\s]+ \(os error \d+\)
+        error sending request for url \(http://localhost:{port}/os/v1/config\): error trying to connect: [\w\s:]+ \(os error \d+\)
         Service configuration retrieved
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
