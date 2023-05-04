@@ -71,11 +71,17 @@ fn fetch_configuration_impl(
     Ok(serde_json::from_str(&json_data)?)
 }
 
-fn request_config(url: &str, client: &reqwest::Client) -> Result<reqwest::Response> {
+fn request_config(
+    url: &str,
+    client: &reqwest::blocking::Client,
+) -> Result<reqwest::blocking::Response> {
     Ok(client.get(url).send()?)
 }
 
-fn retry_request_config(url: &str, client: &reqwest::Client) -> Result<reqwest::Response> {
+fn retry_request_config(
+    url: &str,
+    client: &reqwest::blocking::Client,
+) -> Result<reqwest::blocking::Response> {
     let mut sleeped = 0;
 
     let mut last_err = String::new();
@@ -117,13 +123,15 @@ fn retry_request_config(url: &str, client: &reqwest::Client) -> Result<reqwest::
     }
 }
 
-fn build_reqwest_client(root_certificate: Option<reqwest::Certificate>) -> Result<reqwest::Client> {
+fn build_reqwest_client(
+    root_certificate: Option<reqwest::Certificate>,
+) -> Result<reqwest::blocking::Client> {
     let client = if let Some(root_certificate) = root_certificate {
-        reqwest::Client::builder()
+        reqwest::blocking::Client::builder()
             .add_root_certificate(root_certificate)
             .build()?
     } else {
-        reqwest::Client::new()
+        reqwest::blocking::Client::new()
     };
 
     Ok(client)
