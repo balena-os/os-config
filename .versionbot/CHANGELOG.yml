@@ -1,4 +1,18 @@
 - commits:
+    - subject: Upgrade reqwest to v0.11
+      hash: 2c2b8f535f0912812e552f23b59a9e3581b8fe30
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Zahari Petkov <zahari@balena.io>
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      author: Zahari Petkov
+      nested: []
+  version: 1.2.17
+  title: ""
+  date: 2023-05-04T13:08:00.885Z
+- commits:
     - subject: Bump anyhow to v1.0.71
       hash: f036665005e1185a81d8826b383d95c9420d23fd
       body: ""
