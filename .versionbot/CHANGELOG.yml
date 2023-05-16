@@ -1,4 +1,19 @@
 - commits:
+    - subject: Switch to zbus D-Bus library
+      hash: 3869fbd4cd823cc4c36359a16ad9b10af3ef719a
+      body: |
+        Transition from libdbus C dependency to the pure-Rust solution zbus.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Zahari Petkov <zahari@balena.io>
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      author: Zahari Petkov
+      nested: []
+  version: 1.2.18
+  title: ""
+  date: 2023-05-16T10:17:45.860Z
+- commits:
     - subject: Upgrade reqwest to v0.11
       hash: 2c2b8f535f0912812e552f23b59a9e3581b8fe30
       body: ""
