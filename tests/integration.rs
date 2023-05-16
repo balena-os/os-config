@@ -5,7 +5,7 @@ extern crate env_logger;
 extern crate openssl;
 extern crate predicates;
 extern crate serde_json;
-extern crate tempdir;
+extern crate tempfile;
 extern crate unindent;
 
 use std::fs::{File, OpenOptions};
@@ -19,7 +19,7 @@ use std::time::Duration;
 use assert_cmd::Command;
 use predicates::prelude::*;
 
-use tempdir::TempDir;
+use tempfile::TempDir;
 
 use actix_web::dev::ServerHandle;
 use actix_web::rt::System;
@@ -46,7 +46,7 @@ const MOCK_SYSTEMD: &str = "MOCK_SYSTEMD";
 #[test]
 fn join() {
     let port = 31001;
-    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir = TempDir::new().unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
     let config_json = r#"
@@ -250,7 +250,7 @@ fn join() {
 #[test]
 fn join_flasher() {
     let port = 31002;
-    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir = TempDir::new().unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
     let flasher_flag_path = create_tmp_file(&tmp_dir, "balena-image-flasher", "", None);
@@ -397,7 +397,7 @@ fn join_flasher() {
 #[test]
 fn join_with_root_certificate() {
     let port = 31003;
-    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir = TempDir::new().unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
     let config_json = r#"
@@ -520,7 +520,7 @@ fn join_with_root_certificate() {
 #[test]
 fn join_no_endpoint() {
     let port = 31004;
-    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir = TempDir::new().unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
     let config_json = r#"
@@ -629,7 +629,7 @@ fn join_no_endpoint() {
 #[test]
 fn incompatible_device_types() {
     let port = 31005;
-    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir = TempDir::new().unwrap();
 
     let config_json = r#"
         {
@@ -699,7 +699,7 @@ fn incompatible_device_types() {
 #[test]
 fn reconfigure() {
     let port = 31006;
-    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir = TempDir::new().unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
     let config_json = r#"
@@ -842,7 +842,7 @@ fn reconfigure() {
 #[test]
 fn reconfigure_stored() {
     let port = 31007;
-    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir = TempDir::new().unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
     let config_json = unindent::unindent(&format!(
@@ -987,7 +987,7 @@ fn reconfigure_stored() {
 #[test]
 fn update() {
     let port = 31008;
-    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir = TempDir::new().unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
     let config_json = format!(
@@ -1160,7 +1160,7 @@ fn update() {
 #[test]
 fn update_no_config_changes() {
     let port = 31009;
-    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir = TempDir::new().unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
     let config_json = format!(
@@ -1299,7 +1299,7 @@ fn update_no_config_changes() {
 #[test]
 fn update_with_root_certificate() {
     let port = 31010;
-    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir = TempDir::new().unwrap();
 
     let config_json = format!(
         r#"
@@ -1380,7 +1380,7 @@ fn update_with_root_certificate() {
 #[test]
 fn update_unmanaged() {
     let port = 31011;
-    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir = TempDir::new().unwrap();
 
     let config_json = r#"
         {
@@ -1437,7 +1437,7 @@ fn update_unmanaged() {
 #[test]
 fn leave() {
     let port = 31012;
-    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir = TempDir::new().unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
     let config_json = format!(
@@ -1567,7 +1567,7 @@ fn leave() {
 #[test]
 fn leave_unmanaged() {
     let port = 31013;
-    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir = TempDir::new().unwrap();
 
     let config_json = r#"
         {
@@ -1623,7 +1623,7 @@ fn leave_unmanaged() {
 
 #[test]
 fn generate_api_key_unmanaged() {
-    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir = TempDir::new().unwrap();
 
     let config_json = r#"
         {
@@ -1666,7 +1666,7 @@ fn generate_api_key_unmanaged() {
 
 #[test]
 fn generate_api_key_already_generated() {
-    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir = TempDir::new().unwrap();
 
     let config_json = r#"
         {
@@ -1724,7 +1724,7 @@ fn generate_api_key_already_generated() {
 
 #[test]
 fn generate_api_key_reuse() {
-    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir = TempDir::new().unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
     let config_json = r#"
@@ -1808,7 +1808,7 @@ fn generate_api_key_reuse() {
 
 #[test]
 fn generate_api_key_new() {
-    let tmp_dir = TempDir::new("os-config").unwrap();
+    let tmp_dir = TempDir::new().unwrap();
     let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
 
     let config_json = r#"
