@@ -4,9 +4,9 @@ use std::time::Duration;
 
 use anyhow::{bail, Context, Result};
 
-const SYSTEMD: &str = "org.freedesktop.systemd1";
-const SYSTEMD_MANAGER: &str = "org.freedesktop.systemd1.Manager";
-const SYSTEMD_PATH: &str = "/org/freedesktop/systemd1";
+use zbus::blocking::Connection;
+use zbus::dbus_proxy;
+use zbus::zvariant::OwnedObjectPath;
 
 const DEFAULT_MODE: &str = "replace";
 
@@ -22,11 +22,11 @@ pub fn start_service(name: &str) -> Result<()> {
 }
 
 fn start_service_impl(name: &str) -> Result<()> {
-    let connection = dbus::Connection::get_private(dbus::BusType::System)?;
+    let connection = Connection::system()?;
 
-    let path = connection.with_path(SYSTEMD, SYSTEMD_PATH, 5000);
+    let manager = ManagerProxyBlocking::new(&connection)?;
 
-    path.start_unit(name, DEFAULT_MODE)?;
+    manager.start_unit(name, DEFAULT_MODE)?;
 
     Ok(())
 }
@@ -41,11 +41,11 @@ pub fn stop_service(name: &str) -> Result<()> {
 }
 
 fn stop_service_impl(name: &str) -> Result<()> {
-    let connection = dbus::Connection::get_private(dbus::BusType::System)?;
+    let connection = Connection::system()?;
 
-    let path = connection.with_path(SYSTEMD, SYSTEMD_PATH, 5000);
+    let manager = ManagerProxyBlocking::new(&connection)?;
 
-    path.stop_unit(name, DEFAULT_MODE)?;
+    manager.stop_unit(name, DEFAULT_MODE)?;
 
     Ok(())
 }
@@ -60,11 +60,11 @@ pub fn reload_or_restart_service(name: &str) -> Result<()> {
 }
 
 fn reload_or_restart_service_impl(name: &str) -> Result<()> {
-    let connection = dbus::Connection::get_private(dbus::BusType::System)?;
+    let connection = Connection::system()?;
 
-    let path = connection.with_path(SYSTEMD, SYSTEMD_PATH, 5000);
+    let manager = ManagerProxyBlocking::new(&connection)?;
 
-    path.reload_or_restart_unit(name, DEFAULT_MODE)?;
+    manager.reload_or_restart_unit(name, DEFAULT_MODE)?;
 
     Ok(())
 }
@@ -79,14 +79,17 @@ pub fn await_service_exit(name: &str) -> Result<()> {
 }
 
 fn await_service_exit_impl(name: &str) -> Result<()> {
-    let connection = dbus::Connection::get_private(dbus::BusType::System)?;
+    let connection = Connection::system()?;
 
-    let path = connection.with_path(SYSTEMD, SYSTEMD_PATH, 5000);
+    let manager = ManagerProxyBlocking::new(&connection)?;
 
-    let unit_path = connection.with_path(SYSTEMD, path.get_unit(name)?, 5000);
+    let unit_path = manager.get_unit(name)?;
+    let unit = UnitProxyBlocking::builder(&connection)
+        .path(&unit_path)?
+        .build()?;
 
     for _ in 0..90 {
-        let active_state = unit_path.get_active_state()?;
+        let active_state = unit.active_state()?;
 
         if active_state == "inactive" || active_state == "failed" {
             return Ok(());
@@ -106,95 +109,13 @@ pub fn service_exists(name: &str) -> bool {
 }
 
 fn service_exists_impl(name: &str) -> Result<bool> {
-    let connection = dbus::Connection::get_private(dbus::BusType::System)?;
+    let connection = Connection::system()?;
 
-    let path = connection.with_path(SYSTEMD, SYSTEMD_PATH, 5000);
+    let manager = ManagerProxyBlocking::new(&connection)?;
 
-    match path.get_unit(name) {
+    match manager.get_unit(name) {
         Ok(_) => Ok(true),
         Err(_) => Ok(false),
-    }
-}
-
-pub trait OrgFreedesktopSystemd1Manager {
-    fn get_unit(&self, name: &str) -> Result<dbus::Path<'static>>;
-    fn start_unit(&self, name: &str, mode: &str) -> Result<dbus::Path<'static>>;
-    fn stop_unit(&self, name: &str, mode: &str) -> Result<dbus::Path<'static>>;
-    fn reload_or_restart_unit(&self, name: &str, mode: &str) -> Result<dbus::Path<'static>>;
-}
-
-pub trait OrgFreedesktopSystemd1Unit {
-    fn get_active_state(&self) -> Result<String>;
-}
-
-impl<'a, C: ::std::ops::Deref<Target = dbus::Connection>> OrgFreedesktopSystemd1Manager
-    for dbus::ConnPath<'a, C>
-{
-    fn get_unit(&self, arg0: &str) -> Result<dbus::Path<'static>> {
-        let mut method =
-            self.method_call_with_args(&SYSTEMD_MANAGER.into(), &"GetUnit".into(), |msg| {
-                let mut i = dbus::arg::IterAppend::new(msg);
-                i.append(arg0);
-            })?;
-        method.as_result()?;
-        let mut iter = method.iter_init();
-        let unit: dbus::Path<'static> = iter.read()?;
-        Ok(unit)
-    }
-
-    fn start_unit(&self, name: &str, mode: &str) -> Result<dbus::Path<'static>> {
-        let mut method =
-            self.method_call_with_args(&SYSTEMD_MANAGER.into(), &"StartUnit".into(), |msg| {
-                let mut i = dbus::arg::IterAppend::new(msg);
-                i.append(name);
-                i.append(mode);
-            })?;
-        method.as_result()?;
-        let mut iter = method.iter_init();
-        let job: dbus::Path<'static> = iter.read()?;
-        Ok(job)
-    }
-
-    fn stop_unit(&self, name: &str, mode: &str) -> Result<dbus::Path<'static>> {
-        let mut method =
-            self.method_call_with_args(&SYSTEMD_MANAGER.into(), &"StopUnit".into(), |msg| {
-                let mut i = dbus::arg::IterAppend::new(msg);
-                i.append(name);
-                i.append(mode);
-            })?;
-        method.as_result()?;
-        let mut iter = method.iter_init();
-        let job: dbus::Path<'static> = iter.read()?;
-        Ok(job)
-    }
-
-    fn reload_or_restart_unit(&self, name: &str, mode: &str) -> Result<dbus::Path<'static>> {
-        let mut method = self.method_call_with_args(
-            &SYSTEMD_MANAGER.into(),
-            &"ReloadOrRestartUnit".into(),
-            |msg| {
-                let mut i = dbus::arg::IterAppend::new(msg);
-                i.append(name);
-                i.append(mode);
-            },
-        )?;
-        method.as_result()?;
-        let mut iter = method.iter_init();
-        let job: dbus::Path<'static> = iter.read()?;
-        Ok(job)
-    }
-}
-
-impl<'a, C: ::std::ops::Deref<Target = dbus::Connection>> OrgFreedesktopSystemd1Unit
-    for dbus::ConnPath<'a, C>
-{
-    fn get_active_state(&self) -> Result<String> {
-        let active_state = <Self as dbus::stdintf::org_freedesktop_dbus::Properties>::get(
-            self,
-            "org.freedesktop.systemd1.Unit",
-            "ActiveState",
-        )?;
-        Ok(active_state)
     }
 }
 
@@ -204,4 +125,25 @@ fn should_mock_systemd() -> bool {
     } else {
         false
     }
+}
+
+#[dbus_proxy(
+    interface = "org.freedesktop.systemd1.Manager",
+    default_service = "org.freedesktop.systemd1",
+    default_path = "/org/freedesktop/systemd1"
+)]
+trait Manager {
+    fn get_unit(&self, name: &str) -> zbus::Result<OwnedObjectPath>;
+    fn start_unit(&self, name: &str, mode: &str) -> zbus::Result<OwnedObjectPath>;
+    fn stop_unit(&self, name: &str, mode: &str) -> zbus::Result<OwnedObjectPath>;
+    fn reload_or_restart_unit(&self, name: &str, mode: &str) -> zbus::Result<OwnedObjectPath>;
+}
+
+#[dbus_proxy(
+    interface = "org.freedesktop.systemd1.Unit",
+    default_service = "org.freedesktop.systemd1"
+)]
+trait Unit {
+    #[dbus_proxy(property)]
+    fn active_state(&self) -> zbus::Result<String>;
 }
