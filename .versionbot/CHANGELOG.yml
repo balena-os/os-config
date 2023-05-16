@@ -1,4 +1,19 @@
 - commits:
+    - subject: Switch from `tempdir` to `tempfile` for dev dependencies
+      hash: b0374ff2633b4c4db6ffffe1da3094358afa2036
+      body: |
+        The `tempdir` crate is archived and superseded by `tempfile`.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Zahari Petkov <zahari@balena.io>
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      author: Zahari Petkov
+      nested: []
+  version: 1.2.19
+  title: ""
+  date: 2023-05-16T12:32:59.025Z
+- commits:
     - subject: Switch to zbus D-Bus library
       hash: 3869fbd4cd823cc4c36359a16ad9b10af3ef719a
       body: |
