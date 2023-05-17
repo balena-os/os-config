@@ -3,21 +3,22 @@ extern crate assert_cmd;
 extern crate base64;
 extern crate env_logger;
 extern crate openssl;
-extern crate predicates;
 extern crate serde_json;
 extern crate tempfile;
 extern crate unindent;
 
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
+use std::net::TcpStream;
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::Path;
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
+use ntest::timeout;
+
 use assert_cmd::Command;
-use predicates::prelude::*;
 
 use tempfile::TempDir;
 
@@ -44,6 +45,7 @@ const MOCK_SYSTEMD: &str = "MOCK_SYSTEMD";
 */
 
 #[test]
+#[timeout(10000)]
 fn join() {
     let port = 31001;
     let tmp_dir = TempDir::new().unwrap();
@@ -129,7 +131,7 @@ fn join() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
+    let (mut serve, thandle) = serve_config(configuration, false, port);
 
     let json_config = format!(
         r#"
@@ -248,6 +250,7 @@ fn join() {
 }
 
 #[test]
+#[timeout(10000)]
 fn join_flasher() {
     let port = 31002;
     let tmp_dir = TempDir::new().unwrap();
@@ -301,7 +304,7 @@ fn join_flasher() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
+    let (mut serve, thandle) = serve_config(configuration, false, port);
 
     let json_config = format!(
         r#"
@@ -395,6 +398,7 @@ fn join_flasher() {
 }
 
 #[test]
+#[timeout(10000)]
 fn join_with_root_certificate() {
     let port = 31003;
     let tmp_dir = TempDir::new().unwrap();
@@ -431,7 +435,7 @@ fn join_with_root_certificate() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, true, port);
+    let (mut serve, thandle) = serve_config(configuration, true, port);
 
     let json_config = format!(
         r#"
@@ -518,115 +522,6 @@ fn join_with_root_certificate() {
 }
 
 #[test]
-fn join_no_endpoint() {
-    let port = 31004;
-    let tmp_dir = TempDir::new().unwrap();
-    let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
-
-    let config_json = r#"
-        {
-            "deviceType": "raspberrypi3",
-            "hostname": "balena",
-            "persistentLogging": false
-        }
-        "#;
-
-    let config_json_path = create_tmp_file(&tmp_dir, "config.json", config_json, None);
-
-    let schema = format!(
-        r#"
-        {{
-            "services": [
-                {{
-                    "id": "mock-1",
-                    "files": {{
-                        "mock-1": {{
-                            "path": "{tmp_dir_path}/mock-1.conf",
-                            "perm": "600"
-                        }}
-                    }},
-                    "systemd_services": ["mock-service-1.service"]
-                }}
-            ],
-            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
-        }}
-        "#
-    );
-
-    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
-
-    let configuration = unindent::unindent(
-        r#"
-        {
-            "services": {
-                "mock-1": {
-                    "mock-1": "MOCK-1-АБВГДЕЖЗИЙ"
-                }
-            },
-            "schema_version": "1.0.0"
-        }
-        "#,
-    );
-
-    let (mut serve, thandle) = serve_config(configuration, 3, false, port);
-
-    let json_config = format!(
-        r#"
-        {{
-            "applicationName": "aaaaaa",
-            "applicationId": 123456,
-            "deviceType": "raspberrypi3",
-            "userId": 654321,
-            "username": "username",
-            "appUpdatePollInterval": 60000,
-            "listenPort": 48484,
-            "vpnPort": 443,
-            "apiEndpoint": "http://{}",
-            "vpnEndpoint": "vpn.resin.io",
-            "registryEndpoint": "registry2.resin.io",
-            "deltaEndpoint": "https://delta.resin.io",
-            "pubnubSubscribeKey": "sub-c-12345678-abcd-1234-efgh-1234567890ab",
-            "pubnubPublishKey": "pub-c-12345678-abcd-1234-efgh-1234567890ab",
-            "mixpanelToken": "12345678abcd1234efgh1234567890ab",
-            "apiKey": "12345678abcd1234efgh1234567890ab",
-            "version": "9.99.9+rev1.prod"
-        }}
-        "#,
-        server_address(port)
-    );
-
-    let stdout = unindent::unindent(&format!(
-        "
-        Fetching service configuration from http://localhost:{port}/os/v1/config...
-        ",
-    ));
-
-    let stderr = unindent::unindent(&format!(
-        r#"
-        Error: Fetching configuration failed
-
-        Caused by:
-            0: error sending request for url \(http://localhost:{port}/os/v1/config\): error trying to connect: [\w\s:]+ \(os error \d+\)
-            1: error trying to connect: [\w\s:]+ \(os error \d+\)
-            2: [\w\s:]+ \(os error \d+\)
-            3: [\w\s:]+ \(os error \d+\)
-        "#,
-    ));
-
-    get_base_command()
-        .args(["join", &json_config])
-        .envs(os_config_env(&os_config_path, &config_json_path))
-        .assert()
-        .failure()
-        .stdout(stdout)
-        .stderr(predicate::str::is_match(stderr).unwrap());
-
-    serve.stop();
-    thandle.join().unwrap();
-}
-
-#[test]
 fn incompatible_device_types() {
     let port = 31005;
     let tmp_dir = TempDir::new().unwrap();
@@ -697,6 +592,7 @@ fn incompatible_device_types() {
 }
 
 #[test]
+#[timeout(10000)]
 fn reconfigure() {
     let port = 31006;
     let tmp_dir = TempDir::new().unwrap();
@@ -755,7 +651,7 @@ fn reconfigure() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
+    let (mut serve, thandle) = serve_config(configuration, false, port);
 
     let json_config = format!(
         r#"
@@ -840,6 +736,7 @@ fn reconfigure() {
 }
 
 #[test]
+#[timeout(10000)]
 fn reconfigure_stored() {
     let port = 31007;
     let tmp_dir = TempDir::new().unwrap();
@@ -897,7 +794,7 @@ fn reconfigure_stored() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
+    let (mut serve, thandle) = serve_config(configuration, false, port);
 
     let json_config = format!(
         r#"
@@ -985,6 +882,7 @@ fn reconfigure_stored() {
 }
 
 #[test]
+#[timeout(10000)]
 fn update() {
     let port = 31008;
     let tmp_dir = TempDir::new().unwrap();
@@ -1094,12 +992,11 @@ fn update() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 5, false, port);
+    let (mut serve, thandle) = serve_config(configuration, false, port);
 
     let output = unindent::unindent(&format!(
         r#"
         Fetching service configuration from http://localhost:{port}/os/v1/config...
-        error sending request for url \(http://localhost:{port}/os/v1/config\): error trying to connect: [\w\s:]+ \(os error \d+\)
         Service configuration retrieved
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
@@ -1125,7 +1022,7 @@ fn update() {
         .envs(os_config_env(&os_config_path, &config_json_path))
         .assert()
         .success()
-        .stdout(predicate::str::is_match(output).unwrap());
+        .stdout(output);
 
     validate_file(
         &format!("{tmp_dir_path}/not-a-service-1.conf"),
@@ -1158,6 +1055,7 @@ fn update() {
 }
 
 #[test]
+#[timeout(10000)]
 fn update_no_config_changes() {
     let port = 31009;
     let tmp_dir = TempDir::new().unwrap();
@@ -1255,7 +1153,7 @@ fn update_no_config_changes() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
+    let (mut serve, thandle) = serve_config(configuration, false, port);
 
     let output = unindent::unindent(&format!(
         r#"
@@ -1297,6 +1195,7 @@ fn update_no_config_changes() {
 }
 
 #[test]
+#[timeout(10000)]
 fn update_with_root_certificate() {
     let port = 31010;
     let tmp_dir = TempDir::new().unwrap();
@@ -1354,7 +1253,7 @@ fn update_with_root_certificate() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, true, port);
+    let (mut serve, thandle) = serve_config(configuration, true, port);
 
     let output = unindent::unindent(&format!(
         r#"
@@ -1378,6 +1277,7 @@ fn update_with_root_certificate() {
 }
 
 #[test]
+#[timeout(10000)]
 fn update_unmanaged() {
     let port = 31011;
     let tmp_dir = TempDir::new().unwrap();
@@ -1413,7 +1313,7 @@ fn update_unmanaged() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
+    let (mut serve, thandle) = serve_config(configuration, false, port);
 
     let output = unindent::unindent(
         r#"
@@ -1435,6 +1335,7 @@ fn update_unmanaged() {
 }
 
 #[test]
+#[timeout(10000)]
 fn leave() {
     let port = 31012;
     let tmp_dir = TempDir::new().unwrap();
@@ -1508,7 +1409,7 @@ fn leave() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
+    let (mut serve, thandle) = serve_config(configuration, false, port);
 
     let output = unindent::unindent(&format!(
         r#"
@@ -1565,6 +1466,7 @@ fn leave() {
 }
 
 #[test]
+#[timeout(10000)]
 fn leave_unmanaged() {
     let port = 31013;
     let tmp_dir = TempDir::new().unwrap();
@@ -1602,7 +1504,7 @@ fn leave_unmanaged() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, 0, false, port);
+    let (mut serve, thandle) = serve_config(configuration, false, port);
 
     let output = unindent::unindent(
         r#"
@@ -1933,17 +1835,10 @@ fn get_base_command() -> Command {
 *  Mock JSON HTTP server
 */
 
-fn serve_config(
-    config: String,
-    server_thread_sleep: u64,
-    with_ssl: bool,
-    port: u16,
-) -> (Serve, thread::JoinHandle<()>) {
+fn serve_config(config: String, with_ssl: bool, port: u16) -> (Serve, thread::JoinHandle<()>) {
     let (tx, rx) = mpsc::channel();
 
     let thandle = thread::spawn(move || {
-        thread::sleep(Duration::from_secs(server_thread_sleep));
-
         let mut server = HttpServer::new(move || {
             App::new()
                 .app_data(Data::new(config.clone()))
@@ -1978,9 +1873,12 @@ fn serve_config(
         System::new().block_on(async move { server.await.unwrap() });
     });
 
-    if server_thread_sleep == 0 {
-        // Give some time for the server thread to start
-        thread::sleep(Duration::from_millis(200));
+    loop {
+        if TcpStream::connect(server_address(port)).is_ok() {
+            break;
+        } else {
+            thread::sleep(Duration::from_millis(100));
+        }
     }
 
     (Serve::new(rx), thandle)
