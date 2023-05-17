@@ -131,7 +131,7 @@ fn join() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, false, port);
+    let mut serve = serve_config(configuration, false, port);
 
     let json_config = format!(
         r#"
@@ -246,7 +246,6 @@ fn join() {
     );
 
     serve.stop();
-    thandle.join().unwrap();
 }
 
 #[test]
@@ -304,7 +303,7 @@ fn join_flasher() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, false, port);
+    let mut serve = serve_config(configuration, false, port);
 
     let json_config = format!(
         r#"
@@ -394,7 +393,6 @@ fn join_flasher() {
     );
 
     serve.stop();
-    thandle.join().unwrap();
 }
 
 #[test]
@@ -435,7 +433,7 @@ fn join_with_root_certificate() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, true, port);
+    let mut serve = serve_config(configuration, true, port);
 
     let json_config = format!(
         r#"
@@ -518,7 +516,6 @@ fn join_with_root_certificate() {
     );
 
     serve.stop();
-    thandle.join().unwrap();
 }
 
 #[test]
@@ -651,7 +648,7 @@ fn reconfigure() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, false, port);
+    let mut serve = serve_config(configuration, false, port);
 
     let json_config = format!(
         r#"
@@ -732,7 +729,6 @@ fn reconfigure() {
     );
 
     serve.stop();
-    thandle.join().unwrap();
 }
 
 #[test]
@@ -794,7 +790,7 @@ fn reconfigure_stored() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, false, port);
+    let mut serve = serve_config(configuration, false, port);
 
     let json_config = format!(
         r#"
@@ -878,7 +874,6 @@ fn reconfigure_stored() {
     );
 
     serve.stop();
-    thandle.join().unwrap();
 }
 
 #[test]
@@ -992,7 +987,7 @@ fn update() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, false, port);
+    let mut serve = serve_config(configuration, false, port);
 
     let output = unindent::unindent(&format!(
         r#"
@@ -1051,7 +1046,6 @@ fn update() {
     validate_json_file(&config_json_path, &config_json, false);
 
     serve.stop();
-    thandle.join().unwrap();
 }
 
 #[test]
@@ -1153,7 +1147,7 @@ fn update_no_config_changes() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, false, port);
+    let mut serve = serve_config(configuration, false, port);
 
     let output = unindent::unindent(&format!(
         r#"
@@ -1191,7 +1185,6 @@ fn update_no_config_changes() {
     validate_json_file(&config_json_path, &config_json, false);
 
     serve.stop();
-    thandle.join().unwrap();
 }
 
 #[test]
@@ -1253,7 +1246,7 @@ fn update_with_root_certificate() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, true, port);
+    let mut serve = serve_config(configuration, true, port);
 
     let output = unindent::unindent(&format!(
         r#"
@@ -1273,7 +1266,6 @@ fn update_with_root_certificate() {
     validate_json_file(&config_json_path, &config_json, false);
 
     serve.stop();
-    thandle.join().unwrap();
 }
 
 #[test]
@@ -1313,7 +1305,7 @@ fn update_unmanaged() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, false, port);
+    let mut serve = serve_config(configuration, false, port);
 
     let output = unindent::unindent(
         r#"
@@ -1331,7 +1323,6 @@ fn update_unmanaged() {
     validate_json_file(&config_json_path, config_json, false);
 
     serve.stop();
-    thandle.join().unwrap();
 }
 
 #[test]
@@ -1409,7 +1400,7 @@ fn leave() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, false, port);
+    let mut serve = serve_config(configuration, false, port);
 
     let output = unindent::unindent(&format!(
         r#"
@@ -1462,7 +1453,6 @@ fn leave() {
     );
 
     serve.stop();
-    thandle.join().unwrap();
 }
 
 #[test]
@@ -1504,7 +1494,7 @@ fn leave_unmanaged() {
         "#,
     );
 
-    let (mut serve, thandle) = serve_config(configuration, false, port);
+    let mut serve = serve_config(configuration, false, port);
 
     let output = unindent::unindent(
         r#"
@@ -1520,7 +1510,6 @@ fn leave_unmanaged() {
         .stdout(output);
 
     serve.stop();
-    thandle.join().unwrap();
 }
 
 #[test]
@@ -1835,7 +1824,7 @@ fn get_base_command() -> Command {
 *  Mock JSON HTTP server
 */
 
-fn serve_config(config: String, with_ssl: bool, port: u16) -> (Serve, thread::JoinHandle<()>) {
+fn serve_config(config: String, with_ssl: bool, port: u16) -> Serve {
     let (tx, rx) = mpsc::channel();
 
     let thandle = thread::spawn(move || {
@@ -1881,22 +1870,30 @@ fn serve_config(config: String, with_ssl: bool, port: u16) -> (Serve, thread::Jo
         }
     }
 
-    (Serve::new(rx), thandle)
+    Serve::new(rx, thandle)
 }
 
 struct Serve {
     rx: mpsc::Receiver<ServerHandle>,
+    thandle: Option<thread::JoinHandle<()>>,
     stopped: bool,
 }
 
 impl Serve {
-    fn new(rx: mpsc::Receiver<ServerHandle>) -> Self {
-        Serve { rx, stopped: false }
+    fn new(rx: mpsc::Receiver<ServerHandle>, thandle: thread::JoinHandle<()>) -> Self {
+        let stopped = false;
+        let thandle = Some(thandle);
+        Serve {
+            rx,
+            thandle,
+            stopped,
+        }
     }
 
     fn stop(&mut self) {
         let handle = self.rx.recv().unwrap();
         System::new().block_on(async { handle.stop(true).await });
+        self.thandle.take().unwrap().join().unwrap();
         self.stopped = true;
     }
 }
