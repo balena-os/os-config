@@ -12,7 +12,6 @@ use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::Path;
-use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
@@ -1841,41 +1840,41 @@ fn get_base_command() -> Command {
 */
 
 fn serve_config(config: String, with_ssl: bool, port: u16) -> Serve {
-    let (tx, rx) = mpsc::channel();
+    let mut server = HttpServer::new(move || {
+        App::new()
+            .app_data(Data::new(config.clone()))
+            .wrap(actix_web::middleware::Logger::default())
+            .service(resource(CONFIG_ROUTE).to(|c: Data<String>| async move {
+                HttpResponse::Ok()
+                    .content_type("application/json")
+                    .message_body((**c).clone())
+            }))
+    });
 
-    let thandle = thread::spawn(move || {
-        let mut server = HttpServer::new(move || {
-            App::new()
-                .app_data(Data::new(config.clone()))
-                .wrap(actix_web::middleware::Logger::default())
-                .service(resource(CONFIG_ROUTE).to(|c: Data<String>| async move {
-                    HttpResponse::Ok()
-                        .content_type("application/json")
-                        .message_body((**c).clone())
-                }))
-        });
+    server = if with_ssl {
+        let pkey = PKey::private_key_from_pem(RSA_PRIVATE_KEY.as_bytes()).unwrap();
+        let x509 = X509::from_pem(CERTIFICATE.as_bytes()).unwrap();
 
-        server = if with_ssl {
-            let pkey = PKey::private_key_from_pem(RSA_PRIVATE_KEY.as_bytes()).unwrap();
-            let x509 = X509::from_pem(CERTIFICATE.as_bytes()).unwrap();
+        let mut acceptor = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
+        acceptor.set_verify(openssl::ssl::SslVerifyMode::NONE);
+        acceptor.set_private_key(&pkey).unwrap();
+        acceptor.set_certificate(&x509).unwrap();
+        acceptor.check_private_key().unwrap();
 
-            let mut acceptor = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-            acceptor.set_verify(openssl::ssl::SslVerifyMode::NONE);
-            acceptor.set_private_key(&pkey).unwrap();
-            acceptor.set_certificate(&x509).unwrap();
-            acceptor.check_private_key().unwrap();
+        server.bind_openssl(server_address(port), acceptor)
+    } else {
+        server.bind(server_address(port))
+    }
+    .unwrap();
 
-            server.bind_openssl(server_address(port), acceptor)
-        } else {
-            server.bind(server_address(port))
-        }
-        .unwrap();
+    let server = server.workers(1).system_exit().shutdown_timeout(3).run();
 
-        let server = server.workers(1).system_exit().shutdown_timeout(3).run();
+    let server_handle = server.handle();
 
-        tx.send(server.handle()).unwrap();
+    let fut = async move { server.await.unwrap() };
 
-        System::new().block_on(async move { server.await.unwrap() });
+    let thread_handle = thread::spawn(move || {
+        System::new().block_on(fut);
     });
 
     loop {
@@ -1886,30 +1885,29 @@ fn serve_config(config: String, with_ssl: bool, port: u16) -> Serve {
         }
     }
 
-    Serve::new(rx, thandle)
+    Serve::new(server_handle, thread_handle)
 }
 
 struct Serve {
-    rx: mpsc::Receiver<ServerHandle>,
-    thandle: Option<thread::JoinHandle<()>>,
+    server_handle: ServerHandle,
+    thread_handle: Option<thread::JoinHandle<()>>,
     stopped: bool,
 }
 
 impl Serve {
-    fn new(rx: mpsc::Receiver<ServerHandle>, thandle: thread::JoinHandle<()>) -> Self {
+    fn new(server_handle: ServerHandle, thread_handle: thread::JoinHandle<()>) -> Self {
         let stopped = false;
-        let thandle = Some(thandle);
+        let thread_handle = Some(thread_handle);
         Serve {
-            rx,
-            thandle,
+            server_handle,
+            thread_handle,
             stopped,
         }
     }
 
     fn stop(&mut self) {
-        let handle = self.rx.recv().unwrap();
-        System::new().block_on(async { handle.stop(true).await });
-        self.thandle.take().unwrap().join().unwrap();
+        System::new().block_on(async { self.server_handle.stop(true).await });
+        self.thread_handle.take().unwrap().join().unwrap();
         self.stopped = true;
     }
 }
