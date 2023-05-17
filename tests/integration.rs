@@ -184,6 +184,7 @@ fn join() {
 
     get_base_command()
         .args(["join", &json_config])
+        .timeout(Duration::from_secs(5))
         .envs(os_config_env(&os_config_path, &config_json_path))
         .assert()
         .success()
@@ -347,6 +348,7 @@ fn join_flasher() {
 
     get_base_command()
         .args(["join", &json_config])
+        .timeout(Duration::from_secs(5))
         .envs(os_config_env(&os_config_path, &config_json_path))
         .env(CONFIG_JSON_FLASHER_PATH_REDEFINE, &config_json_path)
         .env(FLASHER_FLAG_PATH_REDEFINE, flasher_flag_path)
@@ -476,6 +478,7 @@ fn join_with_root_certificate() {
 
     get_base_command()
         .args(["join", &json_config])
+        .timeout(Duration::from_secs(5))
         .envs(os_config_env(&os_config_path, &config_json_path))
         .assert()
         .success()
@@ -582,6 +585,7 @@ fn incompatible_device_types() {
 
     get_base_command()
         .args(["join", &json_config])
+        .timeout(Duration::from_secs(5))
         .envs(os_config_env(&os_config_path, &config_json_path))
         .assert()
         .failure()
@@ -689,6 +693,7 @@ fn reconfigure() {
 
     get_base_command()
         .args(["join", &json_config])
+        .timeout(Duration::from_secs(5))
         .envs(os_config_env(&os_config_path, &config_json_path))
         .assert()
         .success()
@@ -831,6 +836,7 @@ fn reconfigure_stored() {
 
     get_base_command()
         .args(["join", &json_config])
+        .timeout(Duration::from_secs(5))
         .envs(os_config_env(&os_config_path, &config_json_path))
         .assert()
         .success()
@@ -1014,6 +1020,7 @@ fn update() {
 
     get_base_command()
         .args(["update"])
+        .timeout(Duration::from_secs(5))
         .envs(os_config_env(&os_config_path, &config_json_path))
         .assert()
         .success()
@@ -1159,6 +1166,7 @@ fn update_no_config_changes() {
 
     get_base_command()
         .args(["update"])
+        .timeout(Duration::from_secs(5))
         .envs(os_config_env(&os_config_path, &config_json_path))
         .assert()
         .success()
@@ -1258,6 +1266,7 @@ fn update_with_root_certificate() {
 
     get_base_command()
         .args(["update"])
+        .timeout(Duration::from_secs(5))
         .envs(os_config_env(&os_config_path, &config_json_path))
         .assert()
         .success()
@@ -1315,6 +1324,7 @@ fn update_unmanaged() {
 
     get_base_command()
         .args(["update"])
+        .timeout(Duration::from_secs(5))
         .envs(os_config_env(&os_config_path, &config_json_path))
         .assert()
         .success()
@@ -1416,6 +1426,7 @@ fn leave() {
 
     get_base_command()
         .args(["leave"])
+        .timeout(Duration::from_secs(5))
         .envs(os_config_env(&os_config_path, &config_json_path))
         .assert()
         .success()
@@ -1504,6 +1515,7 @@ fn leave_unmanaged() {
 
     get_base_command()
         .args(["leave"])
+        .timeout(Duration::from_secs(5))
         .envs(os_config_env(&os_config_path, &config_json_path))
         .assert()
         .success()
@@ -1547,6 +1559,7 @@ fn generate_api_key_unmanaged() {
 
     get_base_command()
         .args(["generate-api-key"])
+        .timeout(Duration::from_secs(5))
         .envs(os_config_env(&os_config_path, &config_json_path))
         .assert()
         .success()
@@ -1605,6 +1618,7 @@ fn generate_api_key_already_generated() {
 
     get_base_command()
         .args(["generate-api-key"])
+        .timeout(Duration::from_secs(5))
         .envs(os_config_env(&os_config_path, &config_json_path))
         .assert()
         .success()
@@ -1664,6 +1678,7 @@ fn generate_api_key_reuse() {
 
     get_base_command()
         .args(["generate-api-key"])
+        .timeout(Duration::from_secs(5))
         .envs(os_config_env(&os_config_path, &config_json_path))
         .assert()
         .success()
@@ -1745,6 +1760,7 @@ fn generate_api_key_new() {
 
     get_base_command()
         .args(["generate-api-key"])
+        .timeout(Duration::from_secs(5))
         .envs(os_config_env(&os_config_path, &config_json_path))
         .assert()
         .success()
