@@ -1906,7 +1906,7 @@ impl Serve {
     }
 
     fn stop(&mut self) {
-        System::new().block_on(async { self.server_handle.stop(true).await });
+        System::new().block_on(async { self.server_handle.stop(false).await });
         self.thread_handle.take().unwrap().join().unwrap();
         self.stopped = true;
     }
