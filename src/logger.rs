@@ -13,9 +13,10 @@ pub fn init_logger() {
 
     builder
         .target(Target::Stdout)
-        .default_format_module_path(false)
-        .default_format_level(false)
-        .default_format_timestamp(false);
+        .format_module_path(false)
+        .format_level(false)
+        .format_target(false)
+        .format_timestamp(None);
 
     builder.init();
 }
