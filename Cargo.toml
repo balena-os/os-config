@@ -30,7 +30,7 @@ assert_cmd = "2.0"
 maplit = "1.0"
 tempfile = "3"
 unindent = "0.1"
-predicates = "3.0"
+ntest = "0.9"
 
 [dev-dependencies.actix-web]
 version = "4.3"
