@@ -1,4 +1,4 @@
-use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
+use clap::{command, Arg, ArgMatches, Command};
 
 use std::env;
 use std::path::{Path, PathBuf};
@@ -36,30 +36,26 @@ pub struct Args {
 }
 
 pub fn get_cli_args() -> Args {
-    let matches = App::new(env!("CARGO_PKG_NAME"))
-        .version(env!("CARGO_PKG_VERSION"))
-        .author(env!("CARGO_PKG_AUTHORS"))
-        .about(env!("CARGO_PKG_DESCRIPTION"))
-        .setting(AppSettings::SubcommandRequiredElseHelp)
+    let matches = command!()
+        //        .setting(AppSettings::SubcommandRequiredElseHelp)
         .subcommand(
-            SubCommand::with_name("generate-api-key")
-                .about("Generates deviceApiKey for configured device"),
+            Command::new("generate-api-key").about("Generates deviceApiKey for configured device"),
         )
         .subcommand(
-            SubCommand::with_name("update")
+            Command::new("update")
                 .about("Apply available configuration updates on a configured device"),
         )
         .subcommand(
-            SubCommand::with_name("join")
+            Command::new("join")
                 .about("Configure/reconfigure a device")
                 .arg(
-                    Arg::with_name("JSON_CONFIG")
+                    Arg::new("JSON_CONFIG")
                         .help("Provisioning JSON configuration")
                         .required(true)
                         .index(1),
                 ),
         )
-        .subcommand(SubCommand::with_name("leave").about("Deconfigure a device"))
+        .subcommand(Command::new("leave").about("Deconfigure a device"))
         .get_matches();
 
     let (subcommand, json_config) = match matches.subcommand() {
@@ -116,7 +112,7 @@ fn get_flasher_flag_path() -> PathBuf {
 }
 
 fn get_json_config(matches: &ArgMatches) -> String {
-    if let Some(contents) = matches.value_of("JSON_CONFIG") {
+    if let Some(contents) = matches.get_one::<String>("JSON_CONFIG") {
         contents.into()
     } else {
         unreachable!()
