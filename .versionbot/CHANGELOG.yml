@@ -1,4 +1,25 @@
 - commits:
+    - subject: Timeout for tests and test-server port check
+      hash: a6e3b0e8b71ec701eee30a0b401c1c156bdcbd42
+      body: |
+        After starting integration tests now we await for the server port
+        to be occupied before continuing further instead of arbitrary awaiting
+        200ms. The check is done through TcpStream::connect.
+
+        Also added is 10s timeout for each test involving the mock server
+        as a racing condition on Flowzone was observed where a test may not
+        finish at all.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Zahari Petkov <zahari@balena.io>
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      author: Zahari Petkov
+      nested: []
+  version: 1.2.20
+  title: ""
+  date: 2023-05-22T08:23:02.031Z
+- commits:
     - subject: Switch from `tempdir` to `tempfile` for dev dependencies
       hash: b0374ff2633b4c4db6ffffe1da3094358afa2036
       body: |
