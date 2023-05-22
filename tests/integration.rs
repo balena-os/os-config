@@ -15,6 +15,9 @@ use std::path::Path;
 use std::thread;
 use std::time::Duration;
 
+use base64::engine::general_purpose::STANDARD;
+use base64::Engine;
+
 use ntest::timeout;
 
 use assert_cmd::Command;
@@ -2062,5 +2065,5 @@ rXj1PV+HFXivKmGYbTPXAcY4jtrEKN4n+d2k8R7vYC4PD5xFdlsRdA==
 -----END RSA PRIVATE KEY-----";
 
 fn cert_for_json(cert: &str) -> String {
-    base64::encode(cert)
+    STANDARD.encode(cert)
 }
