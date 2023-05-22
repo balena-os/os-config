@@ -35,7 +35,7 @@ features = ["openssl"]
 
 [dependencies.fatrw]
 git = "https://github.com/balena-os/fatrw"
-rev = "228b66078678317ea28802369719b235cd10d56f"
+rev = "4920c2d3146cd5745660170e55ae2a26c7d35ca5" # v0.2.23
 
 [profile.release]
 opt-level = "z"
