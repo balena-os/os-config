@@ -1,4 +1,18 @@
 - commits:
+    - subject: Switch env_logger to v0.10
+      hash: 10b8948cd6b8aee7b45fc19af4b0e2c86e905228
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Zahari Petkov <zahari@balena.io>
+        signed-off-by: Zahari Petkov <zahari@balena.io>
+      author: Zahari Petkov
+      nested: []
+  version: 1.2.21
+  title: ""
+  date: 2023-05-22T12:21:42.183Z
+- commits:
     - subject: Timeout for tests and test-server port check
       hash: a6e3b0e8b71ec701eee30a0b401c1c156bdcbd42
       body: |
