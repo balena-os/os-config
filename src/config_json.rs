@@ -1,5 +1,8 @@
 use std::path::Path;
 
+use base64::engine::general_purpose::STANDARD;
+use base64::Engine;
+
 use serde_json::{Map, Value};
 
 use crate::fs::{read_file, write_file};
@@ -70,7 +73,8 @@ fn get_device_type(config_json: &ConfigMap) -> Result<Option<String>> {
 pub fn get_root_certificate(config_json: &ConfigMap) -> Result<Option<reqwest::Certificate>> {
     if let Some(value) = config_json.get("balenaRootCA") {
         if let Some(root_certificate) = value.as_str() {
-            let decoded = base64::decode(root_certificate)
+            let decoded = STANDARD
+                .decode(root_certificate)
                 .context("`balenaRootCA` base64 decoding failed")?;
             let cert = reqwest::Certificate::from_pem(&decoded)
                 .context("Not a valid PEM encoded certificate")?;

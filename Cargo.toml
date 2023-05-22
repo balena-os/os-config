@@ -16,14 +16,11 @@ serde_derive = "1"
 serde_json = "1"
 reqwest = {version = "0.11", features = ["blocking"]}
 openssl = "0.10"
-hex = "0.3"
-getrandom = "0.1"
-base64 = "0.10"
-zbus = {version = "3.13", default-features = false, features = ["tokio"]}
-
-[dependencies.clap]
-version = "3"
-features = ["derive"]
+hex = "0.4"
+getrandom = "0.2"
+base64 = "0.21"
+zbus = {version = "3.12", default-features = false, features = ["tokio"]}
+clap = {version = "4", features = ["derive", "cargo"]}
 
 [dev-dependencies]
 assert_cmd = "2.0"
@@ -38,7 +35,7 @@ features = ["openssl"]
 
 [dependencies.fatrw]
 git = "https://github.com/balena-os/fatrw"
-rev = "228b66078678317ea28802369719b235cd10d56f"
+rev = "4920c2d3146cd5745660170e55ae2a26c7d35ca5" # v0.2.23
 
 [profile.release]
 opt-level = "z"
