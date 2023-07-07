@@ -505,79 +505,13 @@ mod tests {
     /*******************************************************************************
      * get_root_certificate
      */
-    use std::process::Command;
-
-    /**
-     * Generate a private key & certificate pair using command line openssl
-     */
-    fn generate_self_signed_cert() -> (String, String) {
-        let output = Command::new("openssl")
-            .args([
-                "req",
-                "-new",
-                "-newkey",
-                "rsa:2048",
-                "-nodes",
-                "-x509",
-                "-subj",
-                "/CN=localhost",
-                "-keyout",
-                "/dev/stdout",
-                "-out",
-                "/dev/stdout",
-            ])
-            .output()
-            .expect("Failed to generate certificate");
-
-        let output_str = String::from_utf8_lossy(&output.stdout).to_string();
-
-        let private_key = extract_substring(
-            &output_str,
-            "-----BEGIN PRIVATE KEY-----",
-            "-----END PRIVATE KEY-----",
-        )
-        .unwrap_or_else(|| panic!("Failed to extract private key"));
-
-        let certificate = extract_substring(
-            &output_str,
-            "-----BEGIN CERTIFICATE-----",
-            "-----END CERTIFICATE-----",
-        )
-        .unwrap_or_else(|| panic!("Failed to extract certificate"));
-
-        (private_key, certificate)
-    }
-
-    /**
-     * Extract a substring from a string, returning the substring with start & end included
-     */
-    fn extract_substring(input: &str, start: &str, end: &str) -> Option<String> {
-        input.find(start).map(|start_idx| {
-            let end_idx = input.find(end).unwrap_or_else(|| {
-                panic!("Failed to get end index for substring");
-            }) + end.len()
-                - 1;
-            input[start_idx..=end_idx].to_owned()
-        })
-    }
-
-    /**
-     * Encode a cert string into a format valid for JSON
-     *
-     * TODO: This function is replicated in tests/integration.rs and should be
-     * deduplicated with an internal crate.
-     */
-    fn cert_for_json(cert: &str) -> String {
-        STANDARD.encode(cert)
-    }
-
     #[test]
     fn get_root_certificate_returns_ca_if_valid_cert() {
-        let (_pkey, cert) = generate_self_signed_cert();
+        let (_pkey, cert) = test_utils::generate_self_signed_cert();
         let mut config_json = Map::new();
         config_json.insert(
             "balenaRootCA".to_owned(),
-            Value::String(cert_for_json(&cert)),
+            Value::String(test_utils::cert_for_json(&cert)),
         );
         assert!(get_root_certificate(&config_json).unwrap().is_some());
     }
