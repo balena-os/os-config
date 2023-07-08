@@ -261,6 +261,8 @@ pub fn generate_random_key() -> String {
 mod tests {
     use super::*;
 
+    use tempfile::TempDir;
+
     /*******************************************************************************
      * get_api_endpoint
      */
@@ -732,16 +734,39 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn read_config_json_reads_successfully() {
-        todo!("TODO: this test writes to fs so requires utils in tests/integration");
+        let tmp_dir = TempDir::new().unwrap();
+
+        let mut config_json = Map::new();
+        config_json.insert("apiEndpoint".to_string(), "http://api.endpoint.com".into());
+        config_json.insert("hostname".to_string(), "testdevice".into());
+
+        let config_json_str = serde_json::to_string_pretty(&config_json).unwrap();
+
+        let config_json_path =
+            test_utils::create_tmp_file(&tmp_dir, "config.json", &config_json_str, None);
+
+        assert_eq!(
+            read_config_json(Path::new(&config_json_path)).unwrap(),
+            config_json
+        );
     }
 
     #[test]
-    #[ignore]
-    #[should_panic(expected = r#"Expected JSON object"#)]
     fn read_config_json_file_is_not_json() {
-        todo!("TODO: this test writes to fs so requires utils in tests/integration");
+        let tmp_dir = TempDir::new().unwrap();
+        let config_json_path =
+            test_utils::create_tmp_file(&tmp_dir, "config.json", "not json", None);
+
+        let result = read_config_json(Path::new(&config_json_path));
+        if let Err(e) = result {
+            assert_eq!(
+                e.to_string(),
+                format!(r#"Reading "{}" failed"#, config_json_path)
+            );
+        } else {
+            panic!("Expected read_config_json to fail");
+        }
     }
 
     /*******************************************************************************
@@ -763,9 +788,27 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn write_config_json_writes_successfully() {
-        todo!("TODO: this test writes to fs so requires utils in tests/integration");
+        let tmp_dir = TempDir::new().unwrap();
+        let config_json_path = test_utils::create_tmp_file(&tmp_dir, "config.json", "{}", None);
+
+        let mut config_json = Map::new();
+        config_json.insert(
+            "apiEndpoint".to_string(),
+            Value::String("https://api.endpoint.com".to_string()),
+        );
+        config_json.insert(
+            "deviceApiKey".to_string(),
+            Value::String("key1".to_string()),
+        );
+
+        write_config_json(Path::new(&config_json_path), &config_json).unwrap();
+
+        test_utils::validate_json_file(
+            &config_json_path,
+            &serde_json::to_string_pretty(&config_json).unwrap(),
+            false,
+        );
     }
 
     /*******************************************************************************
