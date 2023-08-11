@@ -1,3 +1,6 @@
+[workspace]
+members = ["test_utils"]
+
 [package]
 name = "os-config"
 version = "1.2.22"
@@ -28,10 +31,7 @@ maplit = "1.0"
 tempfile = "3"
 unindent = "0.1"
 ntest = "0.9"
-
-[dev-dependencies.actix-web]
-version = "4.3"
-features = ["openssl"]
+test_utils = {path = "test_utils"}
 
 [dependencies.fatrw]
 git = "https://github.com/balena-os/fatrw"
