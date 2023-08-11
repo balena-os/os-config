@@ -1,4 +1,32 @@
 - commits:
+    - subject: Add unit tests for public functions in config_json.rs
+      hash: f646c9a597e12c567b70782d8108231b5b28811f
+      body: >
+        Although only the public functions are explicitly tested,
+
+        there is an assertion to check every code branch in those functions.
+
+
+        TODO: read_config_json & write_config_json write to the filesystem because
+
+        they read/write to/from the actual filesystem. There are already some utility
+
+        functions (validate_json_file and create_tmp_file) in tests/integration.rs
+
+        that can help here. This file handling functionality could be moved to an internal
+
+        crate so it can be used in both places.
+      footer:
+        Change-type: patch
+        change-type: patch
+        Signed-off-by: Christina Ying Wang <christina@balena.io>
+        signed-off-by: Christina Ying Wang <christina@balena.io>
+      author: Christina Ying Wang
+      nested: []
+  version: 1.2.23
+  title: ""
+  date: 2023-08-11T16:49:22.693Z
+- commits:
     - subject: Bump clap to v4
       hash: bc988a541334f86442cf45dcb0eed05f72f96d64
       body: ""
