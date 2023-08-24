@@ -6,12 +6,12 @@ use crate::schema::validate_schema_version;
 use anyhow::{anyhow, Context, Result};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub struct Configuration {
+pub struct RemoteConfiguration {
     pub services: HashMap<String, HashMap<String, String>>,
     pub schema_version: String,
 }
 
-impl Configuration {
+impl RemoteConfiguration {
     pub fn get_config_contents<'a>(
         &'a self,
         service_id: &str,
@@ -42,7 +42,7 @@ pub fn fetch_configuration(
     config_url: &str,
     root_certificate: Option<reqwest::Certificate>,
     retry: bool,
-) -> Result<Configuration> {
+) -> Result<RemoteConfiguration> {
     fetch_configuration_impl(config_url, root_certificate, retry)
         .context("Fetching configuration failed")
 }
@@ -51,7 +51,7 @@ fn fetch_configuration_impl(
     config_url: &str,
     root_certificate: Option<reqwest::Certificate>,
     retry: bool,
-) -> Result<Configuration> {
+) -> Result<RemoteConfiguration> {
     let client = build_reqwest_client(root_certificate)?;
 
     let request_fn = if retry {
@@ -159,10 +159,10 @@ mod tests {
     }"#;
 
     #[test]
-    fn parse_configuration_v1() {
-        let parsed: Configuration = serde_json::from_str(JSON_DATA).unwrap();
+    fn parse_configuration() {
+        let parsed: RemoteConfiguration = serde_json::from_str(JSON_DATA).unwrap();
 
-        let expected = Configuration {
+        let expected = RemoteConfiguration {
             services: hashmap! {
                 "openvpn".into() => hashmap!{
                     "config".into() => "main configuration here".into(),
