@@ -77,7 +77,9 @@ fn join() {
                 }}
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {{
+                "whitelist": ["logsEndpoint"]
+            }}
         }}
         "#
     );
@@ -99,7 +101,9 @@ fn join() {
                     "mock-3": "MOCK-3-0123456789"
                 }
             },
-            "schema_version": "1.0.0"
+            "config": {
+                "overrides": {}
+            }
         }
         "#,
     );
@@ -257,7 +261,9 @@ fn join_flasher() {
                 }}
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {{
+                "whitelist": ["logsEndpoint"]
+            }}
         }}
         "#
     );
@@ -272,7 +278,9 @@ fn join_flasher() {
                     "mock-1": "MOCK-1-АБВГДЕЖЗИЙ"
                 }
             },
-            "schema_version": "1.0.0"
+            "config": {
+                "overrides": {}
+            }
         }
         "#,
     );
@@ -392,7 +400,9 @@ fn join_with_root_certificate() {
             "services": [
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {
+                "whitelist": ["logsEndpoint"]
+            }
         }
         "#;
 
@@ -403,7 +413,9 @@ fn join_with_root_certificate() {
         {
             "services": {
             },
-            "schema_version": "1.0.0"
+            "config": {
+                "overrides": {}
+            }
         }
         "#,
     );
@@ -515,7 +527,9 @@ fn incompatible_device_types() {
             "services": [
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {
+                "whitelist": ["logsEndpoint"]
+            }
         }
         "#,
     );
@@ -608,7 +622,9 @@ fn reconfigure() {
             "services": [
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {
+                "whitelist": ["logsEndpoint"]
+            }
         }
         "#,
     );
@@ -620,7 +636,9 @@ fn reconfigure() {
         {
             "services": {
             },
-            "schema_version": "1.0.0"
+            "config": {
+                "overrides": {}
+            }
         }
         "#,
     );
@@ -751,7 +769,9 @@ fn reconfigure_stored() {
             "services": [
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {
+                "whitelist": ["logsEndpoint"]
+            }
         }
         "#,
     );
@@ -763,7 +783,9 @@ fn reconfigure_stored() {
         {
             "services": {
             },
-            "schema_version": "1.0.0"
+            "config": {
+                "overrides": {}
+            }
         }
         "#,
     );
@@ -935,7 +957,9 @@ fn update() {
                 }}
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {{
+                "whitelist": ["logsEndpoint"]
+            }}
         }}
         "#
     );
@@ -961,7 +985,9 @@ fn update() {
                     "mock-3": "MOCK-3-0123456789"
                 }
             },
-            "schema_version": "1.0.0"
+            "config": {
+                "overrides": {}
+            }
         }
         "#,
     );
@@ -1097,7 +1123,9 @@ fn update_no_config_changes() {
                 }}
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {{
+                "whitelist": ["logsEndpoint"]
+            }}
         }}
         "#
     );
@@ -1122,7 +1150,9 @@ fn update_no_config_changes() {
                     "mock-3": "MOCK-3-0123456789"
                 }
             },
-            "schema_version": "1.0.0"
+            "config": {
+                "overrides": {}
+            }
         }
         "#,
     );
@@ -1211,7 +1241,9 @@ fn update_with_root_certificate() {
             "services": [
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {
+                "whitelist": ["logsEndpoint"]
+            }
         }
         "#;
 
@@ -1222,7 +1254,9 @@ fn update_with_root_certificate() {
         {
             "services": {
             },
-            "schema_version": "1.0.0"
+            "config": {
+                "overrides": {}
+            }
         }
         "#,
     );
@@ -1271,7 +1305,9 @@ fn update_unmanaged() {
             "services": [
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {
+                "whitelist": ["logsEndpoint"]
+            }
         }
         "#;
 
@@ -1282,7 +1318,9 @@ fn update_unmanaged() {
         {
             "services": {
             },
-            "schema_version": "1.0.0"
+            "config": {
+                "overrides": {}
+            }
         }
         "#,
     );
@@ -1361,7 +1399,9 @@ fn leave() {
                 }}
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint", "vpnPort", "registryEndpoint", "deltaEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {{
+                "whitelist": ["logsEndpoint"]
+            }}
         }}
         "#
     );
@@ -1378,7 +1418,9 @@ fn leave() {
                     "mock-3": "MOCK-3-0123456789"
                 }
             },
-            "schema_version": "1.0.0"
+            "config": {
+                "overrides": {}
+            }
         }
         "#,
     );
@@ -1461,7 +1503,9 @@ fn leave_unmanaged() {
             "services": [
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {
+                "whitelist": ["logsEndpoint"]
+            }
         }
         "#,
     );
@@ -1473,7 +1517,9 @@ fn leave_unmanaged() {
         {
             "services": {
             },
-            "schema_version": "1.0.0"
+            "config": {
+                "overrides": {}
+            }
         }
         "#,
     );
@@ -1517,7 +1563,9 @@ fn generate_api_key_unmanaged() {
             "services": [
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {
+                "whitelist": ["logsEndpoint"]
+            }
         }
         "#,
     );
@@ -1576,7 +1624,9 @@ fn generate_api_key_already_generated() {
             "services": [
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {
+                "whitelist": ["logsEndpoint"]
+            }
         }
         "#,
     );
@@ -1635,7 +1685,9 @@ fn generate_api_key_reuse() {
             "services": [
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {
+                "whitelist": ["logsEndpoint"]
+            }
         }
         "#,
     );
@@ -1717,7 +1769,9 @@ fn generate_api_key_new() {
             "services": [
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {
+                "whitelist": ["logsEndpoint"]
+            }
         }
         "#,
     );

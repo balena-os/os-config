@@ -2,13 +2,17 @@ use std::collections::HashMap;
 use std::thread;
 use std::time::Duration;
 
-use crate::schema::validate_schema_version;
 use anyhow::{anyhow, Context, Result};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct RemoteConfiguration {
     pub services: HashMap<String, HashMap<String, String>>,
-    pub schema_version: String,
+    pub config: ConfigMigrationInstructions,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct ConfigMigrationInstructions {
+    pub overrides: HashMap<String, serde_json::Value>,
 }
 
 impl RemoteConfiguration {
@@ -65,8 +69,6 @@ fn fetch_configuration_impl(
     let json_data = request_fn(config_url, &client)?.text()?;
 
     info!("Service configuration retrieved");
-
-    validate_schema_version(&json_data)?;
 
     Ok(serde_json::from_str(&json_data)?)
 }
@@ -141,7 +143,6 @@ fn build_reqwest_client(
 mod tests {
 
     use super::*;
-    use crate::schema::SCHEMA_VERSION;
 
     const JSON_DATA: &str = r#"{
         "services": {
@@ -155,7 +156,11 @@ mod tests {
                 "authorized_keys": "authorized keys here"
             }
         },
-        "schema_version": "1.0.0"
+        "config": {
+            "overrides": {
+                "logsEndpoint": "https://logs.balenadev.io"
+            }
+        }
     }"#;
 
     #[test]
@@ -174,7 +179,11 @@ mod tests {
                     "authorized_keys".into() => "authorized keys here".into()
                 }
             },
-            schema_version: SCHEMA_VERSION.into(),
+            config: ConfigMigrationInstructions {
+                overrides: hashmap! {
+                    "logsEndpoint".into() => "https://logs.balenadev.io".into()
+                },
+            },
         };
 
         assert_eq!(parsed, expected);
