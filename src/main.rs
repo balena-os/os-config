@@ -33,6 +33,7 @@ mod generate;
 mod join;
 mod leave;
 mod logger;
+mod migrate;
 mod random;
 mod remote;
 mod schema;

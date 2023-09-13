@@ -139,6 +139,7 @@ fn join() {
         r#"
         Fetching service configuration from http://localhost:{port}/os/v1/config...
         Service configuration retrieved
+        Checking for config.json migrations...
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
         Writing {tmp_dir_path}/config.json
@@ -316,6 +317,7 @@ fn join_flasher() {
         r#"
         Fetching service configuration from http://localhost:{port}/os/v1/config...
         Service configuration retrieved
+        Checking for config.json migrations...
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
         Writing {tmp_dir_path}/config.json
@@ -453,6 +455,7 @@ fn join_with_root_certificate() {
         r#"
         Fetching service configuration from https://localhost:{port}/os/v1/config...
         Service configuration retrieved
+        Checking for config.json migrations...
         No configuration changes
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
@@ -674,6 +677,7 @@ fn reconfigure() {
         r#"
         Fetching service configuration from http://localhost:{port}/os/v1/config...
         Service configuration retrieved
+        Checking for config.json migrations...
         No configuration changes
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
@@ -821,6 +825,7 @@ fn reconfigure_stored() {
         r#"
         Fetching service configuration from http://localhost:{port}/os/v1/config...
         Service configuration retrieved
+        Checking for config.json migrations...
         No configuration changes
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
@@ -998,6 +1003,7 @@ fn update() {
         r#"
         Fetching service configuration from http://localhost:{port}/os/v1/config...
         Service configuration retrieved
+        Checking for config.json migrations...
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
         {tmp_dir_path}/not-a-service-1.conf updated
@@ -1163,6 +1169,7 @@ fn update_no_config_changes() {
         r#"
         Fetching service configuration from http://localhost:{port}/os/v1/config...
         Service configuration retrieved
+        Checking for config.json migrations...
         No configuration changes
         "#,
     ));
@@ -1267,6 +1274,7 @@ fn update_with_root_certificate() {
         r#"
         Fetching service configuration from https://localhost:{port}/os/v1/config...
         Service configuration retrieved
+        Checking for config.json migrations...
         No configuration changes
         "#,
     ));
@@ -1818,6 +1826,235 @@ fn generate_api_key_new() {
     );
 }
 
+#[test]
+#[timeout(10000)]
+fn migrate_config_json() {
+    let port = 31014;
+    let tmp_dir = TempDir::new().unwrap();
+    let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
+
+    let config_json = format!(
+        r#"
+        {{
+            "deviceApiKey": "abcdef",
+            "deviceType": "intel-nuc",
+            "hostname": "balena",
+            "persistentLogging": false,
+            "applicationName": "aaaaaa",
+            "applicationId": 1234567,
+            "userId": 654321,
+            "appUpdatePollInterval": 900000,
+            "listenPort": 48484,
+            "vpnPort": 443,
+            "apiEndpoint": "http://{}",
+            "vpnEndpoint": "vpn.balenadev.io",
+            "registryEndpoint": "registry2.balenadev.io",
+            "deltaEndpoint": "https://delta.balenadev.io",
+            "apiKey": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1",
+            "deadbeef": "12345678",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab"
+        }}
+        "#,
+        server_address(port)
+    );
+
+    let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
+
+    let schema = r#"
+        {
+            "services": [
+            ],
+            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
+            "config": {
+                "whitelist": [
+                    "logsEndpoint",
+                    "mixpanelToken",
+                    "registryEndpoint",
+                    "deltaEndpoint",
+                    "applicationId",
+                    "persistentLogging",
+                    "deadbeef"
+                ]
+            }
+        }
+        "#
+    .to_string();
+
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
+
+    // - apiEndpoint: not on whitelist, should skip
+    // - logsEndpoint: value not present, should insert
+    // - registryEndpoint: value unchanged, should skip
+    // - deltaEndpoint: value changed, should update (String)
+    // - applicationId: value changed, should update (u64)
+    // - persistentLogging: value changed, should update (bool)
+    // - deadbeef: value changed, should update (stringified u64)
+    let configuration = unindent::unindent(
+        r#"
+        {
+            "services": {},
+            "config": {
+                "overrides": {
+                    "apiEndpoint": "http://api.balenadev.io",
+                    "logsEndpoint": "https://logs.balenadev.io",
+                    "registryEndpoint": "registry2.balenadev.io",
+                    "deltaEndpoint": "https://delta2.balenadev.io",
+                    "applicationId": 1234568,
+                    "persistentLogging": true,
+                    "deadbeef": "1234567890"
+                }
+            }
+        }
+        "#,
+    );
+
+    let mut serve = serve_config(configuration, false, port);
+
+    // This is unfortunately necessary because the output for each line that
+    // begins with `Key` may vary in order.
+    let output_patterns = [
+        format!("Fetching service configuration from http://localhost:{}/os/v1/config...\nService configuration retrieved\nChecking for config.json migrations...", port),
+        "Key `logsEndpoint` not found, will insert".into(),
+        "Key `deltaEndpoint` found with current value `\"https://delta.balenadev.io\"`, will update to `\"https://delta2.balenadev.io\"`".into(),
+        "Key `deadbeef` found with current value `\"12345678\"`, will update to `\"1234567890\"`".into(),
+        "Key `persistentLogging` found with current value `false`, will update to `true`".into(),
+        "Key `applicationId` found with current value `1234567`, will update to `1234568`".into(),
+        format!("Stopping balena-supervisor.service...\nAwaiting balena-supervisor.service to exit...\nMigrating config.json...\nWriting {}/config.json\nStarting balena-supervisor.service...", tmp_dir_path),
+    ];
+
+    let output = get_base_command()
+        .args(["update"])
+        .timeout(Duration::from_secs(5))
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .get_output()
+        .to_owned();
+
+    let string_output = String::from_utf8(output.stdout).unwrap();
+
+    for pattern in output_patterns.iter() {
+        // write string_output to local file for debugging
+        assert!(string_output.contains(pattern));
+    }
+
+    validate_json_file(
+        &config_json_path,
+        &format!(
+            r#"
+            {{
+                "deviceApiKey": "abcdef",
+                "deviceType": "intel-nuc",
+                "hostname": "balena",
+                "persistentLogging": true,
+                "applicationName": "aaaaaa",
+                "applicationId": 1234568,
+                "userId": 654321,
+                "appUpdatePollInterval": 900000,
+                "listenPort": 48484,
+                "vpnPort": 443,
+                "apiEndpoint": "http://{}",
+                "vpnEndpoint": "vpn.balenadev.io",
+                "registryEndpoint": "registry2.balenadev.io",
+                "deltaEndpoint": "https://delta2.balenadev.io",
+                "apiKey": "12345678abcd1234efgh1234567890ab",
+                "version": "9.99.9+rev1",
+                "deadbeef": "1234567890",
+                "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+                "logsEndpoint": "https://logs.balenadev.io"
+            }}
+            "#,
+            server_address(port)
+        ),
+        false,
+    );
+
+    serve.stop();
+}
+
+#[test]
+#[timeout(10000)]
+fn ignore_unknown_cloud_config_fields() {
+    let port = 31015;
+    let tmp_dir = TempDir::new().unwrap();
+
+    let config_json = format!(
+        r#"
+        {{
+            "deviceApiKey": "abcdef",
+            "deviceType": "intel-nuc",
+            "hostname": "balena",
+            "persistentLogging": false,
+            "applicationName": "aaaaaa",
+            "applicationId": 1234567,
+            "userId": 654321,
+            "appUpdatePollInterval": 900000,
+            "listenPort": 48484,
+            "vpnPort": 443,
+            "apiEndpoint": "http://{}",
+            "vpnEndpoint": "vpn.balenadev.io",
+            "registryEndpoint": "registry2.balenadev.io",
+            "deltaEndpoint": "https://delta.balenadev.io",
+            "apiKey": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab"
+        }}
+        "#,
+        server_address(port)
+    );
+
+    let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
+
+    let schema = r#"
+        {
+            "services": [
+            ],
+            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
+            "config": {
+                "whitelist": []
+            }
+        }
+        "#
+    .to_string();
+
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
+
+    let configuration = unindent::unindent(
+        r#"
+        {
+            "services": {},
+            "config": {
+                "overrides": {}
+            },
+            "unknown_field": "unknown_value"
+        }
+        "#,
+    );
+
+    let mut serve = serve_config(configuration, false, port);
+
+    let output = unindent::unindent(&format!(
+        r#"
+        Fetching service configuration from http://localhost:{port}/os/v1/config...
+        Service configuration retrieved
+        Checking for config.json migrations...
+        No configuration changes
+        "#,
+    ));
+
+    get_base_command()
+        .args(["update"])
+        .timeout(Duration::from_secs(5))
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
+
+    validate_json_file(&config_json_path, &config_json, false);
+
+    serve.stop();
+}
 /*******************************************************************************
 *  os-config launch
 */

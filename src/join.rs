@@ -6,6 +6,7 @@ use crate::config_json::{
     get_api_endpoint, get_root_certificate, merge_config_json, read_config_json, write_config_json,
     ConfigMap,
 };
+use crate::migrate::generate_config_json_migration;
 use crate::remote::{config_url, fetch_configuration, RemoteConfiguration};
 use crate::schema::{read_os_config_schema, OsConfigSchema};
 use crate::systemd;
@@ -45,9 +46,12 @@ pub fn reconfigure(args: &Args, config_json: &ConfigMap, joining: bool) -> Resul
         !joining,
     )?;
 
-    let has_config_changes = has_config_changes(&schema, &remote_config)?;
+    let has_service_config_changes = has_service_config_changes(&schema, &remote_config)?;
 
-    if !has_config_changes {
+    let migrated_config_json =
+        generate_config_json_migration(&schema, &remote_config.config, &config_json.clone())?;
+
+    if !has_service_config_changes && migrated_config_json == *config_json {
         info!("No configuration changes");
 
         if !joining {
@@ -66,8 +70,13 @@ pub fn reconfigure(args: &Args, config_json: &ConfigMap, joining: bool) -> Resul
         config_json,
         &schema,
         &remote_config,
-        has_config_changes,
+        has_service_config_changes,
         joining,
+        if migrated_config_json == *config_json {
+            None
+        } else {
+            Some(migrated_config_json)
+        },
     );
 
     if args.supervisor_exists {
@@ -82,21 +91,27 @@ fn reconfigure_core(
     config_json: &ConfigMap,
     schema: &OsConfigSchema,
     remote_config: &RemoteConfiguration,
-    has_config_changes: bool,
+    has_service_config_changes: bool,
     joining: bool,
+    migrated_config_json: Option<ConfigMap>,
 ) -> Result<()> {
     if joining {
         write_config_json(&args.config_json_path, config_json)?;
     }
 
-    if has_config_changes {
+    if let Some(map) = migrated_config_json {
+        info!("Migrating config.json...");
+        write_config_json(&args.config_json_path, &map)?;
+    }
+
+    if has_service_config_changes {
         configure_services(schema, remote_config)?;
     }
 
     Ok(())
 }
 
-fn has_config_changes(
+fn has_service_config_changes(
     schema: &OsConfigSchema,
     remote_config: &RemoteConfiguration,
 ) -> Result<bool> {
