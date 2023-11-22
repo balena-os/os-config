@@ -119,7 +119,7 @@ mod tests {
             &mut config,
         );
 
-        assert_eq!(has_config_json_migrations, true);
+        assert!(has_config_json_migrations);
         assert_eq!(config.get("deadbeef").unwrap(), 2);
         assert_eq!(config.get("deadca1f").unwrap(), "3");
         assert_eq!(config.get("deadca2f").unwrap(), false);
