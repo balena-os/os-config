@@ -6,7 +6,7 @@ use crate::config_json::{
     get_api_endpoint, get_root_certificate, merge_config_json, read_config_json, write_config_json,
     ConfigMap,
 };
-use crate::migrate::generate_config_json_migration;
+use crate::migrate::migrate_config_json;
 use crate::remote::{config_url, fetch_configuration, RemoteConfiguration};
 use crate::schema::{read_os_config_schema, OsConfigSchema};
 use crate::systemd;
@@ -25,10 +25,10 @@ pub fn join(args: &Args) -> Result<()> {
         unreachable!()
     };
 
-    reconfigure(args, &config_json, true)
+    reconfigure(args, &mut config_json, true)
 }
 
-pub fn reconfigure(args: &Args, config_json: &ConfigMap, joining: bool) -> Result<()> {
+pub fn reconfigure(args: &Args, config_json: &mut ConfigMap, joining: bool) -> Result<()> {
     let schema = read_os_config_schema(&args.os_config_path)?;
 
     let api_endpoint = if let Some(api_endpoint) = get_api_endpoint(config_json)? {
@@ -48,10 +48,10 @@ pub fn reconfigure(args: &Args, config_json: &ConfigMap, joining: bool) -> Resul
 
     let has_service_config_changes = has_service_config_changes(&schema, &remote_config)?;
 
-    let migrated_config_json =
-        generate_config_json_migration(&schema, &remote_config.config, &config_json.clone())?;
+    let has_config_json_migrations =
+        migrate_config_json(&schema, &remote_config.config, config_json);
 
-    if !has_service_config_changes && migrated_config_json == *config_json {
+    if !has_service_config_changes && !has_config_json_migrations {
         info!("No configuration changes");
 
         if !joining {
@@ -65,18 +65,15 @@ pub fn reconfigure(args: &Args, config_json: &ConfigMap, joining: bool) -> Resul
         systemd::await_service_exit(SUPERVISOR_SERVICE)?;
     }
 
+    let should_write_config_json = joining || has_config_json_migrations;
+
     let result = reconfigure_core(
         args,
         config_json,
         &schema,
         &remote_config,
         has_service_config_changes,
-        joining,
-        if migrated_config_json == *config_json {
-            None
-        } else {
-            Some(migrated_config_json)
-        },
+        should_write_config_json,
     );
 
     if args.supervisor_exists {
@@ -92,16 +89,10 @@ fn reconfigure_core(
     schema: &OsConfigSchema,
     remote_config: &RemoteConfiguration,
     has_service_config_changes: bool,
-    joining: bool,
-    migrated_config_json: Option<ConfigMap>,
+    should_write_config_json: bool,
 ) -> Result<()> {
-    if joining {
+    if should_write_config_json {
         write_config_json(&args.config_json_path, config_json)?;
-    }
-
-    if let Some(map) = migrated_config_json {
-        info!("Migrating config.json...");
-        write_config_json(&args.config_json_path, &map)?;
     }
 
     if has_service_config_changes {

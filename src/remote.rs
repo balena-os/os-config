@@ -4,6 +4,8 @@ use std::time::Duration;
 
 use anyhow::{anyhow, Context, Result};
 
+pub type OverridesMap = HashMap<String, serde_json::Value>;
+
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct RemoteConfiguration {
     pub services: HashMap<String, HashMap<String, String>>,
@@ -12,7 +14,7 @@ pub struct RemoteConfiguration {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct ConfigMigrationInstructions {
-    pub overrides: HashMap<String, serde_json::Value>,
+    pub overrides: OverridesMap,
 }
 
 impl RemoteConfiguration {

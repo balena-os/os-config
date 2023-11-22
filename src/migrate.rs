@@ -5,62 +5,64 @@
 // whitelist.
 
 use crate::config_json::ConfigMap;
-use crate::remote::ConfigMigrationInstructions;
+use crate::remote::{ConfigMigrationInstructions, OverridesMap};
 use crate::schema::OsConfigSchema;
-use anyhow::Result;
-use std::collections::HashMap;
 
-pub fn generate_config_json_migration(
+pub fn migrate_config_json(
     schema: &OsConfigSchema,
-    migration_config: &ConfigMigrationInstructions,
-    config_json: &ConfigMap,
-) -> Result<ConfigMap> {
+    migration: &ConfigMigrationInstructions,
+    config_json: &mut ConfigMap,
+) -> bool {
     info!("Checking for config.json migrations...");
 
-    let mut new_config = config_json.clone();
+    let overridden = handle_override_directives(schema, &migration.overrides, config_json);
 
-    handle_update_directives(
-        schema,
-        &migration_config.overrides,
-        config_json,
-        &mut new_config,
-    );
+    if overridden {
+        info!("Done config.json migrations");
+    }
 
-    Ok(new_config)
+    overridden
 }
 
-fn handle_update_directives(
+fn handle_override_directives(
     schema: &OsConfigSchema,
-    to_update: &HashMap<String, serde_json::Value>,
-    config_json: &ConfigMap,
-    new_config: &mut ConfigMap,
-) {
-    for key in to_update.keys() {
+    overrides: &OverridesMap,
+    config_json: &mut ConfigMap,
+) -> bool {
+    let mut overridden = false;
+
+    // Sort overrides by key in order for tests to have predictable order
+    let mut items = overrides.iter().collect::<Vec<_>>();
+    items.sort_by_key(|pair| pair.0);
+
+    for (key, new_value) in items {
         if !schema.config.whitelist.contains(key) {
-            debug!("Key `{}` not in whitelist, skipping", key);
+            info!("Key `{}` not in whitelist, skipping", key);
             continue;
         }
 
-        if let Some(future) = to_update.get(key) {
-            if !config_json.contains_key(key) {
-                info!("Key `{}` not found, will insert", key);
-                new_config.insert(key.to_string(), future.clone());
-            } else if let Some(current) = config_json.get(key) {
-                if current != future {
-                    info!(
-                        "Key `{}` found with current value `{}`, will update to `{}`",
-                        key, current, future
-                    );
-                    new_config.insert(key.to_string(), future.clone());
-                } else {
-                    debug!(
-                        "Key `{}` found with current value `{}` equal to update value `{}`, skipping",
-                        key, current, future
-                    );
-                }
+        if let Some(existing_value) = config_json.get_mut(key) {
+            if new_value != existing_value {
+                info!(
+                    "Key `{}` found with existing value `{}`, will override to `{}`",
+                    key, existing_value, new_value
+                );
+                *existing_value = new_value.clone();
+                overridden = true;
+            } else {
+                debug!(
+                    "Key `{}` found with existing value `{}` equal to override value `{}`, skipping",
+                    key, existing_value, new_value
+                );
             }
+        } else {
+            info!("Key `{}` not found, will insert `{}`", key, new_value);
+            config_json.insert(key.to_string(), new_value.clone());
+            overridden = true;
         }
     }
+
+    overridden
 }
 
 mod tests {
@@ -109,20 +111,20 @@ mod tests {
             "#,
         );
 
-        let old_config = serde_json::from_str::<super::ConfigMap>(&config_json).unwrap();
+        let mut config = serde_json::from_str::<super::ConfigMap>(&config_json).unwrap();
 
-        let new_config = super::generate_config_json_migration(
+        let has_config_json_migrations = super::migrate_config_json(
             &serde_json::from_str(&schema).unwrap(),
             &serde_json::from_str(&configuration).unwrap(),
-            &old_config,
-        )
-        .unwrap();
+            &mut config,
+        );
 
-        assert_eq!(new_config.get("deadbeef").unwrap(), 2);
-        assert_eq!(new_config.get("deadca1f").unwrap(), "3");
-        assert_eq!(new_config.get("deadca2f").unwrap(), false);
-        assert_eq!(new_config.get("deadca3f").unwrap(), "string0");
-        assert_eq!(new_config.get("deadca4f").unwrap(), "new_field");
-        assert!(new_config.get("not_on_whitelist1").is_none());
+        assert_eq!(has_config_json_migrations, true);
+        assert_eq!(config.get("deadbeef").unwrap(), 2);
+        assert_eq!(config.get("deadca1f").unwrap(), "3");
+        assert_eq!(config.get("deadca2f").unwrap(), false);
+        assert_eq!(config.get("deadca3f").unwrap(), "string0");
+        assert_eq!(config.get("deadca4f").unwrap(), "new_field");
+        assert!(config.get("not_on_whitelist1").is_none());
     }
 }

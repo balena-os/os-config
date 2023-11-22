@@ -1911,33 +1911,32 @@ fn migrate_config_json() {
 
     let mut serve = serve_config(configuration, false, port);
 
-    // This is unfortunately necessary because the output for each line that
-    // begins with `Key` may vary in order.
-    let output_patterns = [
-        format!("Fetching service configuration from http://localhost:{}/os/v1/config...\nService configuration retrieved\nChecking for config.json migrations...", port),
-        "Key `logsEndpoint` not found, will insert".into(),
-        "Key `deltaEndpoint` found with current value `\"https://delta.balenadev.io\"`, will update to `\"https://delta2.balenadev.io\"`".into(),
-        "Key `deadbeef` found with current value `\"12345678\"`, will update to `\"1234567890\"`".into(),
-        "Key `persistentLogging` found with current value `false`, will update to `true`".into(),
-        "Key `applicationId` found with current value `1234567`, will update to `1234568`".into(),
-        format!("Stopping balena-supervisor.service...\nAwaiting balena-supervisor.service to exit...\nMigrating config.json...\nWriting {}/config.json\nStarting balena-supervisor.service...", tmp_dir_path),
-    ];
+    let output = unindent::unindent(&format!(
+        r#"
+        Fetching service configuration from http://localhost:{port}/os/v1/config...
+        Service configuration retrieved
+        Checking for config.json migrations...
+        Key `apiEndpoint` not in whitelist, skipping
+        Key `applicationId` found with existing value `1234567`, will override to `1234568`
+        Key `deadbeef` found with existing value `"12345678"`, will override to `"1234567890"`
+        Key `deltaEndpoint` found with existing value `"https://delta.balenadev.io"`, will override to `"https://delta2.balenadev.io"`
+        Key `logsEndpoint` not found, will insert `"https://logs.balenadev.io"`
+        Key `persistentLogging` found with existing value `false`, will override to `true`
+        Done config.json migrations
+        Stopping balena-supervisor.service...
+        Awaiting balena-supervisor.service to exit...
+        Writing {tmp_dir_path}/config.json
+        Starting balena-supervisor.service...
+        "#
+    ));
 
-    let output = get_base_command()
+    get_base_command()
         .args(["update"])
         .timeout(Duration::from_secs(5))
         .envs(os_config_env(&os_config_path, &config_json_path))
         .assert()
         .success()
-        .get_output()
-        .to_owned();
-
-    let string_output = String::from_utf8(output.stdout).unwrap();
-
-    for pattern in output_patterns.iter() {
-        // write string_output to local file for debugging
-        assert!(string_output.contains(pattern));
-    }
+        .stdout(output);
 
     validate_json_file(
         &config_json_path,
