@@ -1,7 +1,7 @@
 use crate::fs;
 use std::path::Path;
 
-use crate::args::{Args, SUPERVISOR_SERVICE};
+use crate::args::{Args, EXTRACT_BALENA_CA_SERVICE, SUPERVISOR_SERVICE};
 use crate::config_json::{
     get_api_endpoint, get_root_certificate, merge_config_json, read_config_json, write_config_json,
     ConfigMap,
@@ -21,6 +21,11 @@ pub fn join(args: &Args) -> Result<()> {
         clean_config_json_keys(&mut config_json, &schema);
 
         merge_config_json(&mut config_json, json_config)?;
+
+        if args.extract_balena_service_exists {
+            let _ = systemd::start_service(EXTRACT_BALENA_CA_SERVICE);
+            let _ = systemd::await_service_exit(EXTRACT_BALENA_CA_SERVICE);
+        }
     } else {
         unreachable!()
     };

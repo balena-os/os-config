@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use crate::systemd::service_exists;
 
 pub const SUPERVISOR_SERVICE: &str = "balena-supervisor.service";
+pub const EXTRACT_BALENA_CA_SERVICE: &str = "extract-balena-ca.service";
 
 const CONFIG_ROUTE: &str = "/os/v1/config";
 const OS_CONFIG_PATH: &str = "/etc/os-config.json";
@@ -33,6 +34,7 @@ pub struct Args {
     pub config_json_path: PathBuf,
     pub json_config: Option<String>,
     pub supervisor_exists: bool,
+    pub extract_balena_service_exists: bool,
 }
 
 pub fn get_cli_args() -> Args {
@@ -70,6 +72,7 @@ pub fn get_cli_args() -> Args {
     let os_config_path = get_os_config_path();
     let config_json_path = get_config_json_path();
     let supervisor_exists = service_exists(SUPERVISOR_SERVICE);
+    let extract_balena_service_exists = service_exists(EXTRACT_BALENA_CA_SERVICE);
 
     Args {
         subcommand,
@@ -78,6 +81,7 @@ pub fn get_cli_args() -> Args {
         config_json_path,
         json_config,
         supervisor_exists,
+        extract_balena_service_exists,
     }
 }
 
