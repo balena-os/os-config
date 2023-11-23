@@ -6,7 +6,8 @@ use crate::config_json::{
     get_api_endpoint, get_root_certificate, merge_config_json, read_config_json, write_config_json,
     ConfigMap,
 };
-use crate::remote::{config_url, fetch_configuration, Configuration};
+use crate::migrate::migrate_config_json;
+use crate::remote::{config_url, fetch_configuration, RemoteConfiguration};
 use crate::schema::{read_os_config_schema, OsConfigSchema};
 use crate::systemd;
 use anyhow::Result;
@@ -24,10 +25,10 @@ pub fn join(args: &Args) -> Result<()> {
         unreachable!()
     };
 
-    reconfigure(args, &config_json, true)
+    reconfigure(args, &mut config_json, true)
 }
 
-pub fn reconfigure(args: &Args, config_json: &ConfigMap, joining: bool) -> Result<()> {
+pub fn reconfigure(args: &Args, config_json: &mut ConfigMap, joining: bool) -> Result<()> {
     let schema = read_os_config_schema(&args.os_config_path)?;
 
     let api_endpoint = if let Some(api_endpoint) = get_api_endpoint(config_json)? {
@@ -39,15 +40,18 @@ pub fn reconfigure(args: &Args, config_json: &ConfigMap, joining: bool) -> Resul
 
     let root_certificate = get_root_certificate(config_json)?;
 
-    let configuration = fetch_configuration(
+    let remote_config = fetch_configuration(
         &config_url(&api_endpoint, &args.config_route),
         root_certificate,
         !joining,
     )?;
 
-    let has_config_changes = has_config_changes(&schema, &configuration)?;
+    let has_service_config_changes = has_service_config_changes(&schema, &remote_config)?;
 
-    if !has_config_changes {
+    let has_config_json_migrations =
+        migrate_config_json(&schema, &remote_config.config, config_json);
+
+    if !has_service_config_changes && !has_config_json_migrations {
         info!("No configuration changes");
 
         if !joining {
@@ -61,13 +65,15 @@ pub fn reconfigure(args: &Args, config_json: &ConfigMap, joining: bool) -> Resul
         systemd::await_service_exit(SUPERVISOR_SERVICE)?;
     }
 
+    let should_write_config_json = joining || has_config_json_migrations;
+
     let result = reconfigure_core(
         args,
         config_json,
         &schema,
-        &configuration,
-        has_config_changes,
-        joining,
+        &remote_config,
+        has_service_config_changes,
+        should_write_config_json,
     );
 
     if args.supervisor_exists {
@@ -81,25 +87,28 @@ fn reconfigure_core(
     args: &Args,
     config_json: &ConfigMap,
     schema: &OsConfigSchema,
-    configuration: &Configuration,
-    has_config_changes: bool,
-    joining: bool,
+    remote_config: &RemoteConfiguration,
+    has_service_config_changes: bool,
+    should_write_config_json: bool,
 ) -> Result<()> {
-    if joining {
+    if should_write_config_json {
         write_config_json(&args.config_json_path, config_json)?;
     }
 
-    if has_config_changes {
-        configure_services(schema, configuration)?;
+    if has_service_config_changes {
+        configure_services(schema, remote_config)?;
     }
 
     Ok(())
 }
 
-fn has_config_changes(schema: &OsConfigSchema, configuration: &Configuration) -> Result<bool> {
+fn has_service_config_changes(
+    schema: &OsConfigSchema,
+    remote_config: &RemoteConfiguration,
+) -> Result<bool> {
     for service in &schema.services {
         for (name, config_file) in &service.files {
-            let future = configuration.get_config_contents(&service.id, name)?;
+            let future = remote_config.get_config_contents(&service.id, name)?;
             let current = get_config_contents(&config_file.path);
 
             if future != current {
@@ -111,7 +120,7 @@ fn has_config_changes(schema: &OsConfigSchema, configuration: &Configuration) ->
     Ok(false)
 }
 
-fn configure_services(schema: &OsConfigSchema, configuration: &Configuration) -> Result<()> {
+fn configure_services(schema: &OsConfigSchema, remote_config: &RemoteConfiguration) -> Result<()> {
     for service in &schema.services {
         for systemd_service in &service.systemd_services {
             systemd::stop_service(systemd_service)?;
@@ -126,7 +135,7 @@ fn configure_services(schema: &OsConfigSchema, configuration: &Configuration) ->
         names.sort();
         for name in names {
             let config_file = &service.files[name as &str];
-            let contents = configuration.get_config_contents(&service.id, name)?;
+            let contents = remote_config.get_config_contents(&service.id, name)?;
             let mode = fs::parse_mode(&config_file.perm)?;
             fs::write_file(Path::new(&config_file.path), contents, mode)?;
             info!("{} updated", &config_file.path);

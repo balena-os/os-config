@@ -1,18 +1,14 @@
+use crate::fs::read_file;
+use anyhow::{Context, Result};
 use std::collections::HashMap;
 use std::path::Path;
-
-use serde_json::Value;
-
-use crate::fs::read_file;
-use anyhow::{bail, Context, Result};
-
-pub const SCHEMA_VERSION: &str = "1.0.0";
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct OsConfigSchema {
     pub services: Vec<Service>,
+    // Fields that should be removed from config.json when leaving a cloud env (`balena leave`)
     pub keys: Vec<String>,
-    pub schema_version: String,
+    pub config: ConfigJsonSchema,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -28,6 +24,12 @@ pub struct ConfigFile {
     pub perm: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct ConfigJsonSchema {
+    // Fields that may be modified in config.json
+    pub whitelist: Vec<String>,
+}
+
 pub fn read_os_config_schema(os_config_path: &Path) -> Result<OsConfigSchema> {
     read_os_config_schema_impl(os_config_path).context("Reading `os-config.json` schema failed")
 }
@@ -35,31 +37,7 @@ pub fn read_os_config_schema(os_config_path: &Path) -> Result<OsConfigSchema> {
 fn read_os_config_schema_impl(os_config_path: &Path) -> Result<OsConfigSchema> {
     let json_data = read_file(os_config_path)?;
 
-    validate_schema_version(&json_data)?;
-
     Ok(serde_json::from_str(&json_data)?)
-}
-
-pub fn validate_schema_version(json_data: &str) -> Result<()> {
-    let parsed: Value = serde_json::from_str(json_data)?;
-
-    match parsed.get("schema_version") {
-        Some(version_value) => match version_value.as_str() {
-            Some(schema_version) => {
-                if schema_version == SCHEMA_VERSION {
-                    Ok(())
-                } else {
-                    bail!(
-                        "Expected schema version {}, got {}",
-                        SCHEMA_VERSION,
-                        schema_version
-                    )
-                }
-            }
-            _ => bail!("`schema_version` should be a string"),
-        },
-        _ => bail!("Missing `schema_version`"),
-    }
 }
 
 #[cfg(test)]
@@ -98,7 +76,9 @@ mod tests {
             }
         ],
         "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-        "schema_version": "1.0.0"
+        "config": {
+            "whitelist": ["logsEndpoint"]
+        }
     }"#;
 
     #[test]
@@ -133,7 +113,9 @@ mod tests {
                 },
             ],
             keys: vec!["apiKey".into(), "apiEndpoint".into(), "vpnEndpoint".into()],
-            schema_version: SCHEMA_VERSION.into(),
+            config: ConfigJsonSchema {
+                whitelist: vec!["logsEndpoint".into()],
+            },
         };
 
         assert_eq!(parsed, expected);

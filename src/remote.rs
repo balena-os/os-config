@@ -2,16 +2,22 @@ use std::collections::HashMap;
 use std::thread;
 use std::time::Duration;
 
-use crate::schema::validate_schema_version;
 use anyhow::{anyhow, Context, Result};
 
+pub type OverridesMap = HashMap<String, serde_json::Value>;
+
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub struct Configuration {
+pub struct RemoteConfiguration {
     pub services: HashMap<String, HashMap<String, String>>,
-    pub schema_version: String,
+    pub config: ConfigMigrationInstructions,
 }
 
-impl Configuration {
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+pub struct ConfigMigrationInstructions {
+    pub overrides: OverridesMap,
+}
+
+impl RemoteConfiguration {
     pub fn get_config_contents<'a>(
         &'a self,
         service_id: &str,
@@ -42,7 +48,7 @@ pub fn fetch_configuration(
     config_url: &str,
     root_certificate: Option<reqwest::Certificate>,
     retry: bool,
-) -> Result<Configuration> {
+) -> Result<RemoteConfiguration> {
     fetch_configuration_impl(config_url, root_certificate, retry)
         .context("Fetching configuration failed")
 }
@@ -51,7 +57,7 @@ fn fetch_configuration_impl(
     config_url: &str,
     root_certificate: Option<reqwest::Certificate>,
     retry: bool,
-) -> Result<Configuration> {
+) -> Result<RemoteConfiguration> {
     let client = build_reqwest_client(root_certificate)?;
 
     let request_fn = if retry {
@@ -65,8 +71,6 @@ fn fetch_configuration_impl(
     let json_data = request_fn(config_url, &client)?.text()?;
 
     info!("Service configuration retrieved");
-
-    validate_schema_version(&json_data)?;
 
     Ok(serde_json::from_str(&json_data)?)
 }
@@ -141,7 +145,6 @@ fn build_reqwest_client(
 mod tests {
 
     use super::*;
-    use crate::schema::SCHEMA_VERSION;
 
     const JSON_DATA: &str = r#"{
         "services": {
@@ -155,14 +158,18 @@ mod tests {
                 "authorized_keys": "authorized keys here"
             }
         },
-        "schema_version": "1.0.0"
+        "config": {
+            "overrides": {
+                "logsEndpoint": "https://logs.balenadev.io"
+            }
+        }
     }"#;
 
     #[test]
-    fn parse_configuration_v1() {
-        let parsed: Configuration = serde_json::from_str(JSON_DATA).unwrap();
+    fn parse_configuration() {
+        let parsed: RemoteConfiguration = serde_json::from_str(JSON_DATA).unwrap();
 
-        let expected = Configuration {
+        let expected = RemoteConfiguration {
             services: hashmap! {
                 "openvpn".into() => hashmap!{
                     "config".into() => "main configuration here".into(),
@@ -174,7 +181,11 @@ mod tests {
                     "authorized_keys".into() => "authorized keys here".into()
                 }
             },
-            schema_version: SCHEMA_VERSION.into(),
+            config: ConfigMigrationInstructions {
+                overrides: hashmap! {
+                    "logsEndpoint".into() => "https://logs.balenadev.io".into()
+                },
+            },
         };
 
         assert_eq!(parsed, expected);

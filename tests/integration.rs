@@ -77,7 +77,9 @@ fn join() {
                 }}
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {{
+                "whitelist": ["logsEndpoint"]
+            }}
         }}
         "#
     );
@@ -99,7 +101,9 @@ fn join() {
                     "mock-3": "MOCK-3-0123456789"
                 }
             },
-            "schema_version": "1.0.0"
+            "config": {
+                "overrides": {}
+            }
         }
         "#,
     );
@@ -135,6 +139,7 @@ fn join() {
         r#"
         Fetching service configuration from http://localhost:{port}/os/v1/config...
         Service configuration retrieved
+        Checking for config.json migrations...
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
         Writing {tmp_dir_path}/config.json
@@ -257,7 +262,9 @@ fn join_flasher() {
                 }}
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {{
+                "whitelist": ["logsEndpoint"]
+            }}
         }}
         "#
     );
@@ -272,7 +279,9 @@ fn join_flasher() {
                     "mock-1": "MOCK-1-АБВГДЕЖЗИЙ"
                 }
             },
-            "schema_version": "1.0.0"
+            "config": {
+                "overrides": {}
+            }
         }
         "#,
     );
@@ -308,6 +317,7 @@ fn join_flasher() {
         r#"
         Fetching service configuration from http://localhost:{port}/os/v1/config...
         Service configuration retrieved
+        Checking for config.json migrations...
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
         Writing {tmp_dir_path}/config.json
@@ -392,7 +402,9 @@ fn join_with_root_certificate() {
             "services": [
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {
+                "whitelist": ["logsEndpoint"]
+            }
         }
         "#;
 
@@ -403,7 +415,9 @@ fn join_with_root_certificate() {
         {
             "services": {
             },
-            "schema_version": "1.0.0"
+            "config": {
+                "overrides": {}
+            }
         }
         "#,
     );
@@ -441,6 +455,7 @@ fn join_with_root_certificate() {
         r#"
         Fetching service configuration from https://localhost:{port}/os/v1/config...
         Service configuration retrieved
+        Checking for config.json migrations...
         No configuration changes
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
@@ -515,7 +530,9 @@ fn incompatible_device_types() {
             "services": [
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {
+                "whitelist": ["logsEndpoint"]
+            }
         }
         "#,
     );
@@ -608,7 +625,9 @@ fn reconfigure() {
             "services": [
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {
+                "whitelist": ["logsEndpoint"]
+            }
         }
         "#,
     );
@@ -620,7 +639,9 @@ fn reconfigure() {
         {
             "services": {
             },
-            "schema_version": "1.0.0"
+            "config": {
+                "overrides": {}
+            }
         }
         "#,
     );
@@ -656,6 +677,7 @@ fn reconfigure() {
         r#"
         Fetching service configuration from http://localhost:{port}/os/v1/config...
         Service configuration retrieved
+        Checking for config.json migrations...
         No configuration changes
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
@@ -751,7 +773,9 @@ fn reconfigure_stored() {
             "services": [
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {
+                "whitelist": ["logsEndpoint"]
+            }
         }
         "#,
     );
@@ -763,7 +787,9 @@ fn reconfigure_stored() {
         {
             "services": {
             },
-            "schema_version": "1.0.0"
+            "config": {
+                "overrides": {}
+            }
         }
         "#,
     );
@@ -799,6 +825,7 @@ fn reconfigure_stored() {
         r#"
         Fetching service configuration from http://localhost:{port}/os/v1/config...
         Service configuration retrieved
+        Checking for config.json migrations...
         No configuration changes
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
@@ -935,7 +962,9 @@ fn update() {
                 }}
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {{
+                "whitelist": ["logsEndpoint"]
+            }}
         }}
         "#
     );
@@ -961,7 +990,9 @@ fn update() {
                     "mock-3": "MOCK-3-0123456789"
                 }
             },
-            "schema_version": "1.0.0"
+            "config": {
+                "overrides": {}
+            }
         }
         "#,
     );
@@ -972,6 +1003,7 @@ fn update() {
         r#"
         Fetching service configuration from http://localhost:{port}/os/v1/config...
         Service configuration retrieved
+        Checking for config.json migrations...
         Stopping balena-supervisor.service...
         Awaiting balena-supervisor.service to exit...
         {tmp_dir_path}/not-a-service-1.conf updated
@@ -1097,7 +1129,9 @@ fn update_no_config_changes() {
                 }}
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {{
+                "whitelist": ["logsEndpoint"]
+            }}
         }}
         "#
     );
@@ -1122,7 +1156,9 @@ fn update_no_config_changes() {
                     "mock-3": "MOCK-3-0123456789"
                 }
             },
-            "schema_version": "1.0.0"
+            "config": {
+                "overrides": {}
+            }
         }
         "#,
     );
@@ -1133,6 +1169,7 @@ fn update_no_config_changes() {
         r#"
         Fetching service configuration from http://localhost:{port}/os/v1/config...
         Service configuration retrieved
+        Checking for config.json migrations...
         No configuration changes
         "#,
     ));
@@ -1211,7 +1248,9 @@ fn update_with_root_certificate() {
             "services": [
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {
+                "whitelist": ["logsEndpoint"]
+            }
         }
         "#;
 
@@ -1222,7 +1261,9 @@ fn update_with_root_certificate() {
         {
             "services": {
             },
-            "schema_version": "1.0.0"
+            "config": {
+                "overrides": {}
+            }
         }
         "#,
     );
@@ -1233,6 +1274,7 @@ fn update_with_root_certificate() {
         r#"
         Fetching service configuration from https://localhost:{port}/os/v1/config...
         Service configuration retrieved
+        Checking for config.json migrations...
         No configuration changes
         "#,
     ));
@@ -1271,7 +1313,9 @@ fn update_unmanaged() {
             "services": [
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {
+                "whitelist": ["logsEndpoint"]
+            }
         }
         "#;
 
@@ -1282,7 +1326,9 @@ fn update_unmanaged() {
         {
             "services": {
             },
-            "schema_version": "1.0.0"
+            "config": {
+                "overrides": {}
+            }
         }
         "#,
     );
@@ -1361,7 +1407,9 @@ fn leave() {
                 }}
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint", "vpnPort", "registryEndpoint", "deltaEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {{
+                "whitelist": ["logsEndpoint"]
+            }}
         }}
         "#
     );
@@ -1378,7 +1426,9 @@ fn leave() {
                     "mock-3": "MOCK-3-0123456789"
                 }
             },
-            "schema_version": "1.0.0"
+            "config": {
+                "overrides": {}
+            }
         }
         "#,
     );
@@ -1461,7 +1511,9 @@ fn leave_unmanaged() {
             "services": [
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {
+                "whitelist": ["logsEndpoint"]
+            }
         }
         "#,
     );
@@ -1473,7 +1525,9 @@ fn leave_unmanaged() {
         {
             "services": {
             },
-            "schema_version": "1.0.0"
+            "config": {
+                "overrides": {}
+            }
         }
         "#,
     );
@@ -1517,7 +1571,9 @@ fn generate_api_key_unmanaged() {
             "services": [
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {
+                "whitelist": ["logsEndpoint"]
+            }
         }
         "#,
     );
@@ -1576,7 +1632,9 @@ fn generate_api_key_already_generated() {
             "services": [
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {
+                "whitelist": ["logsEndpoint"]
+            }
         }
         "#,
     );
@@ -1635,7 +1693,9 @@ fn generate_api_key_reuse() {
             "services": [
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {
+                "whitelist": ["logsEndpoint"]
+            }
         }
         "#,
     );
@@ -1717,7 +1777,9 @@ fn generate_api_key_new() {
             "services": [
             ],
             "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
-            "schema_version": "1.0.0"
+            "config": {
+                "whitelist": ["logsEndpoint"]
+            }
         }
         "#,
     );
@@ -1764,6 +1826,234 @@ fn generate_api_key_new() {
     );
 }
 
+#[test]
+#[timeout(10000)]
+fn migrate_config_json() {
+    let port = 31014;
+    let tmp_dir = TempDir::new().unwrap();
+    let tmp_dir_path = tmp_dir.path().to_str().unwrap().to_string();
+
+    let config_json = format!(
+        r#"
+        {{
+            "deviceApiKey": "abcdef",
+            "deviceType": "intel-nuc",
+            "hostname": "balena",
+            "persistentLogging": false,
+            "applicationName": "aaaaaa",
+            "applicationId": 1234567,
+            "userId": 654321,
+            "appUpdatePollInterval": 900000,
+            "listenPort": 48484,
+            "vpnPort": 443,
+            "apiEndpoint": "http://{}",
+            "vpnEndpoint": "vpn.balenadev.io",
+            "registryEndpoint": "registry2.balenadev.io",
+            "deltaEndpoint": "https://delta.balenadev.io",
+            "apiKey": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1",
+            "deadbeef": "12345678",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab"
+        }}
+        "#,
+        server_address(port)
+    );
+
+    let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
+
+    let schema = r#"
+        {
+            "services": [
+            ],
+            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
+            "config": {
+                "whitelist": [
+                    "logsEndpoint",
+                    "mixpanelToken",
+                    "registryEndpoint",
+                    "deltaEndpoint",
+                    "applicationId",
+                    "persistentLogging",
+                    "deadbeef"
+                ]
+            }
+        }
+        "#
+    .to_string();
+
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
+
+    // - apiEndpoint: not on whitelist, should skip
+    // - logsEndpoint: value not present, should insert
+    // - registryEndpoint: value unchanged, should skip
+    // - deltaEndpoint: value changed, should update (String)
+    // - applicationId: value changed, should update (u64)
+    // - persistentLogging: value changed, should update (bool)
+    // - deadbeef: value changed, should update (stringified u64)
+    let configuration = unindent::unindent(
+        r#"
+        {
+            "services": {},
+            "config": {
+                "overrides": {
+                    "apiEndpoint": "http://api.balenadev.io",
+                    "logsEndpoint": "https://logs.balenadev.io",
+                    "registryEndpoint": "registry2.balenadev.io",
+                    "deltaEndpoint": "https://delta2.balenadev.io",
+                    "applicationId": 1234568,
+                    "persistentLogging": true,
+                    "deadbeef": "1234567890"
+                }
+            }
+        }
+        "#,
+    );
+
+    let mut serve = serve_config(configuration, false, port);
+
+    let output = unindent::unindent(&format!(
+        r#"
+        Fetching service configuration from http://localhost:{port}/os/v1/config...
+        Service configuration retrieved
+        Checking for config.json migrations...
+        Key `apiEndpoint` not in whitelist, skipping
+        Key `applicationId` found with existing value `1234567`, will override to `1234568`
+        Key `deadbeef` found with existing value `"12345678"`, will override to `"1234567890"`
+        Key `deltaEndpoint` found with existing value `"https://delta.balenadev.io"`, will override to `"https://delta2.balenadev.io"`
+        Key `logsEndpoint` not found, will insert `"https://logs.balenadev.io"`
+        Key `persistentLogging` found with existing value `false`, will override to `true`
+        Done config.json migrations
+        Stopping balena-supervisor.service...
+        Awaiting balena-supervisor.service to exit...
+        Writing {tmp_dir_path}/config.json
+        Starting balena-supervisor.service...
+        "#
+    ));
+
+    get_base_command()
+        .args(["update"])
+        .timeout(Duration::from_secs(5))
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
+
+    validate_json_file(
+        &config_json_path,
+        &format!(
+            r#"
+            {{
+                "deviceApiKey": "abcdef",
+                "deviceType": "intel-nuc",
+                "hostname": "balena",
+                "persistentLogging": true,
+                "applicationName": "aaaaaa",
+                "applicationId": 1234568,
+                "userId": 654321,
+                "appUpdatePollInterval": 900000,
+                "listenPort": 48484,
+                "vpnPort": 443,
+                "apiEndpoint": "http://{}",
+                "vpnEndpoint": "vpn.balenadev.io",
+                "registryEndpoint": "registry2.balenadev.io",
+                "deltaEndpoint": "https://delta2.balenadev.io",
+                "apiKey": "12345678abcd1234efgh1234567890ab",
+                "version": "9.99.9+rev1",
+                "deadbeef": "1234567890",
+                "mixpanelToken": "12345678abcd1234efgh1234567890ab",
+                "logsEndpoint": "https://logs.balenadev.io"
+            }}
+            "#,
+            server_address(port)
+        ),
+        false,
+    );
+
+    serve.stop();
+}
+
+#[test]
+#[timeout(10000)]
+fn ignore_unknown_cloud_config_fields() {
+    let port = 31015;
+    let tmp_dir = TempDir::new().unwrap();
+
+    let config_json = format!(
+        r#"
+        {{
+            "deviceApiKey": "abcdef",
+            "deviceType": "intel-nuc",
+            "hostname": "balena",
+            "persistentLogging": false,
+            "applicationName": "aaaaaa",
+            "applicationId": 1234567,
+            "userId": 654321,
+            "appUpdatePollInterval": 900000,
+            "listenPort": 48484,
+            "vpnPort": 443,
+            "apiEndpoint": "http://{}",
+            "vpnEndpoint": "vpn.balenadev.io",
+            "registryEndpoint": "registry2.balenadev.io",
+            "deltaEndpoint": "https://delta.balenadev.io",
+            "apiKey": "12345678abcd1234efgh1234567890ab",
+            "version": "9.99.9+rev1",
+            "mixpanelToken": "12345678abcd1234efgh1234567890ab"
+        }}
+        "#,
+        server_address(port)
+    );
+
+    let config_json_path = create_tmp_file(&tmp_dir, "config.json", &config_json, None);
+
+    let schema = r#"
+        {
+            "services": [
+            ],
+            "keys": ["apiKey", "apiEndpoint", "vpnEndpoint"],
+            "config": {
+                "whitelist": []
+            }
+        }
+        "#
+    .to_string();
+
+    let os_config_path = create_tmp_file(&tmp_dir, "os-config.json", &schema, None);
+
+    let configuration = unindent::unindent(
+        r#"
+        {
+            "services": {},
+            "config": {
+                "overrides": {}
+            },
+            "unknown_field": "unknown_value"
+        }
+        "#,
+    );
+
+    let mut serve = serve_config(configuration, false, port);
+
+    let output = unindent::unindent(&format!(
+        r#"
+        Fetching service configuration from http://localhost:{port}/os/v1/config...
+        Service configuration retrieved
+        Checking for config.json migrations...
+        No configuration changes
+        "#,
+    ));
+
+    get_base_command()
+        .args(["update"])
+        .timeout(Duration::from_secs(5))
+        .envs(os_config_env(&os_config_path, &config_json_path))
+        .assert()
+        .success()
+        .stdout(output);
+
+    validate_json_file(&config_json_path, &config_json, false);
+
+    serve.stop();
+}
 /*******************************************************************************
 *  os-config launch
 */
