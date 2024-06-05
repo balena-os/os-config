@@ -133,6 +133,7 @@ fn build_reqwest_client(
     let client = if let Some(root_certificate) = root_certificate {
         reqwest::blocking::Client::builder()
             .add_root_certificate(root_certificate)
+            .use_rustls_tls()
             .build()?
     } else {
         reqwest::blocking::Client::new()

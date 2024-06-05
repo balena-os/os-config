@@ -11,9 +11,9 @@ use actix_web::rt::System;
 use actix_web::web::{resource, Data};
 use actix_web::{App, HttpResponse, HttpServer};
 
-use openssl::pkey::PKey;
-use openssl::ssl::{SslAcceptor, SslMethod};
-use openssl::x509::X509;
+use pem::parse;
+use rcgen::{CertificateParams, DistinguishedName, KeyPair};
+use rustls::{Certificate, PrivateKey, ServerConfig};
 
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
@@ -37,16 +37,24 @@ pub fn serve_config(config: String, with_ssl: bool, port: u16) -> Serve {
     });
 
     server = if with_ssl {
-        let pkey = PKey::private_key_from_pem(RSA_PRIVATE_KEY.as_bytes()).unwrap();
-        let x509 = X509::from_pem(CERTIFICATE.as_bytes()).unwrap();
+        // Parse the PEM certificate
+        let pem_cert = parse(CERTIFICATE).expect("Failed to parse PEM certificate");
+        let der_cert = pem_cert.contents;
+        let certificate = Certificate(der_cert);
 
-        let mut acceptor = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
-        acceptor.set_verify(openssl::ssl::SslVerifyMode::NONE);
-        acceptor.set_private_key(&pkey).unwrap();
-        acceptor.set_certificate(&x509).unwrap();
-        acceptor.check_private_key().unwrap();
+        // Parse the PEM private key
+        let pem_key = parse(RSA_PRIVATE_KEY).expect("Failed to parse PEM private key");
+        let der_key = pem_key.contents;
+        let private_key = PrivateKey(der_key);
 
-        server.bind_openssl(server_address(port), acceptor)
+        // Create rustls server config
+        let config = ServerConfig::builder()
+            .with_safe_defaults()
+            .with_no_client_auth()
+            .with_single_cert(vec![certificate], private_key)
+            .expect("Failed to create ServerConfig");
+
+        server.bind_rustls(server_address(port), config)
     } else {
         server.bind(server_address(port))
     }
@@ -204,60 +212,29 @@ pub fn validate_does_not_exist(path: &str) {
 *  Certificates
 */
 
-use std::process::Command;
-
-/**
- * Generate a private key & certificate pair using command line openssl
- */
 pub fn generate_self_signed_cert() -> (String, String) {
-    let output = Command::new("openssl")
-        .args([
-            "req",
-            "-new",
-            "-newkey",
-            "rsa:2048",
-            "-nodes",
-            "-x509",
-            "-subj",
-            "/CN=localhost",
-            "-keyout",
-            "/dev/stdout",
-            "-out",
-            "/dev/stdout",
-        ])
-        .output()
-        .expect("Failed to generate certificate");
+    // Create certificate parameters
+    let mut params = CertificateParams::default();
 
-    let output_str = String::from_utf8_lossy(&output.stdout).to_string();
+    // Set the distinguished name for the certificate (common name)
+    params.distinguished_name = DistinguishedName::new();
+    params
+        .distinguished_name
+        .push(rcgen::DnType::CommonName, "localhost");
 
-    let private_key = extract_substring(
-        &output_str,
-        "-----BEGIN PRIVATE KEY-----",
-        "-----END PRIVATE KEY-----",
-    )
-    .unwrap_or_else(|| panic!("Failed to extract private key"));
+    // Generate a key pair
+    let key_pair =
+        KeyPair::generate(&rcgen::PKCS_ECDSA_P256_SHA256).expect("Failed to generate key pair");
+    params.key_pair = Some(key_pair);
 
-    let certificate = extract_substring(
-        &output_str,
-        "-----BEGIN CERTIFICATE-----",
-        "-----END CERTIFICATE-----",
-    )
-    .unwrap_or_else(|| panic!("Failed to extract certificate"));
+    // Generate the certificate
+    let cert = rcgen::Certificate::from_params(params).expect("Failed to generate certificate");
+    let cert_pem = cert
+        .serialize_pem()
+        .expect("Failed to serialize certificate");
+    let key_pem = cert.serialize_private_key_pem();
 
-    (private_key, certificate)
-}
-
-/**
- * Extract a substring from a string, returning the substring with start & end included
- */
-fn extract_substring(input: &str, start: &str, end: &str) -> Option<String> {
-    input.find(start).map(|start_idx| {
-        let end_idx = input.find(end).unwrap_or_else(|| {
-            panic!("Failed to get end index for substring");
-        }) + end.len()
-            - 1;
-        input[start_idx..=end_idx].to_owned()
-    })
+    (key_pem, cert_pem)
 }
 
 pub const CERTIFICATE: &str = "-----BEGIN CERTIFICATE-----
