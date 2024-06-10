@@ -4,6 +4,9 @@ use std::time::Duration;
 
 use anyhow::{anyhow, Context, Result};
 
+use crate::args::get_config_json_path;
+use crate::config_json::{get_api_key, read_config_json};
+
 pub type OverridesMap = HashMap<String, serde_json::Value>;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -58,6 +61,13 @@ fn fetch_configuration_impl(
     root_certificate: Option<reqwest::Certificate>,
     retry: bool,
 ) -> Result<RemoteConfiguration> {
+    let config_json = read_config_json(&get_config_json_path())?;
+    let api_key = get_api_key(&config_json)?.unwrap_or("".to_string());
+
+    if !api_key.is_empty() {
+        debug!("using auth token {:.7}...", api_key);
+    }
+
     let client = build_reqwest_client(root_certificate)?;
 
     let request_fn = if retry {
@@ -68,7 +78,7 @@ fn fetch_configuration_impl(
 
     info!("Fetching service configuration from {}...", config_url);
 
-    let json_data = request_fn(config_url, &client)?.text()?;
+    let json_data = request_fn(config_url, &api_key, &client)?.text()?;
 
     info!("Service configuration retrieved");
 
@@ -77,13 +87,15 @@ fn fetch_configuration_impl(
 
 fn request_config(
     url: &str,
+    token: &str,
     client: &reqwest::blocking::Client,
 ) -> Result<reqwest::blocking::Response> {
-    Ok(client.get(url).send()?)
+    Ok(client.get(url).bearer_auth(token).send()?)
 }
 
 fn retry_request_config(
     url: &str,
+    token: &str,
     client: &reqwest::blocking::Client,
 ) -> Result<reqwest::blocking::Response> {
     let mut sleeped = 0;
@@ -91,7 +103,7 @@ fn retry_request_config(
     let mut last_err = String::new();
 
     loop {
-        match client.get(url).send() {
+        match client.get(url).bearer_auth(token).send() {
             Ok(response) => {
                 return Ok(response);
             }

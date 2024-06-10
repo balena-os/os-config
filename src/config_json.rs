@@ -179,7 +179,7 @@ fn strip_api_endpoint(api_endpoint: &str) -> String {
     }
 }
 
-fn get_api_key(config_json: &ConfigMap) -> Result<Option<String>> {
+pub fn get_api_key(config_json: &ConfigMap) -> Result<Option<String>> {
     if let Some(value) = config_json.get("deviceApiKey") {
         if let Some(api_key) = value.as_str() {
             Ok(Some(api_key.to_string()))
