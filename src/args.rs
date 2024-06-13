@@ -85,7 +85,7 @@ pub fn get_os_config_path() -> PathBuf {
     path_buf(&try_redefined(OS_CONFIG_PATH, OS_CONFIG_PATH_REDEFINE))
 }
 
-fn get_config_json_path() -> PathBuf {
+pub fn get_config_json_path() -> PathBuf {
     if get_flasher_flag_path().exists() {
         get_config_json_flasher_path()
     } else {
