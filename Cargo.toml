@@ -3,7 +3,7 @@ members = ["test_utils"]
 
 [package]
 name = "os-config"
-version = "1.3.0"
+version = "1.4.0"
 authors = ["Zahari Petkov <zahari@balena.io>", "Andrei Gherzan <andrei@balena.io>"]
 description = "balenaOS configuration tool"
 repository = "https://github.com/balena-os/os-config"

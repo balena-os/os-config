@@ -1,4 +1,22 @@
 - commits:
+    - subject: Add auth. header to /os/v1/config requests
+      hash: 4ea6bf45a6cefa470a1f5d50dcd882443fc71920
+      body: >
+        * this allows the API to identify devices requesting configuration and
+          apply routing logic (e.g. switch from TCP to UDP OpenVPN configuration)
+
+        *
+        https://github.com/balena-os/meta-balena/pull/3443/commits/c401ebbf551420a0c2a91eff3cb0ecd83f12a056
+      footer:
+        change-type: minor
+        Signed-off-by: Anton Belodedenko <2033996+ab77@users.noreply.github.com>
+        signed-off-by: Anton Belodedenko <2033996+ab77@users.noreply.github.com>
+      author: Anton Belodedenko
+      nested: []
+  version: 1.4.0
+  title: ""
+  date: 2024-06-13T17:42:58.493Z
+- commits:
     - subject: Migrate existing functionality to new os-config schema
       hash: f0882b960fa8810be462e7c23a64f39b5d1594ae
       body: |
@@ -26,13 +44,17 @@
         there is an assertion to check every code branch in those functions.
 
 
-        TODO: read_config_json & write_config_json write to the filesystem because
+        TODO: read_config_json & write_config_json write to the filesystem
+        because
 
-        they read/write to/from the actual filesystem. There are already some utility
+        they read/write to/from the actual filesystem. There are already some
+        utility
 
-        functions (validate_json_file and create_tmp_file) in tests/integration.rs
+        functions (validate_json_file and create_tmp_file) in
+        tests/integration.rs
 
-        that can help here. This file handling functionality could be moved to an internal
+        that can help here. This file handling functionality could be moved to
+        an internal
 
         crate so it can be used in both places.
       footer:
@@ -427,7 +449,8 @@
 
         ```
 
-        could not initialize thread_rng: All entropy sources failed (permanently unavailable);
+        could not initialize thread_rng: All entropy sources failed (permanently
+        unavailable);
 
         cause: getrandom not ready (not ready yet);
 
@@ -435,7 +458,8 @@
 
         ```
 
-        This change makes sure we are cycling until a random sequence is populated successfully.
+        This change makes sure we are cycling until a random sequence is
+        populated successfully.
     - hash: 14a19bf24e258c01a294bd7adfa808fddee59096
       author: Zubair Lutfullah Kakakhel
       footers:
