@@ -14,7 +14,6 @@ jobs:
     secrets: inherit
     with:
       rust_binaries: true
-      rust_toolchain: 1.67
       cargo_targets: |
         aarch64-unknown-linux-gnu,
         armv7-unknown-linux-gnueabihf,
