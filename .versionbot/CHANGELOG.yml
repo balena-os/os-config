@@ -1,12 +1,32 @@
 - commits:
+    - subject: Use rust-version to set MSRV instead of flowzone
+      hash: 8a0a29d8bce5d2737eb0374027df2d149de6b269
+      body: ""
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: felipe
+      nested: []
+    - subject: Do no publish to crate.io
+      hash: 736fe2e7657479e6154d326756f5a5195b9040f3
+      body: |
+        Default is true. This prevents accidental publishing
+      footer:
+        Change-type: patch
+        change-type: patch
+      author: Felipe Lalanne
+      nested: []
+  version: 1.4.1
+  title: ""
+  date: 2025-09-22T18:50:38.127Z
+- commits:
     - subject: Add auth. header to /os/v1/config requests
       hash: 4ea6bf45a6cefa470a1f5d50dcd882443fc71920
-      body: >
+      body: |
         * this allows the API to identify devices requesting configuration and
           apply routing logic (e.g. switch from TCP to UDP OpenVPN configuration)
 
-        *
-        https://github.com/balena-os/meta-balena/pull/3443/commits/c401ebbf551420a0c2a91eff3cb0ecd83f12a056
+        * https://github.com/balena-os/meta-balena/pull/3443/commits/c401ebbf551420a0c2a91eff3cb0ecd83f12a056
       footer:
         change-type: minor
         Signed-off-by: Anton Belodedenko <2033996+ab77@users.noreply.github.com>
