@@ -9,6 +9,8 @@ description = "balenaOS configuration tool"
 repository = "https://github.com/balena-os/os-config"
 license = "Apache-2.0"
 edition = "2021"
+rust-version = "1.67"
+publish = false
 
 [dependencies]
 anyhow = "1"
