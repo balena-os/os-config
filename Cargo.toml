@@ -19,16 +19,15 @@ env_logger = "0.10"
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
-reqwest = {version = "0.11", features = ["blocking"]}
-openssl = "0.10"
+reqwest = {version = "0.11", default-features = false, features = ["blocking", "rustls-tls"]}
 hex = "0.4"
 getrandom = "0.2"
 base64 = "0.21"
 zbus = {version = "3.12", default-features = false, features = ["tokio"]}
-clap = {version = "4", features = ["derive", "cargo"]}
+clap = {version = "4.1", features = ["derive", "cargo"]}
 
 [dev-dependencies]
-assert_cmd = "2.0"
+assert_cmd = "2.0.11"
 maplit = "1.0"
 tempfile = "3"
 unindent = "0.1"
